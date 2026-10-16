@@ -1,0 +1,11 @@
+# checklist
+
+File: `checklist.svg`.
+
+Authorship: drawn 2026-10-15 by a Claude agent (Opus 5.5) for Satin, clean-room. Sources were a written description of the everyday object and the visual language of Framework7 Icons 5.0.5 (MIT): 56-unit viewBox, ~3.9-unit regular stroke, round caps and joins, slashes drawn top-left to bottom-right with a 2.6-unit gap, fills that are their outline filled (details become seams or parted pieces).
+
+Description: Three rows on the Framework7 `list_bullet` row centres (y 13.8, 28, 42.2), each a small round-ended tick (3.6-unit stroke) followed by a 3.78-unit line to x 51.6; the ticks stand where `list.bullet` has dots.
+
+Method: geometry authored as primitive strokes and shapes, expanded and unioned with skia-pathops into one nonzero filled path, coordinates at 4 decimals. Not scaled for apparent size; set-wide sizing is calibrated in the Symbol system.
+
+Provenance: no SF Symbols file, font, image, screenshot or exported path was opened, traced or recalled for this glyph. Only Framework7 Icons 5.0.5 SVGs (MIT) were viewed, as style references.

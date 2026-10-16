@@ -1,0 +1,45 @@
+import { describe, it, expect } from 'vitest'
+import { LensPress } from './lensPress.ts'
+describe('independent lens optical envelope', () => {
+  it('holds, releases continuously, and resets all four fields', () => {
+    const p = new LensPress()
+    for (const mode of ['light', 'dark'] as const) {
+      expect(p.sample(0, mode)).toEqual([0, 0, 0, 0])
+    }
+    p.down(100)
+    expect(p.sample(110, 'light')[0]).toBeLessThan(0)
+    expect(p.sample(120, 'light')[2]).not.toBe(p.sample(120, 'light')[0])
+    const held = p.sample(1000, 'light')
+    expect(held).toEqual([-10.5, 7, 11.2, 3.68])
+    p.up(1000)
+    expect(p.sample(1000, 'light')).toEqual(held)
+    expect(p.sample(1200, 'light')[0]).toBeGreaterThan(held[0])
+    expect(p.sample(2100, 'light').map(Math.abs)).toEqual([0, 0, 0, 0])
+    p.reset()
+    expect(p.sample(1100, 'dark')).toEqual([0, 0, 0, 0])
+  })
+  it('retargets partial press and release without an optical jump', () => {
+    const p = new LensPress()
+    p.down(100)
+    const partial = p.sample(140, 'dark')
+    p.up(140)
+    expect(p.sample(140, 'dark')).toEqual(partial)
+    const released = p.sample(190, 'dark')
+    p.down(190)
+    p.sample(190, 'dark').forEach((v, i) => expect(v).toBeCloseTo(released[i], 12))
+  })
+  it('coordinates independent lighting clocks and interrupted release', () => {
+    const p = new LensPress()
+    p.down(100)
+    expect(p.lighting(120, 'light')[0]).not.toBe(p.lighting(120, 'light')[1])
+    expect(p.lighting(1000, 'light')).toEqual([1, 1, 1, 1, 1, 1, 1])
+    const partial = p.lighting(140, 'dark')
+    p.up(140)
+    expect(p.lighting(140, 'dark')).toEqual(partial)
+    const released = p.lighting(190, 'dark')
+    p.down(190)
+    p.lighting(190, 'dark').forEach((v, i) => expect(v).toBeCloseTo(released[i], 12))
+    p.reset()
+    expect(p.lighting(200, 'dark')).toEqual([0, 0, 0, 0, 0, 0, 0])
+  })
+})

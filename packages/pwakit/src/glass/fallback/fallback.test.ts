@@ -1,0 +1,205 @@
+// @vitest-environment happy-dom
+import { afterEach, expect, it, vi } from 'vitest'
+import { fallbackGlassRequested } from './selection.ts'
+import { FallbackGlassRuntime } from './runtime.ts'
+import { FallbackMaterial } from './material.ts'
+import { TabMotion, TAB_INTERACTIVE_MOTION } from '../lens/tabMotion.ts'
+import { createRenderSpecs, type RuntimeGeometry } from '../renderSpecs.ts'
+import { FallbackRegions } from './regions.ts'
+import { holdPresentationForGlass } from '../../presentation/glassReady.ts'
+import { GlassRegionRegistry } from '../regionRegistry.ts'
+import { setGlassShapeTrack } from '../shapeTrackRegistry.ts'
+
+afterEach(() => {
+  delete document.documentElement.dataset.satinGlass
+  window.history.replaceState(null, '', '/')
+  document.body.replaceChildren()
+  vi.restoreAllMocks()
+  vi.unstubAllGlobals()
+  vi.unstubAllEnvs()
+})
+
+it('requires explicit selection even when WebGPU is unavailable, and allows a URL kill switch', () => {
+  // Explicit fallback is a separate mode; internal strict builds forbid it.
+  vi.stubEnv('SATIN_STRICT_GLASS', '')
+  expect(fallbackGlassRequested()).toBe(false)
+  document.documentElement.dataset.satinGlass = 'fallback'
+  expect(fallbackGlassRequested()).toBe(true)
+  window.history.replaceState(null, '', '/?glass=webgpu')
+  expect(fallbackGlassRequested()).toBe(false)
+  window.history.replaceState(null, '', '/?glass=fallback')
+  expect(fallbackGlassRequested()).toBe(true)
+})
+
+it('paints registered sheet corners without a GPU and removes material with its owner', () => {
+  const host = document.createElement('div')
+  document.body.append(host)
+  Object.defineProperties(host, { offsetWidth: { value: 320 }, offsetHeight: { value: 400 } })
+  const canvas = document.createElement('canvas')
+  host.append(canvas)
+  const registry = new GlassRegionRegistry()
+  const unregister = registry.register({
+    id: 'sheet',
+    element: host,
+    canvas,
+    descriptor: {
+      id: 'sheet',
+      shape: { kind: 'roundedRectangle', cornerRadius: 30, bottomCornerRadius: 12 },
+      material: { variant: 'regular', interactive: false, treatment: 'sheet' },
+    },
+  })
+  const fallback = new FallbackRegions(registry, 'light')
+  expect(canvas.style.visibility).toBe('hidden')
+  const material = host.querySelector<HTMLElement>('[data-satin-fallback-material] > div')!
+  expect(material.style.width).toBe('320px')
+  expect(material.style.borderRadius).toBe('30px 30px 12px 12px')
+  const light = material.style.background
+  fallback.setAppearance('dark')
+  expect(material.style.background).not.toBe(light)
+  unregister()
+  fallback.refresh()
+  expect(canvas.style.visibility).toBe('')
+  expect(host.querySelector('[data-satin-fallback-material]')).toBeNull()
+  fallback.dispose()
+})
+
+it('releases a held presentation only after CSS material commits for that show', async () => {
+  const panel = document.createElement('div')
+  panel.dataset.satinGlassRegionId = 'menu'
+  Object.defineProperties(panel, { offsetWidth: { value: 200 }, offsetHeight: { value: 100 } })
+  const canvas = document.createElement('canvas')
+  canvas.dataset.satinGlassRegionCanvas = 'true'
+  panel.append(canvas)
+  document.body.append(panel)
+  const registry = new GlassRegionRegistry()
+  const unregister = registry.register({
+    id: 'menu',
+    element: panel,
+    canvas,
+    descriptor: {
+      id: 'menu',
+      shape: 'capsule',
+      material: { variant: 'regular', interactive: false },
+    },
+  })
+  const fallback = new FallbackRegions(registry, 'light')
+  const ready = vi.fn()
+  const release = holdPresentationForGlass(panel, null, [], registry.invalidate, ready)
+  expect(ready).not.toHaveBeenCalled()
+  await vi.waitFor(() => expect(panel.hasAttribute('data-satin-glass-hold')).toBe(false))
+  expect(ready).toHaveBeenCalledOnce()
+  release()
+  unregister()
+  fallback.dispose()
+})
+
+it('joins the original aperture timeline when GPU demotes during toolbar travel', () => {
+  const host = document.createElement('div')
+  document.body.append(host)
+  Object.defineProperties(host, { offsetWidth: { value: 120 }, offsetHeight: { value: 44 } })
+  const canvas = document.createElement('canvas')
+  host.append(canvas)
+  const registry = new GlassRegionRegistry()
+  registry.register({
+    id: 'toolbar',
+    element: host,
+    canvas,
+    descriptor: {
+      id: 'toolbar',
+      shape: 'capsule',
+      material: { variant: 'regular', interactive: false },
+    },
+  })
+  const play = vi.spyOn(FallbackMaterial.prototype, 'play').mockResolvedValue(undefined)
+  const epoch = performance.timeOrigin + performance.now() - 120
+  setGlassShapeTrack(host, {
+    epoch,
+    duration: 240,
+    frames: [
+      { x: 80, y: 0, width: 40, height: 44 },
+      { x: 0, y: 0, width: 120, height: 44 },
+    ],
+    radii: [7, 20],
+  })
+  const fallback = new FallbackRegions(registry, 'light')
+  expect(play).toHaveBeenCalledOnce()
+  const [specs, duration, start] = play.mock.calls[0]!
+  expect(duration).toBe(240)
+  expect(start).toBeCloseTo(epoch - performance.timeOrigin, 4)
+  expect(specs[0]!.shape.first.halfWidth).toBe(20)
+  expect(specs[0]!.shape.first.radius).toBe(7)
+  expect(specs[1]!.shape.first.halfWidth).toBe(60)
+  expect(specs[1]!.shape.first.radius).toBe(20)
+  fallback.refresh()
+  expect(play).toHaveBeenCalledOnce()
+  fallback.dispose()
+})
+
+it('moves the held tab lens with the finger and returns a cancelled drag to the committed tab', () => {
+  const host = document.createElement('div')
+  document.body.append(host)
+  const geometry: RuntimeGeometry = {
+    bottomInset: 0,
+    circleSize: 48,
+    circleY: 0,
+    dockHeight: 62,
+    dockRadius: 31,
+    dockWidth: 300,
+    dockX: 0,
+    dockY: 0,
+    height: 800,
+    leftX: 0,
+    physicalTopInset: 0,
+    rightX: 0,
+    surfaceMode: 'chrome',
+    width: 400,
+    tabBarCentres: [50, 150, 250],
+    tabBarSelectedIndex: 0,
+    tabBarPillWidth: 94,
+    tabBarPillHeight: 54,
+    tabBarPillCenterY: 31,
+  }
+  const tab = new TabMotion(TAB_INTERACTIVE_MOTION)
+  tab.configure([50, 150, 250], 94, 54, 300)
+  const thumb = new FallbackMaterial(host)
+  const runtime = Object.create(FallbackGlassRuntime.prototype) as FallbackGlassRuntime
+  Object.assign(runtime, {
+    tab,
+    thumb,
+    options: { geometry, appearance: 'light' },
+    minimizeDom: { inkTransformed: false },
+    dockSpec: () => createRenderSpecs(geometry, 'light').find(spec => spec.id === 'dock')!,
+  })
+  let now = 100
+  let next: FrameRequestCallback | undefined
+  vi.spyOn(performance, 'now').mockImplementation(() => now)
+  vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+    next = callback
+    return 1
+  })
+  const advance = (frames: number) => {
+    for (let index = 0; index < frames; index++) {
+      now += 1000 / 60
+      const callback = next
+      next = undefined
+      callback?.(now)
+    }
+  }
+  const center = () => {
+    const part = host.querySelector<HTMLElement>('[data-satin-fallback-material] > div')!
+    return (
+      Number(/translate3d\(([^p]+)/.exec(part.style.transform)![1]) +
+      parseFloat(part.style.width) / 2
+    )
+  }
+  runtime.tabPointerDown(50, 0)
+  advance(12)
+  const held = center()
+  runtime.tabPointerMove(210)
+  advance(12)
+  expect(center()).toBeGreaterThan(held + 100)
+  runtime.tabPointerUp(true)
+  advance(90)
+  expect(center()).toBeCloseTo(50, 0)
+  thumb.dispose()
+})

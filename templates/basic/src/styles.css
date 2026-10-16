@@ -1,0 +1,66 @@
+.app {
+  --app-cell: #ffffff;
+  --app-label: #000000;
+  --app-secondary: #66666b;
+  --app-separator: #e5e5ea;
+  color: var(--app-label);
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+}
+.app-list {
+  position: absolute;
+  inset: 0;
+}
+.app h1 {
+  margin: 0 0 18px;
+  font-size: 34px;
+  line-height: 1.2;
+  letter-spacing: -0.026em;
+}
+.intro,
+.footnote {
+  color: var(--app-secondary);
+  line-height: 1.45;
+}
+.intro {
+  margin: -8px 0 26px;
+}
+.footnote {
+  margin: 12px 16px;
+  font-size: 13px;
+}
+
+.updated-notice {
+  margin-top: 12px;
+  padding: 9px 16px;
+  border-radius: 999px;
+  background: var(--app-cell);
+  color: var(--app-label);
+  box-shadow: 0 4px 20px #0002;
+  font:
+    600 14px -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
+  pointer-events: none;
+}
+:where(html[data-satin-appearance='dark']) .app {
+  --app-cell: #1c1c1e;
+  --app-label: #ffffff;
+  --app-secondary: #aeaeb2;
+  --app-separator: #38383a;
+}
+
+@supports (font: -apple-system-body) {
+  .app {
+    font: -apple-system-body;
+  }
+  .app h1 {
+    font: -apple-system-large-title;
+    font-weight: 700;
+  }
+  .footnote {
+    font: -apple-system-footnote;
+  }
+  .updated-notice {
+    font: -apple-system-subheadline;
+  }
+}

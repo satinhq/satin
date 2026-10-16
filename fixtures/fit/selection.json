@@ -1,0 +1,65 @@
+{
+  "form": "five-knot local sRGB gain/luminance/RGB-offset",
+  "rule": "native-flat equality constraints; select ridge by held-out RMS independently for each appearance/surface; no case keys in runtime",
+  "nativeRadialFields": "unchanged from dense CPU Stage 0c; their original validation failed",
+  "effectiveFineSigma": {
+    "light": 4.5,
+    "dark": 4
+  },
+  "contextSigma": "24 retained for operator diagnostics; colour transfer is local",
+  "admissible": false,
+  "selected": [
+    {
+      "appearance": "light",
+      "surfaceKind": "bar",
+      "variant": "linear-local-pinned-1e-05",
+      "fitting": {
+        "samples": 95667,
+        "rms": 5.031451383861713
+      },
+      "heldOut": {
+        "samples": 78273,
+        "rms": 10.075183757733528
+      }
+    },
+    {
+      "appearance": "dark",
+      "surfaceKind": "bar",
+      "variant": "linear-local-pinned-1e-05",
+      "fitting": {
+        "samples": 95667,
+        "rms": 4.04150188787156
+      },
+      "heldOut": {
+        "samples": 78273,
+        "rms": 9.649593559702604
+      }
+    },
+    {
+      "appearance": "light",
+      "surfaceKind": "pill",
+      "variant": "linear-local-pinned-0.001",
+      "fitting": {
+        "samples": 26488,
+        "rms": 8.518979878981476
+      },
+      "heldOut": {
+        "samples": 21672,
+        "rms": 14.180326260900388
+      }
+    },
+    {
+      "appearance": "dark",
+      "surfaceKind": "pill",
+      "variant": "linear-local-pinned-0.001",
+      "fitting": {
+        "samples": 26488,
+        "rms": 10.557616118650007
+      },
+      "heldOut": {
+        "samples": 21672,
+        "rms": 13.199226982402424
+      }
+    }
+  ]
+}

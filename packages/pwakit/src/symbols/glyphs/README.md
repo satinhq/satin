@@ -1,0 +1,7 @@
+# Glyph sources
+
+The sibling Markdown files record each drawing's author, date, source and construction method. Framework7 Icons 5.0.5 is MIT licensed. Some fills derive from its outline geometry; other glyphs were drawn from written descriptions on a 56-unit grid. The sidecars distinguish these sources. No SF Symbols files, fonts, images, screenshots or exported paths were used for the custom glyphs.
+
+`approved.json` binds every admitted SVG to its SHA-256. Run `node packages/pwakit/scripts/generate-symbols.mjs` from the repository root after reviewing a source change and recording its hash. A changed hash fails generation. An unapproved name renders a marked question-mark placeholder. Source drawings and approval records are not bundled as package assets.
+
+The first 45 admitted drawings were approved for inclusion on October 11, 2026. The eye, eye.slash, checklist and key families, bell.badge, and the fills for archivebox, doc, exclamationmark.triangle, paperplane and square.and.arrow.down were approved on October 15, 2026. The drawings for the Habits port's remaining names (book.closed, pill, cup.and.saucer, cross.case, their fills, bicycle and brain.head.profile), plus note.text, server.rack (with their fills) and calendar.badge.clock, were approved on October 16, 2026 after review of the full contact sheet. Preserve provenance and Framework7 attribution when changing artwork.

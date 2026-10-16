@@ -1,0 +1,673 @@
+{
+  "source": "owner-phone-0924-preview/1790221139446-1790221076058-3c8nmo.json",
+  "sha256": "d7f057abf9d24a6845f767e89d61d9028c1b0e35062ef502dc5720bf1e1fbb99",
+  "boundary": "Five complete retained handoffs. The first of six releases lost its preparation records to the probe ring. Expected values independently evaluated from unchanged 11d poles, unamplified velocity and first target crossing; not new native measurements.",
+  "width": 440,
+  "cases": [
+    {
+      "handoffAt": 57873,
+      "from": 0.45984850909090913,
+      "raw": 0.4007575757575757,
+      "source": {
+        "x": 700,
+        "origin": 880,
+        "adjustment": 22.333333333333325
+      },
+      "touchSamples": [
+        {
+          "type": "touchstart",
+          "at": 57737,
+          "observedAt": 57763,
+          "x": 5.333333333333333,
+          "y": 378
+        },
+        {
+          "type": "touchmove",
+          "at": 57754,
+          "observedAt": 57771,
+          "x": 30,
+          "y": 382.3333333333333
+        },
+        {
+          "type": "touchmove",
+          "at": 57770,
+          "observedAt": 57788,
+          "x": 52.33333333333333,
+          "y": 385
+        },
+        {
+          "type": "touchmove",
+          "at": 57787,
+          "observedAt": 57803,
+          "x": 72.66666666666666,
+          "y": 389.66666666666663
+        },
+        {
+          "type": "touchmove",
+          "at": 57795,
+          "observedAt": 57811,
+          "x": 82.33333333333333,
+          "y": 393
+        },
+        {
+          "type": "touchmove",
+          "at": 57804,
+          "observedAt": 57820,
+          "x": 94,
+          "y": 398
+        },
+        {
+          "type": "touchmove",
+          "at": 57812,
+          "observedAt": 57828,
+          "x": 108,
+          "y": 405.66666666666663
+        },
+        {
+          "type": "touchmove",
+          "at": 57820,
+          "observedAt": 57836,
+          "x": 126.33333333333333,
+          "y": 416.3333333333333
+        },
+        {
+          "type": "touchmove",
+          "at": 57829,
+          "observedAt": 57845,
+          "x": 150.66666666666666,
+          "y": 431.3333333333333
+        },
+        {
+          "type": "touchmove",
+          "at": 57837,
+          "observedAt": 57853,
+          "x": 179.66666666666666,
+          "y": 451.33333333333326
+        },
+        {
+          "type": "touchmove",
+          "at": 57845,
+          "observedAt": 57861,
+          "x": 206.33333333333331,
+          "y": 473.66666666666663
+        },
+        {
+          "type": "touchend",
+          "at": 57850,
+          "observedAt": 57870,
+          "x": 206.33333333333331,
+          "y": 473.66666666666663
+        }
+      ],
+      "fingerVelocity": 3566.6666666666665,
+      "oldAmplifiedVelocity": 15158.333333333332,
+      "oldDurationMs": 437.5000000000041,
+      "settleMs": 164.86481679427808,
+      "firstSteps": [
+        {
+          "atMs": 16.666666666666668,
+          "x": 258.1457458372061
+        },
+        {
+          "atMs": 33.333333333333336,
+          "x": 305.5228917191082
+        },
+        {
+          "atMs": 50.0,
+          "x": 343.9299364529745
+        },
+        {
+          "atMs": 66.66666666666667,
+          "x": 373.88746545574645
+        }
+      ],
+      "nextTouchAfterMs": 180
+    },
+    {
+      "handoffAt": 58607,
+      "from": 0.8772726568181819,
+      "raw": 0.8159090909090908,
+      "source": {
+        "x": 527,
+        "origin": 880,
+        "adjustment": 33
+      },
+      "touchSamples": [
+        {
+          "type": "touchstart",
+          "at": 58437,
+          "observedAt": 58459,
+          "x": 2.6666666666666665,
+          "y": 503.33333333333326
+        },
+        {
+          "type": "touchmove",
+          "at": 58454,
+          "observedAt": 58474,
+          "x": 26.666666666666664,
+          "y": 499
+        },
+        {
+          "type": "touchmove",
+          "at": 58471,
+          "observedAt": 58488,
+          "x": 59.666666666666664,
+          "y": 495.33333333333326
+        },
+        {
+          "type": "touchmove",
+          "at": 58487,
+          "observedAt": 58503,
+          "x": 98.33333333333333,
+          "y": 493.33333333333326
+        },
+        {
+          "type": "touchmove",
+          "at": 58496,
+          "observedAt": 58512,
+          "x": 121.33333333333333,
+          "y": 493.33333333333326
+        },
+        {
+          "type": "touchmove",
+          "at": 58504,
+          "observedAt": 58520,
+          "x": 145.66666666666666,
+          "y": 493.66666666666663
+        },
+        {
+          "type": "touchmove",
+          "at": 58512,
+          "observedAt": 58528,
+          "x": 173.33333333333331,
+          "y": 499
+        },
+        {
+          "type": "touchmove",
+          "at": 58521,
+          "observedAt": 58537,
+          "x": 199,
+          "y": 505.33333333333326
+        },
+        {
+          "type": "touchmove",
+          "at": 58529,
+          "observedAt": 58545,
+          "x": 225.33333333333331,
+          "y": 511.33333333333326
+        },
+        {
+          "type": "touchmove",
+          "at": 58537,
+          "observedAt": 58553,
+          "x": 252.66666666666666,
+          "y": 514.3333333333333
+        },
+        {
+          "type": "touchmove",
+          "at": 58546,
+          "observedAt": 58562,
+          "x": 280.66666666666663,
+          "y": 515
+        },
+        {
+          "type": "touchmove",
+          "at": 58554,
+          "observedAt": 58570,
+          "x": 307.66666666666663,
+          "y": 515
+        },
+        {
+          "type": "touchmove",
+          "at": 58562,
+          "observedAt": 58578,
+          "x": 336.3333333333333,
+          "y": 512.6666666666666
+        },
+        {
+          "type": "touchmove",
+          "at": 58571,
+          "observedAt": 58587,
+          "x": 362.3333333333333,
+          "y": 507
+        },
+        {
+          "type": "touchmove",
+          "at": 58579,
+          "observedAt": 58595,
+          "x": 385.66666666666663,
+          "y": 500.66666666666663
+        },
+        {
+          "type": "touchend",
+          "at": 58583,
+          "observedAt": 58604,
+          "x": 385.66666666666663,
+          "y": 500.66666666666663
+        }
+      ],
+      "fingerVelocity": 2894.4444444444443,
+      "oldAmplifiedVelocity": 12301.388888888889,
+      "oldDurationMs": 516.6666666666711,
+      "settleMs": 27.096965274040883,
+      "firstSteps": [
+        {
+          "atMs": 16.666666666666668,
+          "x": 424.3526060491931
+        },
+        {
+          "atMs": 33.333333333333336,
+          "x": 440
+        },
+        {
+          "atMs": 50.0,
+          "x": 440
+        },
+        {
+          "atMs": 66.66666666666667,
+          "x": 440
+        }
+      ],
+      "nextTouchAfterMs": 212
+    },
+    {
+      "handoffAt": 59589,
+      "from": 0.8242423318181819,
+      "raw": 0.7424242424242423,
+      "source": {
+        "x": 539,
+        "origin": 880,
+        "adjustment": 21.666666666666668
+      },
+      "touchSamples": [
+        {
+          "type": "touchstart",
+          "at": 59437,
+          "observedAt": 59459,
+          "x": 2.6666666666666665,
+          "y": 582.3333333333333
+        },
+        {
+          "type": "touchmove",
+          "at": 59454,
+          "observedAt": 59471,
+          "x": 10.666666666666666,
+          "y": 576.6666666666666
+        },
+        {
+          "type": "touchmove",
+          "at": 59462,
+          "observedAt": 59490,
+          "x": 30.666666666666664,
+          "y": 572.6666666666666
+        },
+        {
+          "type": "touchmove",
+          "at": 59471,
+          "observedAt": 59492,
+          "x": 52.33333333333333,
+          "y": 563.6666666666666
+        },
+        {
+          "type": "touchmove",
+          "at": 59487,
+          "observedAt": 59504,
+          "x": 97.66666666666666,
+          "y": 545.3333333333333
+        },
+        {
+          "type": "touchmove",
+          "at": 59496,
+          "observedAt": 59512,
+          "x": 122,
+          "y": 538
+        },
+        {
+          "type": "touchmove",
+          "at": 59504,
+          "observedAt": 59520,
+          "x": 148,
+          "y": 531
+        },
+        {
+          "type": "touchmove",
+          "at": 59512,
+          "observedAt": 59528,
+          "x": 180,
+          "y": 523
+        },
+        {
+          "type": "touchmove",
+          "at": 59521,
+          "observedAt": 59537,
+          "x": 212.66666666666666,
+          "y": 514.3333333333333
+        },
+        {
+          "type": "touchmove",
+          "at": 59529,
+          "observedAt": 59545,
+          "x": 249.66666666666666,
+          "y": 507
+        },
+        {
+          "type": "touchmove",
+          "at": 59537,
+          "observedAt": 59553,
+          "x": 286,
+          "y": 500
+        },
+        {
+          "type": "touchmove",
+          "at": 59546,
+          "observedAt": 59562,
+          "x": 323.66666666666663,
+          "y": 494.33333333333326
+        },
+        {
+          "type": "touchmove",
+          "at": 59554,
+          "observedAt": 59570,
+          "x": 357.3333333333333,
+          "y": 488.33333333333326
+        },
+        {
+          "type": "touchend",
+          "at": 59558,
+          "observedAt": 59579,
+          "x": 357.3333333333333,
+          "y": 488.33333333333326
+        }
+      ],
+      "fingerVelocity": 4189.814814814813,
+      "oldAmplifiedVelocity": 17806.712962962956,
+      "oldDurationMs": 504.16666666667106,
+      "settleMs": 26.69117849288748,
+      "firstSteps": [
+        {
+          "atMs": 16.666666666666668,
+          "x": 418.1418143880175
+        },
+        {
+          "atMs": 33.333333333333336,
+          "x": 440
+        },
+        {
+          "atMs": 50.0,
+          "x": 440
+        },
+        {
+          "atMs": 66.66666666666667,
+          "x": 440
+        }
+      ],
+      "nextTouchAfterMs": 196
+    },
+    {
+      "handoffAt": 60624,
+      "from": 0.7242424,
+      "raw": 0.6522727272727272,
+      "source": {
+        "x": 599,
+        "origin": 880,
+        "adjustment": 37.666666666666664
+      },
+      "touchSamples": [
+        {
+          "type": "touchstart",
+          "at": 60487,
+          "observedAt": 60507,
+          "x": 7.666666666666666,
+          "y": 618.3333333333333
+        },
+        {
+          "type": "touchmove",
+          "at": 60504,
+          "observedAt": 60523,
+          "x": 23,
+          "y": 609.3333333333333
+        },
+        {
+          "type": "touchmove",
+          "at": 60512,
+          "observedAt": 60539,
+          "x": 41.33333333333333,
+          "y": 601.3333333333333
+        },
+        {
+          "type": "touchmove",
+          "at": 60521,
+          "observedAt": 60545,
+          "x": 60.666666666666664,
+          "y": 591.6666666666666
+        },
+        {
+          "type": "touchmove",
+          "at": 60537,
+          "observedAt": 60555,
+          "x": 103.66666666666666,
+          "y": 572.6666666666666
+        },
+        {
+          "type": "touchmove",
+          "at": 60546,
+          "observedAt": 60563,
+          "x": 127.66666666666666,
+          "y": 562.6666666666666
+        },
+        {
+          "type": "touchmove",
+          "at": 60554,
+          "observedAt": 60570,
+          "x": 155.66666666666666,
+          "y": 552
+        },
+        {
+          "type": "touchmove",
+          "at": 60562,
+          "observedAt": 60578,
+          "x": 186,
+          "y": 541
+        },
+        {
+          "type": "touchmove",
+          "at": 60571,
+          "observedAt": 60587,
+          "x": 217,
+          "y": 529
+        },
+        {
+          "type": "touchmove",
+          "at": 60579,
+          "observedAt": 60595,
+          "x": 249,
+          "y": 518
+        },
+        {
+          "type": "touchmove",
+          "at": 60587,
+          "observedAt": 60603,
+          "x": 280.66666666666663,
+          "y": 507.33333333333326
+        },
+        {
+          "type": "touchmove",
+          "at": 60596,
+          "observedAt": 60612,
+          "x": 310,
+          "y": 497
+        },
+        {
+          "type": "touchend",
+          "at": 60600,
+          "observedAt": 60620,
+          "x": 310,
+          "y": 497
+        }
+      ],
+      "fingerVelocity": 3818.5185185185155,
+      "oldAmplifiedVelocity": 16228.703703703692,
+      "oldDurationMs": 483.33333333333763,
+      "settleMs": 61.55098012321626,
+      "firstSteps": [
+        {
+          "atMs": 16.666666666666668,
+          "x": 371.7672480553548
+        },
+        {
+          "atMs": 33.333333333333336,
+          "x": 407.30956907384393
+        },
+        {
+          "atMs": 50.0,
+          "x": 429.91855109822353
+        },
+        {
+          "atMs": 66.66666666666667,
+          "x": 440
+        }
+      ],
+      "nextTouchAfterMs": 186
+    },
+    {
+      "handoffAt": 61627,
+      "from": 0.9431818181818182,
+      "raw": 0.8590909090909091,
+      "source": {
+        "x": 503,
+        "origin": 880,
+        "adjustment": 38
+      },
+      "touchSamples": [
+        {
+          "type": "touchstart",
+          "at": 61471,
+          "observedAt": 61493,
+          "x": 2.333333333333333,
+          "y": 611.6666666666666
+        },
+        {
+          "type": "touchmove",
+          "at": 61488,
+          "observedAt": 61509,
+          "x": 20,
+          "y": 603.6666666666666
+        },
+        {
+          "type": "touchmove",
+          "at": 61496,
+          "observedAt": 61521,
+          "x": 39,
+          "y": 595.6666666666666
+        },
+        {
+          "type": "touchmove",
+          "at": 61504,
+          "observedAt": 61526,
+          "x": 58,
+          "y": 585.3333333333333
+        },
+        {
+          "type": "touchmove",
+          "at": 61521,
+          "observedAt": 61538,
+          "x": 102,
+          "y": 564
+        },
+        {
+          "type": "touchmove",
+          "at": 61529,
+          "observedAt": 61545,
+          "x": 126.66666666666666,
+          "y": 552.6666666666666
+        },
+        {
+          "type": "touchmove",
+          "at": 61537,
+          "observedAt": 61554,
+          "x": 154,
+          "y": 541.6666666666666
+        },
+        {
+          "type": "touchmove",
+          "at": 61546,
+          "observedAt": 61562,
+          "x": 185,
+          "y": 529.3333333333333
+        },
+        {
+          "type": "touchmove",
+          "at": 61554,
+          "observedAt": 61570,
+          "x": 217.33333333333331,
+          "y": 517
+        },
+        {
+          "type": "touchmove",
+          "at": 61562,
+          "observedAt": 61579,
+          "x": 252,
+          "y": 505.66666666666663
+        },
+        {
+          "type": "touchmove",
+          "at": 61571,
+          "observedAt": 61587,
+          "x": 287.66666666666663,
+          "y": 494.33333333333326
+        },
+        {
+          "type": "touchmove",
+          "at": 61579,
+          "observedAt": 61595,
+          "x": 325.66666666666663,
+          "y": 483.66666666666663
+        },
+        {
+          "type": "touchmove",
+          "at": 61587,
+          "observedAt": 61604,
+          "x": 361.3333333333333,
+          "y": 472.33333333333326
+        },
+        {
+          "type": "touchmove",
+          "at": 61596,
+          "observedAt": 61612,
+          "x": 398,
+          "y": 462
+        },
+        {
+          "type": "touchend",
+          "at": 61600,
+          "observedAt": 61621,
+          "x": 398,
+          "y": 462
+        }
+      ],
+      "fingerVelocity": 4381.4814814814845,
+      "oldAmplifiedVelocity": 18621.29629629631,
+      "oldDurationMs": 537.5000000000042,
+      "settleMs": 6.340580977502763,
+      "firstSteps": [
+        {
+          "atMs": 16.666666666666668,
+          "x": 440
+        },
+        {
+          "atMs": 33.333333333333336,
+          "x": 440
+        },
+        {
+          "atMs": 50.0,
+          "x": 440
+        },
+        {
+          "atMs": 66.66666666666667,
+          "x": 440
+        }
+      ],
+      "nextTouchAfterMs": 206
+    }
+  ]
+}

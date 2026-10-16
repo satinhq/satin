@@ -1,0 +1,64 @@
+{
+  "provenance": {
+    "scene": "Stock SwiftUI Menu(\"Menu selection\") in a List Section (native reference app), iPadOS 27.0, light",
+    "device": "iPad Pro 12.9 (6th gen), real HID taps via WDA",
+    "capture": "Native ReplayKit recording in a native reference app with a 60 Hz refresh counter (3.31% skipped refreshes, max skip 1: fit-valid, not playback-valid)",
+    "method": "Platter box per refresh (blurred frame difference against the closed frame, the label's text masked), timed by the counter. Open: two cycles, normalised from a point at the drop's first centre (Satin's plain drop grows from a point) to the settled panel; frames with at least 60% of the settled mask area, the 230-450 ms settle weighted 3x. Close: platter edges read per refresh from 60 Hz tiles (+-8 px), normalised from the panel to the drop that pours back into the label.",
+    "result": "Open width reaches the panel at about 260 ms, overshoots about 0.9% near 290 ms and settles by about 420 ms (the previous contour, picker-glass-sheet at VFR, reached it at 200 ms with no settle). Close starts at once and eases out: 0.73 at 33 ms, 0.32 at 100 ms, 0.03 at 167 ms (the previous contour eased in).",
+    "centerY": "The drop's vertical travel was 6 pt, below what a normalised fit resolves; centerY uses the width spring (one UIKit spring times the whole frame).",
+    "model": "menuSpring.ts: displacement 1 -> 0, released after `delay` ms with `velocity` per second (negative moves toward the target), natural frequency `omega` (rad/s), damping ratio `zeta`.",
+    "units": "ms; centerX, centerY, width, height normalised between the drop's seed (0) and the panel (1)"
+  },
+  "open": {
+    "centerX": {
+      "delay": 0,
+      "omega": 15.879,
+      "zeta": 0.748,
+      "velocity": -10.787
+    },
+    "centerY": {
+      "delay": 0,
+      "omega": 12.274,
+      "zeta": 0.963,
+      "velocity": -14.528
+    },
+    "width": {
+      "delay": 0,
+      "omega": 12.274,
+      "zeta": 0.963,
+      "velocity": -14.528
+    },
+    "height": {
+      "delay": 0,
+      "omega": 19.114,
+      "zeta": 1.017,
+      "velocity": -19.114
+    }
+  },
+  "close": {
+    "centerX": {
+      "delay": 0,
+      "omega": 21.62,
+      "zeta": 0.8,
+      "velocity": 0
+    },
+    "centerY": {
+      "delay": 0,
+      "omega": 21.62,
+      "zeta": 0.8,
+      "velocity": 0
+    },
+    "width": {
+      "delay": 0,
+      "omega": 21.62,
+      "zeta": 0.8,
+      "velocity": 0
+    },
+    "height": {
+      "delay": 0,
+      "omega": 21.62,
+      "zeta": 0.8,
+      "velocity": 0
+    }
+  }
+}

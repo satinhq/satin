@@ -1,0 +1,911 @@
+{
+  "schemaVersion": 1,
+  "coordinateSpace": "iPhone 17 Pro screen points; PWA subtracts physical top inset from y",
+  "button": {
+    "centerX": 364,
+    "centerY": 156,
+    "diameter": 58,
+    "measurement": "Fresh native button versus glass-off control: 58 x 58.333 pt at 90-level threshold. The SwiftUI label frame is 44 pt."
+  },
+  "panel": {
+    "centerX": 267.5,
+    "centerY": 221.5,
+    "cornerRadius": 31.5,
+    "height": 190,
+    "width": 250
+  },
+  "open": {
+    "buttonTransition": {
+      "behavior": "one changing lens; flat-background threshold contour; coloured-background outline rejected as refraction-contaminated",
+      "fixedCenterX": 364,
+      "fixedCenterY": 156,
+      "glyphFadeDurationSeconds": 0.12
+    },
+    "direction": "open",
+    "geometry": {
+      "centerX": {
+        "durationSeconds": 0.48,
+        "knots": [
+          {
+            "seconds": 0,
+            "value": 360,
+            "slopePerSecond": -441.1816609607181
+          },
+          {
+            "seconds": 0.02833299999999994,
+            "value": 347.5,
+            "slopePerSecond": -964.2788265798099
+          },
+          {
+            "seconds": 0.046667000000000014,
+            "value": 315,
+            "slopePerSecond": -1389.459058325697
+          },
+          {
+            "seconds": 0.06000000000000005,
+            "value": 303.5,
+            "slopePerSecond": -680.7744674959027
+          },
+          {
+            "seconds": 0.09000000000000008,
+            "value": 285.5,
+            "slopePerSecond": -415.3878106754661
+          },
+          {
+            "seconds": 0.10333300000000012,
+            "value": 285.5,
+            "slopePerSecond": -211.76719726114467
+          },
+          {
+            "seconds": 0.11833300000000002,
+            "value": 279.5,
+            "slopePerSecond": -333.3333333333339
+          },
+          {
+            "seconds": 0.14833300000000005,
+            "value": 270.5,
+            "slopePerSecond": -245.45454545454572
+          },
+          {
+            "seconds": 0.17333299999999996,
+            "value": 266,
+            "slopePerSecond": -87.80402142418136
+          },
+          {
+            "seconds": 0.21666699999999994,
+            "value": 264.5,
+            "slopePerSecond": 8.490550017830149
+          },
+          {
+            "seconds": 0.3500000000000001,
+            "value": 267.5,
+            "slopePerSecond": 13.29115606475451
+          },
+          {
+            "seconds": 0.48,
+            "value": 268,
+            "slopePerSecond": 3.8461538461538494
+          }
+        ],
+        "maxAbsoluteError": 0.9009024148136859,
+        "model": "adaptive piecewise cubic Hermite spline",
+        "rmse": 0.4188948942392446,
+        "sampleCount": 60,
+        "tolerance": 1
+      },
+      "centerY": {
+        "durationSeconds": 0.48,
+        "knots": [
+          {
+            "seconds": 0,
+            "value": 160,
+            "slopePerSecond": 529.4179931528618
+          },
+          {
+            "seconds": 0.02833299999999994,
+            "value": 175,
+            "slopePerSecond": 1092.8493367904512
+          },
+          {
+            "seconds": 0.046667000000000014,
+            "value": 211,
+            "slopePerSecond": 1657.877285502252
+          },
+          {
+            "seconds": 0.06000000000000005,
+            "value": 227.5,
+            "slopePerSecond": 657.6973669028213
+          },
+          {
+            "seconds": 0.09000000000000008,
+            "value": 239.5,
+            "slopePerSecond": 276.9252071169774
+          },
+          {
+            "seconds": 0.10333300000000012,
+            "value": 239.5,
+            "slopePerSecond": 70.58906575371489
+          },
+          {
+            "seconds": 0.11833300000000002,
+            "value": 241.5,
+            "slopePerSecond": 16.666666666666774
+          },
+          {
+            "seconds": 0.13333299999999992,
+            "value": 240,
+            "slopePerSecond": -161.53597636959438
+          },
+          {
+            "seconds": 0.161667,
+            "value": 234.5,
+            "slopePerSecond": -235.1338641412744
+          },
+          {
+            "seconds": 0.19500000000000006,
+            "value": 225.5,
+            "slopePerSecond": -196.3664926035289
+          },
+          {
+            "seconds": 0.20749966666666664,
+            "value": 225.5,
+            "slopePerSecond": -87.09621228250155
+          },
+          {
+            "seconds": 0.24666699999999997,
+            "value": 221,
+            "slopePerSecond": -20.18346154928251
+          },
+          {
+            "seconds": 0.48,
+            "value": 220,
+            "slopePerSecond": -4.285720408172011
+          }
+        ],
+        "maxAbsoluteError": 0.9405903318858577,
+        "model": "adaptive piecewise cubic Hermite spline",
+        "rmse": 0.38203100031750575,
+        "sampleCount": 60,
+        "tolerance": 1
+      },
+      "width": {
+        "durationSeconds": 0.48,
+        "knots": [
+          {
+            "seconds": 0,
+            "value": 65,
+            "slopePerSecond": 882.3633219214362
+          },
+          {
+            "seconds": 0.02833299999999994,
+            "value": 90,
+            "slopePerSecond": 1499.9892857908153
+          },
+          {
+            "seconds": 0.046667000000000014,
+            "value": 135,
+            "slopePerSecond": 1992.8429082649404
+          },
+          {
+            "seconds": 0.07499999999999996,
+            "value": 183,
+            "slopePerSecond": 1546.1657397364572
+          },
+          {
+            "seconds": 0.09000000000000008,
+            "value": 202,
+            "slopePerSecond": 670.5961246602863
+          },
+          {
+            "seconds": 0.10333300000000012,
+            "value": 202,
+            "slopePerSecond": 646.158816606284
+          },
+          {
+            "seconds": 0.13333299999999992,
+            "value": 230,
+            "slopePerSecond": 771.4197552027991
+          },
+          {
+            "seconds": 0.161667,
+            "value": 247,
+            "slopePerSecond": 479.9999999999996
+          },
+          {
+            "seconds": 0.18333299999999997,
+            "value": 254,
+            "slopePerSecond": 174.54799342535904
+          },
+          {
+            "seconds": 0.20749966666666664,
+            "value": 255,
+            "slopePerSecond": 56.24929688378896
+          },
+          {
+            "seconds": 0.23666699999999996,
+            "value": 257,
+            "slopePerSecond": -11.21486942153703
+          },
+          {
+            "seconds": 0.296667,
+            "value": 254,
+            "slopePerSecond": -32.14297193918546
+          },
+          {
+            "seconds": 0.33000000000000007,
+            "value": 254,
+            "slopePerSecond": -43.90265318367408
+          },
+          {
+            "seconds": 0.365,
+            "value": 251,
+            "slopePerSecond": -20.00000000000001
+          },
+          {
+            "seconds": 0.48,
+            "value": 251,
+            "slopePerSecond": 0
+          }
+        ],
+        "maxAbsoluteError": 0.9693976492911816,
+        "model": "adaptive piecewise cubic Hermite spline",
+        "rmse": 0.42396112413276865,
+        "sampleCount": 60,
+        "tolerance": 1
+      },
+      "height": {
+        "durationSeconds": 0.48,
+        "knots": [
+          {
+            "seconds": 0,
+            "value": 67,
+            "slopePerSecond": 1058.8359863057235
+          },
+          {
+            "seconds": 0.02833299999999994,
+            "value": 97,
+            "slopePerSecond": 1585.7029592645763
+          },
+          {
+            "seconds": 0.046667000000000014,
+            "value": 141,
+            "slopePerSecond": 1673.6665929832259
+          },
+          {
+            "seconds": 0.06000000000000005,
+            "value": 150,
+            "slopePerSecond": 776.4797232908638
+          },
+          {
+            "seconds": 0.07499999999999996,
+            "value": 163,
+            "slopePerSecond": 666.6666666666661
+          },
+          {
+            "seconds": 0.09000000000000008,
+            "value": 170,
+            "slopePerSecond": 247.0617301380002
+          },
+          {
+            "seconds": 0.10333300000000012,
+            "value": 170,
+            "slopePerSecond": 141.17813150742978
+          },
+          {
+            "seconds": 0.11833300000000002,
+            "value": 174,
+            "slopePerSecond": 308.56790208111966
+          },
+          {
+            "seconds": 0.161667,
+            "value": 188,
+            "slopePerSecond": 272.72727272727303
+          },
+          {
+            "seconds": 0.17333299999999996,
+            "value": 189,
+            "slopePerSecond": 120.00120001199991
+          },
+          {
+            "seconds": 0.19500000000000006,
+            "value": 192,
+            "slopePerSecond": 8.108064280733615
+          },
+          {
+            "seconds": 0.296667,
+            "value": 190,
+            "slopePerSecond": -10.526315789473687
+          },
+          {
+            "seconds": 0.48,
+            "value": 189,
+            "slopePerSecond": -5.454555371918859
+          }
+        ],
+        "maxAbsoluteError": 0.9485219683677428,
+        "model": "adaptive piecewise cubic Hermite spline",
+        "rmse": 0.32807134784589687,
+        "sampleCount": 60,
+        "tolerance": 1
+      },
+      "cornerRadius": {
+        "durationSeconds": 0.48,
+        "knots": [
+          {
+            "seconds": 0,
+            "value": 32.5,
+            "slopePerSecond": 441.1816609607181
+          },
+          {
+            "seconds": 0.02833299999999994,
+            "value": 45,
+            "slopePerSecond": 749.9946428954077
+          },
+          {
+            "seconds": 0.046667000000000014,
+            "value": 67.5,
+            "slopePerSecond": 782.137270448068
+          },
+          {
+            "seconds": 0.07499999999999996,
+            "value": 81.5,
+            "slopePerSecond": 308.82716267250146
+          },
+          {
+            "seconds": 0.10333300000000012,
+            "value": 85,
+            "slopePerSecond": 126.92405326194798
+          },
+          {
+            "seconds": 0.11833300000000002,
+            "value": 87,
+            "slopePerSecond": -75.00000000000048
+          },
+          {
+            "seconds": 0.13333299999999992,
+            "value": 82.75,
+            "slopePerSecond": -463.63636363636414
+          },
+          {
+            "seconds": 0.17333299999999996,
+            "value": 61.5,
+            "slopePerSecond": -490.5378889843828
+          },
+          {
+            "seconds": 0.19500000000000006,
+            "value": 52.5,
+            "slopePerSecond": -263.41463414634137
+          },
+          {
+            "seconds": 0.20749966666666664,
+            "value": 52.5,
+            "slopePerSecond": -230.76568052799314
+          },
+          {
+            "seconds": 0.21666699999999994,
+            "value": 47.5,
+            "slopePerSecond": -315.7894736842099
+          },
+          {
+            "seconds": 0.223333,
+            "value": 47.5,
+            "slopePerSecond": -553.8802387839228
+          },
+          {
+            "seconds": 0.22749966666666666,
+            "value": 41.5,
+            "slopePerSecond": -449.9775011249452
+          },
+          {
+            "seconds": 0.23666699999999996,
+            "value": 41.5,
+            "slopePerSecond": -208.68839344718467
+          },
+          {
+            "seconds": 0.24666699999999997,
+            "value": 37.5,
+            "slopePerSecond": -94.73883660708655
+          },
+          {
+            "seconds": 0.26833299999999993,
+            "value": 38.5,
+            "slopePerSecond": -94.73883660708655
+          },
+          {
+            "seconds": 0.27833299999999994,
+            "value": 34.5,
+            "slopePerSecond": -194.11307969224197
+          },
+          {
+            "seconds": 0.296667,
+            "value": 33,
+            "slopePerSecond": 0
+          },
+          {
+            "seconds": 0.3600000000000001,
+            "value": 34.5,
+            "slopePerSecond": -29.268435455782722
+          },
+          {
+            "seconds": 0.365,
+            "value": 31,
+            "slopePerSecond": -31.250000000000146
+          },
+          {
+            "seconds": 0.3999999999999999,
+            "value": 33.25,
+            "slopePerSecond": 32.608695652173914
+          },
+          {
+            "seconds": 0.48,
+            "value": 34.75,
+            "slopePerSecond": 18.749999999999982
+          }
+        ],
+        "maxAbsoluteError": 1.4895311268224845,
+        "model": "adaptive piecewise cubic Hermite spline",
+        "rmse": 0.5598550090220281,
+        "sampleCount": 60,
+        "tolerance": 1.5
+      }
+    },
+    "items": [
+      {
+        "durationSeconds": 0.12,
+        "index": 0,
+        "offsetXPt": 6,
+        "onsetSeconds": 0.04
+      },
+      {
+        "durationSeconds": 0.12,
+        "index": 1,
+        "offsetXPt": 6,
+        "onsetSeconds": 0.04
+      },
+      {
+        "durationSeconds": 0.12,
+        "index": 2,
+        "offsetXPt": 6,
+        "onsetSeconds": 0.04
+      },
+      {
+        "durationSeconds": 0.12,
+        "index": 3,
+        "offsetXPt": 6,
+        "onsetSeconds": 0.04
+      }
+    ],
+    "sourceOnsetSeconds": 1.115
+  },
+  "close": {
+    "buttonTransition": {
+      "behavior": "one changing lens; flat-background threshold contour; coloured-background outline rejected as refraction-contaminated",
+      "fixedCenterX": 364,
+      "fixedCenterY": 156,
+      "glyphFadeDurationSeconds": 0.12
+    },
+    "direction": "close",
+    "geometry": {
+      "centerX": {
+        "durationSeconds": 0.161667,
+        "knots": [
+          {
+            "seconds": 0,
+            "value": 267.5,
+            "slopePerSecond": 99.99999999999858
+          },
+          {
+            "seconds": 0.025000000000000355,
+            "value": 270,
+            "slopePerSecond": 208.69746693449414
+          },
+          {
+            "seconds": 0.03833300000000017,
+            "value": 275.5,
+            "slopePerSecond": 700.0000000000045
+          },
+          {
+            "seconds": 0.05500000000000016,
+            "value": 291,
+            "slopePerSecond": 464.9907001859966
+          },
+          {
+            "seconds": 0.07166700000000015,
+            "value": 291,
+            "slopePerSecond": 221.74105861790002
+          },
+          {
+            "seconds": 0.09333300000000033,
+            "value": 299.5,
+            "slopePerSecond": 577.7777777777787
+          },
+          {
+            "seconds": 0.11666700000000008,
+            "value": 317,
+            "slopePerSecond": 552.6257618340918
+          },
+          {
+            "seconds": 0.125,
+            "value": 317,
+            "slopePerSecond": 409.0983472426737
+          },
+          {
+            "seconds": 0.13500000000000023,
+            "value": 324.5,
+            "slopePerSecond": 679.9999999999903
+          },
+          {
+            "seconds": 0.15000000000000036,
+            "value": 334,
+            "slopePerSecond": 1462.4817189785251
+          },
+          {
+            "seconds": 0.161667,
+            "value": 363.5,
+            "slopePerSecond": 2528.4991857376262
+          }
+        ],
+        "maxAbsoluteError": 0.17663785749641647,
+        "model": "adaptive piecewise cubic Hermite spline",
+        "rmse": 0.0509909572873174,
+        "sampleCount": 12,
+        "tolerance": 1
+      },
+      "centerY": {
+        "durationSeconds": 0.161667,
+        "knots": [
+          {
+            "seconds": 0,
+            "value": 220.5,
+            "slopePerSecond": 559.999999999992
+          },
+          {
+            "seconds": 0.025000000000000355,
+            "value": 234.5,
+            "slopePerSecond": 586.9616257532648
+          },
+          {
+            "seconds": 0.03833300000000017,
+            "value": 243,
+            "slopePerSecond": 266.6666666666684
+          },
+          {
+            "seconds": 0.05500000000000016,
+            "value": 242.5,
+            "slopePerSecond": -14.999700005999891
+          },
+          {
+            "seconds": 0.07166700000000015,
+            "value": 242.5,
+            "slopePerSecond": -182.6102835676824
+          },
+          {
+            "seconds": 0.09333300000000033,
+            "value": 235.5,
+            "slopePerSecond": -480.00480004800283
+          },
+          {
+            "seconds": 0.10499999999999998,
+            "value": 226.5,
+            "slopePerSecond": -985.6861232536321
+          },
+          {
+            "seconds": 0.11666700000000008,
+            "value": 212.5,
+            "slopePerSecond": -699.9999999999994
+          },
+          {
+            "seconds": 0.125,
+            "value": 212.5,
+            "slopePerSecond": -709.1038018873011
+          },
+          {
+            "seconds": 0.13500000000000023,
+            "value": 199.5,
+            "slopePerSecond": -939.9999999999867
+          },
+          {
+            "seconds": 0.15000000000000036,
+            "value": 189,
+            "slopePerSecond": -1668.7291408857532
+          },
+          {
+            "seconds": 0.161667,
+            "value": 155,
+            "slopePerSecond": -2914.2024513586202
+          }
+        ],
+        "maxAbsoluteError": 0,
+        "model": "adaptive piecewise cubic Hermite spline",
+        "rmse": 0,
+        "sampleCount": 12,
+        "tolerance": 1
+      },
+      "width": {
+        "durationSeconds": 0.161667,
+        "knots": [
+          {
+            "seconds": 0,
+            "value": 250,
+            "slopePerSecond": -199.99999999999716
+          },
+          {
+            "seconds": 0.025000000000000355,
+            "value": 245,
+            "slopePerSecond": -469.5693006026118
+          },
+          {
+            "seconds": 0.03833300000000017,
+            "value": 232,
+            "slopePerSecond": -1666.6666666666774
+          },
+          {
+            "seconds": 0.05500000000000016,
+            "value": 195,
+            "slopePerSecond": -1109.977800443992
+          },
+          {
+            "seconds": 0.07166700000000015,
+            "value": 195,
+            "slopePerSecond": -547.8308507030471
+          },
+          {
+            "seconds": 0.09333300000000033,
+            "value": 174,
+            "slopePerSecond": -1333.3333333333355
+          },
+          {
+            "seconds": 0.11666700000000008,
+            "value": 135,
+            "slopePerSecond": -1231.5659835159759
+          },
+          {
+            "seconds": 0.125,
+            "value": 135,
+            "slopePerSecond": -927.2895870833937
+          },
+          {
+            "seconds": 0.13500000000000023,
+            "value": 118,
+            "slopePerSecond": -1119.999999999984
+          },
+          {
+            "seconds": 0.15000000000000036,
+            "value": 107,
+            "slopePerSecond": -2249.971875351577
+          },
+          {
+            "seconds": 0.161667,
+            "value": 58,
+            "slopePerSecond": -4199.8800034286
+          }
+        ],
+        "maxAbsoluteError": 0.20317008242062684,
+        "model": "adaptive piecewise cubic Hermite spline",
+        "rmse": 0.05865015088841368,
+        "sampleCount": 12,
+        "tolerance": 1
+      },
+      "height": {
+        "durationSeconds": 0.161667,
+        "knots": [
+          {
+            "seconds": 0,
+            "value": 188,
+            "slopePerSecond": -79.99999999999886
+          },
+          {
+            "seconds": 0.025000000000000355,
+            "value": 186,
+            "slopePerSecond": -339.13338376855296
+          },
+          {
+            "seconds": 0.03833300000000017,
+            "value": 175,
+            "slopePerSecond": -214.28418368440322
+          },
+          {
+            "seconds": 0.07166700000000015,
+            "value": 176,
+            "slopePerSecond": -199.99999999999943
+          },
+          {
+            "seconds": 0.09333300000000033,
+            "value": 164,
+            "slopePerSecond": -840.008400084005
+          },
+          {
+            "seconds": 0.10499999999999998,
+            "value": 148,
+            "slopePerSecond": -1028.5420416559639
+          },
+          {
+            "seconds": 0.11666700000000008,
+            "value": 140,
+            "slopePerSecond": -399.99999999999966
+          },
+          {
+            "seconds": 0.125,
+            "value": 140,
+            "slopePerSecond": -654.5573555882779
+          },
+          {
+            "seconds": 0.13500000000000023,
+            "value": 128,
+            "slopePerSecond": -999.9999999999858
+          },
+          {
+            "seconds": 0.15000000000000036,
+            "value": 115,
+            "slopePerSecond": -2662.466719166033
+          },
+          {
+            "seconds": 0.161667,
+            "value": 57,
+            "slopePerSecond": -4971.286534670588
+          }
+        ],
+        "maxAbsoluteError": 0.5595186223669941,
+        "model": "adaptive piecewise cubic Hermite spline",
+        "rmse": 0.1615191136200963,
+        "sampleCount": 12,
+        "tolerance": 1
+      },
+      "cornerRadius": {
+        "durationSeconds": 0.161667,
+        "knots": [
+          {
+            "seconds": 0,
+            "value": 31.5,
+            "slopePerSecond": 329.99999999999534
+          },
+          {
+            "seconds": 0.025000000000000355,
+            "value": 39.75,
+            "slopePerSecond": 1278.2719849737766
+          },
+          {
+            "seconds": 0.03833300000000017,
+            "value": 80.5,
+            "slopePerSecond": 1033.9211862772454
+          },
+          {
+            "seconds": 0.07166700000000015,
+            "value": 88,
+            "slopePerSecond": 27.272727272727195
+          },
+          {
+            "seconds": 0.09333300000000033,
+            "value": 82,
+            "slopePerSecond": -455.5555555555563
+          },
+          {
+            "seconds": 0.11666700000000008,
+            "value": 67.5,
+            "slopePerSecond": -457.88991694824745
+          },
+          {
+            "seconds": 0.125,
+            "value": 67.5,
+            "slopePerSecond": -463.64479354169686
+          },
+          {
+            "seconds": 0.13500000000000023,
+            "value": 59,
+            "slopePerSecond": -559.999999999992
+          },
+          {
+            "seconds": 0.15000000000000036,
+            "value": 53.5,
+            "slopePerSecond": -1143.7357033037183
+          },
+          {
+            "seconds": 0.161667,
+            "value": 28.5,
+            "slopePerSecond": -2142.7959201166323
+          }
+        ],
+        "maxAbsoluteError": 0.7568087485922916,
+        "model": "adaptive piecewise cubic Hermite spline",
+        "rmse": 0.2533603292043606,
+        "sampleCount": 12,
+        "tolerance": 1.5
+      }
+    },
+    "items": [
+      {
+        "durationSeconds": 0.12,
+        "index": 0,
+        "offsetXPt": 6,
+        "onsetSeconds": 0.04
+      },
+      {
+        "durationSeconds": 0.12,
+        "index": 1,
+        "offsetXPt": 6,
+        "onsetSeconds": 0.04
+      },
+      {
+        "durationSeconds": 0.12,
+        "index": 2,
+        "offsetXPt": 6,
+        "onsetSeconds": 0.04
+      },
+      {
+        "durationSeconds": 0.12,
+        "index": 3,
+        "offsetXPt": 6,
+        "onsetSeconds": 0.04
+      }
+    ],
+    "sourceOnsetSeconds": 2.675
+  },
+  "measurement": "Fresh native neutral-grey contour; visible trigger measured separately at 58 pt. Threshold outline is diagnostic, not an independent 2 pt curve gate.",
+  "material": {
+    "source": "native light neutral-grey modal plate intensity, normalized against 31 backdrop and 190 resting plate; original VFR samples, geometry onset; approximation of tint weight, not opacity isolation",
+    "open": [
+      [
+        0,
+        0
+      ],
+      [
+        0.047,
+        0.27
+      ],
+      [
+        0.075,
+        0.52
+      ],
+      [
+        0.104,
+        0.65
+      ],
+      [
+        0.134,
+        0.85
+      ],
+      [
+        0.149,
+        0.925
+      ],
+      [
+        0.174,
+        1
+      ]
+    ],
+    "close": [
+      [
+        0,
+        1
+      ],
+      [
+        0.025,
+        0.875
+      ],
+      [
+        0.038,
+        0.7
+      ],
+      [
+        0.072,
+        0.5
+      ],
+      [
+        0.093,
+        0.39
+      ],
+      [
+        0.116,
+        0.245
+      ],
+      [
+        0.135,
+        0.17
+      ],
+      [
+        0.161667,
+        0
+      ]
+    ]
+  }
+}

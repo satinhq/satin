@@ -1,0 +1,778 @@
+{
+  "merge": {
+    "bridge": {
+      "durationSeconds": 88.322148,
+      "knots": [
+        {
+          "bridgeWidthPt": 0,
+          "centreDistancePt": 148.322148,
+          "slopeWidthPerDistance": -2.432653045710121
+        },
+        {
+          "bridgeWidthPt": 64,
+          "centreDistancePt": 122.013423,
+          "slopeWidthPerDistance": -1.3238675935124258
+        },
+        {
+          "bridgeWidthPt": 102,
+          "centreDistancePt": 71.275168,
+          "slopeWidthPerDistance": -0.6772727252936835
+        },
+        {
+          "bridgeWidthPt": 106,
+          "centreDistancePt": 60,
+          "slopeWidthPerDistance": -0.3547618980045355
+        }
+      ],
+      "maxAbsoluteError": 1.0875422648415736,
+      "model": "adaptive piecewise cubic Hermite spline",
+      "rmse": 0.5350301386525866,
+      "sampleCount": 21,
+      "tolerance": 1.5,
+      "formula": "piecewise cubic Hermite bridge width against centre distance"
+    },
+    "centreY": 455.5,
+    "forward": {
+      "damping": 22.100000000000016,
+      "onsetSeconds": 2.0330003333333324,
+      "normalizedRmse": 0.01753082293152081,
+      "stiffness": 137,
+      "absoluteRmse": 2.4543152104129136,
+      "dampingRatio": 0.9440652117770215,
+      "mass": 1,
+      "sampleCount": 37,
+      "start": 200,
+      "target": 60
+    },
+    "reverse": {
+      "damping": 25.400000000000034,
+      "onsetSeconds": 3.621333333333332,
+      "normalizedRmse": 0.009164963362570541,
+      "stiffness": 161.5,
+      "absoluteRmse": 1.2830948707598757,
+      "dampingRatio": 0.9993496337130862,
+      "mass": 1,
+      "sampleCount": 33,
+      "start": 60,
+      "target": 200
+    }
+  },
+  "pill": {
+    "centreY": 818.5,
+    "forward": {
+      "height": {
+        "durationSeconds": 0.7200000000000002,
+        "knots": [
+          {
+            "seconds": 0,
+            "slopePerSecond": 21.428571428571544,
+            "value": 64
+          },
+          {
+            "seconds": 0.04666666666666641,
+            "slopePerSecond": 50.84728526343985,
+            "value": 65
+          },
+          {
+            "seconds": 0.09833366666666654,
+            "slopePerSecond": 47.05882352941178,
+            "value": 69
+          },
+          {
+            "seconds": 0.13166666666666638,
+            "slopePerSecond": 104.34873346724828,
+            "value": 69
+          },
+          {
+            "seconds": 0.13666666666666627,
+            "slopePerSecond": 381.8251240931621,
+            "value": 73
+          },
+          {
+            "seconds": 0.14999966666666653,
+            "slopePerSecond": 47.36867036142289,
+            "value": 76
+          },
+          {
+            "seconds": 0.19999966666666635,
+            "slopePerSecond": -34.78260869565224,
+            "value": 76
+          },
+          {
+            "seconds": 0.2649996666666663,
+            "slopePerSecond": -47.05882352941178,
+            "value": 72
+          },
+          {
+            "seconds": 0.2849996666666663,
+            "slopePerSecond": -66.66666666666612,
+            "value": 72
+          },
+          {
+            "seconds": 0.29499966666666655,
+            "slopePerSecond": -70.58657443354254,
+            "value": 70
+          },
+          {
+            "seconds": 0.3133336666666664,
+            "slopePerSecond": -32.432257122934516,
+            "value": 70
+          },
+          {
+            "seconds": 0.4183336666666664,
+            "slopePerSecond": -23.301061363345088,
+            "value": 66
+          },
+          {
+            "seconds": 0.4849996666666665,
+            "slopePerSecond": 13.043591683405959,
+            "value": 66
+          },
+          {
+            "seconds": 0.4949996666666663,
+            "slopePerSecond": 4.255313113031039,
+            "value": 67
+          },
+          {
+            "seconds": 0.7200000000000002,
+            "slopePerSecond": 0,
+            "value": 67
+          }
+        ],
+        "maxAbsoluteError": 0.5246203257854773,
+        "model": "adaptive piecewise cubic Hermite spline",
+        "rmse": 0.21460647262305244,
+        "sampleCount": 47,
+        "tolerance": 0.75
+      },
+      "position": {
+        "durationSeconds": 0.7200000000000002,
+        "knots": [
+          {
+            "seconds": 0,
+            "slopePerSecond": 175.00291671527884,
+            "value": 70.5
+          },
+          {
+            "seconds": 0.019999666666666638,
+            "slopePerSecond": 394.7368421052679,
+            "value": 74
+          },
+          {
+            "seconds": 0.03166666666666629,
+            "slopePerSecond": 337.4957813027366,
+            "value": 83
+          },
+          {
+            "seconds": 0.04666666666666641,
+            "slopePerSecond": 659.9967000164974,
+            "value": 83
+          },
+          {
+            "seconds": 0.09833366666666654,
+            "slopePerSecond": 987.8096966326668,
+            "value": 127
+          },
+          {
+            "seconds": 0.11499966666666639,
+            "slopePerSecond": 690.0069000690041,
+            "value": 150.5
+          },
+          {
+            "seconds": 0.13166666666666638,
+            "slopePerSecond": 899.9861540591733,
+            "value": 150
+          },
+          {
+            "seconds": 0.13666666666666627,
+            "slopePerSecond": 2100.038182512392,
+            "value": 170
+          },
+          {
+            "seconds": 0.14999966666666653,
+            "slopePerSecond": 652.9488582218526,
+            "value": 188.5
+          },
+          {
+            "seconds": 0.16499966666666666,
+            "slopePerSecond": 736.3368604778068,
+            "value": 188.5
+          },
+          {
+            "seconds": 0.16833366666666638,
+            "slopePerSecond": 1609.032398821874,
+            "value": 202
+          },
+          {
+            "seconds": 0.1833336666666665,
+            "slopePerSecond": 653.8461538461544,
+            "value": 218
+          },
+          {
+            "seconds": 0.23333366666666633,
+            "slopePerSecond": 450.0045000449997,
+            "value": 244.5
+          },
+          {
+            "seconds": 0.24999966666666662,
+            "slopePerSecond": 252.63689761889745,
+            "value": 248
+          },
+          {
+            "seconds": 0.2649996666666663,
+            "slopePerSecond": 142.10376732876645,
+            "value": 252.5
+          },
+          {
+            "seconds": 0.2816666666666663,
+            "slopePerSecond": 149.99999999999986,
+            "value": 252.5
+          },
+          {
+            "seconds": 0.2849996666666663,
+            "slopePerSecond": 337.50843771093616,
+            "value": 255.5
+          },
+          {
+            "seconds": 0.29499966666666655,
+            "slopePerSecond": 53.57104592110029,
+            "value": 257
+          },
+          {
+            "seconds": 0.33166666666666655,
+            "slopePerSecond": -50.70415393781141,
+            "value": 258
+          },
+          {
+            "seconds": 0.5316666666666663,
+            "slopePerSecond": -52.10520831030707,
+            "value": 245
+          },
+          {
+            "seconds": 0.6483336666666664,
+            "slopePerSecond": -13.2743362831858,
+            "value": 241.5
+          },
+          {
+            "seconds": 0.7200000000000002,
+            "slopePerSecond": 13.953553272340704,
+            "value": 242.5
+          }
+        ],
+        "maxAbsoluteError": 1.0918941563941615,
+        "model": "adaptive piecewise cubic Hermite spline",
+        "rmse": 0.4327816247443488,
+        "sampleCount": 47,
+        "tolerance": 1.5
+      },
+      "width": {
+        "durationSeconds": 0.7200000000000002,
+        "knots": [
+          {
+            "seconds": 0,
+            "slopePerSecond": 157.89473684210716,
+            "value": 90
+          },
+          {
+            "seconds": 0.03166666666666629,
+            "slopePerSecond": 92.30816568290108,
+            "value": 95
+          },
+          {
+            "seconds": 0.06499966666666657,
+            "slopePerSecond": -39.99999999999979,
+            "value": 96
+          },
+          {
+            "seconds": 0.08166666666666655,
+            "slopePerSecond": -29.999400011999782,
+            "value": 93
+          },
+          {
+            "seconds": 0.09833366666666654,
+            "slopePerSecond": 390.0039000390023,
+            "value": 95
+          },
+          {
+            "seconds": 0.11499966666666639,
+            "slopePerSecond": 300.0030000300018,
+            "value": 106
+          },
+          {
+            "seconds": 0.13166666666666638,
+            "slopePerSecond": 57.14285714285691,
+            "value": 105
+          },
+          {
+            "seconds": 0.14999966666666653,
+            "slopePerSecond": 77.41885536222327,
+            "value": 108
+          },
+          {
+            "seconds": 0.1833336666666665,
+            "slopePerSecond": 140.0000000000005,
+            "value": 109
+          },
+          {
+            "seconds": 0.19999966666666635,
+            "slopePerSecond": 220.0000000000008,
+            "value": 115
+          },
+          {
+            "seconds": 0.23333366666666633,
+            "slopePerSecond": 239.99999999999872,
+            "value": 120
+          },
+          {
+            "seconds": 0.24999966666666662,
+            "slopePerSecond": 189.4776732141731,
+            "value": 127
+          },
+          {
+            "seconds": 0.2649996666666663,
+            "slopePerSecond": -31.5786149619481,
+            "value": 126
+          },
+          {
+            "seconds": 0.2816666666666663,
+            "slopePerSecond": -199.99999999999983,
+            "value": 126
+          },
+          {
+            "seconds": 0.2849996666666663,
+            "slopePerSecond": -525.0131253281229,
+            "value": 122
+          },
+          {
+            "seconds": 0.29499966666666655,
+            "slopePerSecond": -181.81818181818178,
+            "value": 119
+          },
+          {
+            "seconds": 0.44999966666666635,
+            "slopePerSecond": -73.51772844448348,
+            "value": 92
+          },
+          {
+            "seconds": 0.7166666666666663,
+            "slopePerSecond": -22.2221947874138,
+            "value": 88
+          },
+          {
+            "seconds": 0.7200000000000002,
+            "slopePerSecond": -599.9999999999062,
+            "value": 86
+          }
+        ],
+        "maxAbsoluteError": 1.4798077314673606,
+        "model": "adaptive piecewise cubic Hermite spline",
+        "rmse": 0.5916106902485853,
+        "sampleCount": 47,
+        "tolerance": 1.5
+      }
+    },
+    "reverse": {
+      "height": {
+        "durationSeconds": 0.7200000000000002,
+        "knots": [
+          {
+            "seconds": 0,
+            "slopePerSecond": 38.70967741935511,
+            "value": 67
+          },
+          {
+            "seconds": 0.051666666666666305,
+            "slopePerSecond": 63.830330470897856,
+            "value": 69
+          },
+          {
+            "seconds": 0.07833266666666638,
+            "slopePerSecond": 66.66666666666612,
+            "value": 72
+          },
+          {
+            "seconds": 0.09666666666666668,
+            "slopePerSecond": -81.81743802329069,
+            "value": 72
+          },
+          {
+            "seconds": 0.11499966666666639,
+            "slopePerSecond": 40.00000000000014,
+            "value": 69
+          },
+          {
+            "seconds": 0.1466666666666665,
+            "slopePerSecond": 92.30769230769238,
+            "value": 74
+          },
+          {
+            "seconds": 0.17999966666666634,
+            "slopePerSecond": -36.73499375505116,
+            "value": 75
+          },
+          {
+            "seconds": 0.2283326666666663,
+            "slopePerSecond": -59.99970000149976,
+            "value": 71
+          },
+          {
+            "seconds": 0.2466666666666666,
+            "slopePerSecond": -59.99880002399877,
+            "value": 71
+          },
+          {
+            "seconds": 0.2616666666666667,
+            "slopePerSecond": -60.000600006000354,
+            "value": 69
+          },
+          {
+            "seconds": 0.2799996666666664,
+            "slopePerSecond": -60.000600006000354,
+            "value": 69
+          },
+          {
+            "seconds": 0.29499966666666655,
+            "slopePerSecond": -34.61525147980189,
+            "value": 67
+          },
+          {
+            "seconds": 0.3666666666666667,
+            "slopePerSecond": -30.508577995179714,
+            "value": 66
+          },
+          {
+            "seconds": 0.39333266666666633,
+            "slopePerSecond": -9.448848657791043,
+            "value": 64
+          },
+          {
+            "seconds": 0.5783326666666668,
+            "slopePerSecond": 4.958669489802484,
+            "value": 64
+          },
+          {
+            "seconds": 0.5949996666666668,
+            "slopePerSecond": 10.000000000000036,
+            "value": 65
+          },
+          {
+            "seconds": 0.6783326666666665,
+            "slopePerSecond": 9.836033324480908,
+            "value": 65
+          },
+          {
+            "seconds": 0.6966666666666668,
+            "slopePerSecond": 0,
+            "value": 66
+          },
+          {
+            "seconds": 0.7200000000000002,
+            "slopePerSecond": -42.857142857142684,
+            "value": 65
+          }
+        ],
+        "maxAbsoluteError": 0.7356193976857952,
+        "model": "adaptive piecewise cubic Hermite spline",
+        "rmse": 0.26301252193225955,
+        "sampleCount": 43,
+        "tolerance": 0.75
+      },
+      "position": {
+        "durationSeconds": 0.7200000000000002,
+        "knots": [
+          {
+            "seconds": 0,
+            "slopePerSecond": -210.00000000000074,
+            "value": 242.5
+          },
+          {
+            "seconds": 0.016666666666666607,
+            "slopePerSecond": -433.3381482016502,
+            "value": 239
+          },
+          {
+            "seconds": 0.029999666666666425,
+            "slopePerSecond": -542.8571428571476,
+            "value": 229.5
+          },
+          {
+            "seconds": 0.051666666666666305,
+            "slopePerSecond": -765.0076500764943,
+            "value": 220
+          },
+          {
+            "seconds": 0.0633326666666667,
+            "slopePerSecond": -1099.999999999991,
+            "value": 204
+          },
+          {
+            "seconds": 0.09666666666666668,
+            "slopePerSecond": -967.7356920277992,
+            "value": 170.5
+          },
+          {
+            "seconds": 0.11499966666666639,
+            "slopePerSecond": -970.0000000000034,
+            "value": 154
+          },
+          {
+            "seconds": 0.1466666666666665,
+            "slopePerSecond": -941.3858026607088,
+            "value": 122
+          },
+          {
+            "seconds": 0.16333266666666635,
+            "slopePerSecond": -538.7799084074169,
+            "value": 108.5
+          },
+          {
+            "seconds": 0.2283326666666663,
+            "slopePerSecond": -269.69696969696963,
+            "value": 78
+          },
+          {
+            "seconds": 0.3283326666666664,
+            "slopePerSecond": -29.999929411930797,
+            "value": 64
+          },
+          {
+            "seconds": 0.5116666666666663,
+            "slopePerSecond": 17.872310004578694,
+            "value": 69.5
+          },
+          {
+            "seconds": 0.7200000000000002,
+            "slopePerSecond": 7.19999999999998,
+            "value": 71
+          }
+        ],
+        "maxAbsoluteError": 0.9043153574712335,
+        "model": "adaptive piecewise cubic Hermite spline",
+        "rmse": 0.3591547353967112,
+        "sampleCount": 43,
+        "tolerance": 1.5
+      },
+      "width": {
+        "durationSeconds": 0.7200000000000002,
+        "knots": [
+          {
+            "seconds": 0,
+            "slopePerSecond": 33.33370370781925,
+            "value": 87
+          },
+          {
+            "seconds": 0.029999666666666425,
+            "slopePerSecond": -77.41935483871022,
+            "value": 88
+          },
+          {
+            "seconds": 0.051666666666666305,
+            "slopePerSecond": -90.00090000899934,
+            "value": 83
+          },
+          {
+            "seconds": 0.0633326666666667,
+            "slopePerSecond": 600.0150003750076,
+            "value": 85
+          },
+          {
+            "seconds": 0.07833266666666638,
+            "slopePerSecond": 314.9984250078759,
+            "value": 99
+          },
+          {
+            "seconds": 0.1299996666666665,
+            "slopePerSecond": 58.536014282787384,
+            "value": 106
+          },
+          {
+            "seconds": 0.1466666666666665,
+            "slopePerSecond": -60.000600006000354,
+            "value": 103
+          },
+          {
+            "seconds": 0.16333266666666635,
+            "slopePerSecond": 210.00210002100124,
+            "value": 104
+          },
+          {
+            "seconds": 0.17999966666666634,
+            "slopePerSecond": 209.9958000839985,
+            "value": 110
+          },
+          {
+            "seconds": 0.19666666666666632,
+            "slopePerSecond": -134.99932500337448,
+            "value": 111
+          },
+          {
+            "seconds": 0.2466666666666666,
+            "slopePerSecond": -136.70955295976177,
+            "value": 101
+          },
+          {
+            "seconds": 0.3283326666666664,
+            "slopePerSecond": -74.99999999999993,
+            "value": 93
+          },
+          {
+            "seconds": 0.3666666666666667,
+            "slopePerSecond": -82.75747920718318,
+            "value": 92
+          },
+          {
+            "seconds": 0.3766666666666665,
+            "slopePerSecond": -44.11777681699068,
+            "value": 89
+          },
+          {
+            "seconds": 0.4799996666666666,
+            "slopePerSecond": 0,
+            "value": 87
+          },
+          {
+            "seconds": 0.5466666666666664,
+            "slopePerSecond": 48.97939192084961,
+            "value": 89
+          },
+          {
+            "seconds": 0.5616666666666661,
+            "slopePerSecond": 11.538461538461508,
+            "value": 91
+          },
+          {
+            "seconds": 0.7200000000000002,
+            "slopePerSecond": 0,
+            "value": 91
+          }
+        ],
+        "maxAbsoluteError": 1.3147875418630122,
+        "model": "adaptive piecewise cubic Hermite spline",
+        "rmse": 0.5328418336755435,
+        "sampleCount": 43,
+        "tolerance": 1.5
+      }
+    }
+  },
+  "press": {
+    "appearances": [
+      {
+        "appearance": "light",
+        "brightnessDown": {
+          "damping": 27.500000000000036,
+          "onsetSeconds": 1.9163336666666668,
+          "normalizedRmse": 0.11261310361354472,
+          "stiffness": 608,
+          "absoluteRmse": 0.008204027401669945,
+          "dampingRatio": 0.557636135136997,
+          "mass": 1,
+          "sampleCount": 23,
+          "start": 0,
+          "target": 0.07285144568809479
+        },
+        "brightnessRelease": {
+          "damping": 29.40000000000002,
+          "onsetSeconds": 3.264667,
+          "normalizedRmse": 0.0806819348781352,
+          "stiffness": 217,
+          "absoluteRmse": 0.005877795596784867,
+          "dampingRatio": 0.9979010229541329,
+          "mass": 1,
+          "sampleCount": 41,
+          "start": 0.07285144568809479,
+          "target": 0
+        },
+        "heldLuma": 197.15660983604812,
+        "heldScaleRatio": 1.0218068535825544,
+        "heldWhiteMix": 0.07285144568809479,
+        "releaseOnsetSeconds": 3.326667,
+        "restingLuma": 192.61151878527053,
+        "scaleDown": {
+          "damping": 23.20000000000003,
+          "onsetSeconds": 1.9430003333333337,
+          "normalizedRmse": 0.07136005097797102,
+          "stiffness": 348,
+          "absoluteRmse": 0.0015561381833202326,
+          "dampingRatio": 0.6218252702059218,
+          "mass": 1,
+          "sampleCount": 23,
+          "start": 1,
+          "target": 1.0218068535825544
+        },
+        "scaleRelease": {
+          "damping": 21.900000000000055,
+          "onsetSeconds": 3.264667,
+          "normalizedRmse": 0.1697661774573086,
+          "stiffness": 608,
+          "absoluteRmse": 0.0037020661750814775,
+          "dampingRatio": 0.4440811403454636,
+          "mass": 1,
+          "sampleCount": 41,
+          "start": 1.0218068535825544,
+          "target": 1
+        }
+      },
+      {
+        "appearance": "dark",
+        "brightnessDown": {
+          "damping": 32.600000000000016,
+          "onsetSeconds": 1.9896663333333335,
+          "normalizedRmse": 0.053966707567721664,
+          "stiffness": 608,
+          "absoluteRmse": 0.004204925469940665,
+          "dampingRatio": 0.6610522911078577,
+          "mass": 1,
+          "sampleCount": 21,
+          "start": 0,
+          "target": 0.07791702809855493
+        },
+        "brightnessRelease": {
+          "damping": 22.70000000000003,
+          "onsetSeconds": 3.2696666666666654,
+          "normalizedRmse": 0.0196806616842573,
+          "stiffness": 138,
+          "absoluteRmse": 0.0015334586694504292,
+          "dampingRatio": 0.966176162411181,
+          "mass": 1,
+          "sampleCount": 44,
+          "start": 0.07791702809855493,
+          "target": 0
+        },
+        "heldLuma": 57.13783026068408,
+        "heldScaleRatio": 1.0276073619631902,
+        "heldWhiteMix": 0.07791702809855493,
+        "releaseOnsetSeconds": 3.31,
+        "restingLuma": 40.41825869389983,
+        "scaleDown": {
+          "damping": 31,
+          "onsetSeconds": 2.028333,
+          "normalizedRmse": 0.05809654345040945,
+          "stiffness": 540,
+          "absoluteRmse": 0.0016038923038456635,
+          "dampingRatio": 0.6670137985134996,
+          "mass": 1,
+          "sampleCount": 21,
+          "start": 1,
+          "target": 1.0276073619631902
+        },
+        "scaleRelease": {
+          "damping": 21.900000000000034,
+          "onsetSeconds": 3.2779999999999987,
+          "normalizedRmse": 0.06600799535860326,
+          "stiffness": 308,
+          "absoluteRmse": 0.001822306620329542,
+          "dampingRatio": 0.6239341561165187,
+          "mass": 1,
+          "sampleCount": 44,
+          "start": 1.0276073619631902,
+          "target": 1
+        }
+      }
+    ],
+    "centreY": 451,
+    "heldScaleRatio": 1.0247071077728722,
+    "heldWhiteMix": 0.07538423689332485,
+    "holdDurationSeconds": 1.2
+  },
+  "schemaVersion": 1
+}

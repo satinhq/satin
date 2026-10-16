@@ -1,0 +1,18 @@
+{
+  "source": "symbols/vs-sf native crops; iPhone 17 Pro Max iOS 27.0, regular medium, 3x; 2026-10-04",
+  "method": "Median of geometric-mean ink-dimension ratios at 22, 28, 112 pt. Framework7 raster includes regular contour expansion. Isotropic fit preserves glyph aspect.",
+  "scales": {
+    "house": 1.178527,
+    "house.fill": 1.178527,
+    "star": 1.165272,
+    "star.fill": 1.165272,
+    "trash": 1.176697,
+    "trash.fill": 1.176697,
+    "bell": 1.163184,
+    "bell.fill": 1.163184,
+    "cart": 1.160423,
+    "cart.fill": 1.160423,
+    "heart": 1.165476,
+    "heart.fill": 1.165476
+  }
+}

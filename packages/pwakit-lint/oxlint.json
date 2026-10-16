@@ -1,0 +1,100 @@
+{
+  "plugins": [
+    "react",
+    "typescript",
+    "oxc"
+  ],
+  "rules": {
+    "react/rules-of-hooks": "error",
+    "react/only-export-components": [
+      "warn",
+      {
+        "allowConstantExport": true
+      }
+    ],
+    "no-restricted-imports": [
+      "error",
+      {
+        "paths": [
+          {
+            "name": "react-router",
+            "message": "Satin owns navigation. Use the satin Navigator; browser-history routers break the edge-swipe invariant."
+          },
+          {
+            "name": "react-router-dom",
+            "message": "Satin owns navigation. Use the satin Navigator; browser-history routers break the edge-swipe invariant."
+          },
+          {
+            "name": "@tanstack/react-router",
+            "message": "Satin owns navigation. Use the satin Navigator; browser-history routers break the edge-swipe invariant."
+          },
+          {
+            "name": "@remix-run/react",
+            "message": "Satin owns navigation. Remix document routing is incompatible with Satin's persistent in-memory screen stack."
+          },
+          {
+            "name": "@remix-run/router",
+            "message": "Satin owns navigation. Browser-history router cores break the edge-swipe invariant."
+          },
+          {
+            "name": "next/navigation",
+            "message": "Satin owns navigation. Next.js document routing is not a supported Satin runtime."
+          },
+          {
+            "name": "next/router",
+            "message": "Satin owns navigation. Next.js document routing is not a supported Satin runtime."
+          },
+          {
+            "name": "wouter",
+            "message": "Satin owns navigation. Browser-history routers break the edge-swipe invariant."
+          },
+          {
+            "name": "wouter/use-browser-location",
+            "message": "Satin owns navigation. Browser history cannot back the internal screen stack."
+          },
+          {
+            "name": "liquid-glass-web-react",
+            "message": "Satin owns glass composition. Use GlassBar or TabBar from satin."
+          },
+          {
+            "name": "liquid-glass-react",
+            "message": "Satin owns glass composition. Use GlassBar or TabBar from satin."
+          },
+          {
+            "name": "openglass",
+            "message": "Satin owns glass composition. Use GlassBar or TabBar from satin."
+          },
+          {
+            "name": "pixi.js",
+            "message": "Satin owns the page GPU context and glass renderer. Use framework glass primitives."
+          },
+          {
+            "name": "apple-liquid-glass-webgl",
+            "message": "Satin owns glass composition and WebGL is out of scope for measured-reference. Use GlassBar or TabBar from satin."
+          }
+        ]
+      }
+    ],
+    "no-restricted-properties": [
+      "error",
+      {
+        "object": "navigator",
+        "property": "vibrate",
+        "message": "Use Satin sensoryFeedback tap affordances. Imperative vibration is unavailable on the target runtime."
+      },
+      {
+        "property": "pushState",
+        "message": "Satin internal navigation never grows browser history. Use the satin Navigator."
+      },
+      {
+        "property": "replaceState",
+        "message": "Only Satin's framework-owned URL projection module may call history.replaceState."
+      },
+      {
+        "object": "navigator",
+        "property": "mediaSession",
+        "message": "Satin owns system media. Use useMediaPlayer for metadata and remote playback commands."
+      }
+    ]
+  }
+}

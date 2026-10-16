@@ -1,0 +1,15 @@
+[
+  { "route": "/app/", "valid": true },
+  { "route": "/app/?screen=home", "valid": true },
+  { "route": "/app/home", "valid": true },
+  { "route": "/app/../app/home", "valid": true },
+  { "route": "/app/\\home", "valid": true },
+  { "route": "/app/#home", "valid": false },
+  { "route": "/app/ ", "valid": false },
+  { "route": " /app/", "valid": false },
+  { "route": "//evil.test/app/", "valid": false },
+  { "route": "/\\evil.test/app/", "valid": false },
+  { "route": "/app/../../outside", "valid": false },
+  { "route": "/appx/", "valid": false },
+  { "route": "", "valid": false }
+]

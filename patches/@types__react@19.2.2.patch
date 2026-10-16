@@ -1,0 +1,20 @@
+diff --git a/jsx-dev-runtime.d.ts b/jsx-dev-runtime.d.ts
+index 1dfb4c0..55f0880 100644
+--- a/jsx-dev-runtime.d.ts
++++ b/jsx-dev-runtime.d.ts
+@@ -1 +1,2 @@
+ import * as React from "./";
++import type { PixiElements } from "@pixi/react";
+@@ -12 +13 @@ export namespace JSX {
+-    interface IntrinsicElements extends React.JSX.IntrinsicElements {}
++    interface IntrinsicElements extends React.JSX.IntrinsicElements, PixiElements {}
+diff --git a/jsx-runtime.d.ts b/jsx-runtime.d.ts
+index 30d5fc4..ffea7c4 100644
+--- a/jsx-runtime.d.ts
++++ b/jsx-runtime.d.ts
+@@ -1 +1,2 @@
+ import * as React from "./";
++import type { PixiElements } from "@pixi/react";
+@@ -12 +13 @@ export namespace JSX {
+-    interface IntrinsicElements extends React.JSX.IntrinsicElements {}
++    interface IntrinsicElements extends React.JSX.IntrinsicElements, PixiElements {}

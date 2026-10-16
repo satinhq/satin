@@ -1,0 +1,23 @@
+{
+  "name": "@satinhq/consumer-fixture",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --pretty false",
+    "build": "tsc -p tsconfig.json --pretty false && vite build"
+  },
+  "dependencies": {
+    "@satinhq/kit": "file:.artifacts/satin-0.1.0-beta.0.tgz",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.3",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "@vitejs/plugin-react": "^6.1.0",
+    "typescript": "~7.0.2",
+    "vite": "^8.2.2"
+  }
+}

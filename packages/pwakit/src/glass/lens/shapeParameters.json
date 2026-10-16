@@ -1,0 +1,198 @@
+{
+  "light-bar": {
+    "curvature": 0.75,
+    "diffuseHeightScale": 8,
+    "diffuseSpreadScale": 0.6499999761581421,
+    "diffuseAmountScale": 0.15000000596046448,
+    "matrix": [
+      [
+        1.1201999187469482,
+        -0.18940000236034393,
+        -0.01899999938905239,
+        0.14710000157356262
+      ],
+      [
+        -0.056299999356269836,
+        0.9870999455451965,
+        -0.019099999219179153,
+        0.14710000157356262
+      ],
+      [
+        -0.056299999356269836,
+        -0.18930000066757202,
+        1.1574000120162964,
+        0.14710000157356262
+      ]
+    ],
+    "key": {
+      "height": 1,
+      "angle": 0,
+      "spread": 1.3962634015954636,
+      "amount": 0.5,
+      "heightOffset": 0
+    },
+    "fill": {
+      "height": 1,
+      "angle": 3.141592653589793,
+      "spread": 1.3962634015954636,
+      "amount": 0.5,
+      "heightOffset": 0
+    },
+    "projection": [
+      1,
+      0,
+      -1.5707963267948966,
+      4.93778906170859,
+      3.2678308584368905
+    ],
+    "status": "Native effect values and matrix; projection and envelope remain a measured WebGL approximation.",
+    "projectionSource": "reference calibration"
+  },
+  "light-menu": {
+    "curvature": 0.75,
+    "diffuseHeightScale": 8,
+    "diffuseSpreadScale": 0.6499999761581421,
+    "diffuseAmountScale": 0.15000000596046448,
+    "matrix": [
+      [
+        1.1201999187469482,
+        -0.18940000236034393,
+        -0.01899999938905239,
+        0.14710000157356262
+      ],
+      [
+        -0.056299999356269836,
+        0.9870999455451965,
+        -0.019099999219179153,
+        0.14710000157356262
+      ],
+      [
+        -0.056299999356269836,
+        -0.18930000066757202,
+        1.1574000120162964,
+        0.14710000157356262
+      ]
+    ],
+    "key": {
+      "height": 1,
+      "angle": 0,
+      "spread": 1.5635241215782536,
+      "amount": 0.5,
+      "heightOffset": 0
+    },
+    "fill": {
+      "height": 1,
+      "angle": 3.141592653589793,
+      "spread": 1.5635241215782536,
+      "amount": 0.5,
+      "heightOffset": 0
+    },
+    "projection": [
+      0.861305783405394,
+      -0.004856749037355225,
+      -1.5936538455128344,
+      3.4552324433025556,
+      0.9866132039578872
+    ],
+    "status": "Native effect values and matrix; projection and envelope remain a measured WebGL approximation.",
+    "projectionSource": "reference calibration"
+  },
+  "dark-bar": {
+    "curvature": 0.75,
+    "diffuseHeightScale": 8,
+    "diffuseSpreadScale": 0.6499999761581421,
+    "diffuseAmountScale": 0.15000000596046448,
+    "matrix": [
+      [
+        1.1201999187469482,
+        -0.18940000236034393,
+        -0.01899999938905239,
+        0.14710000157356262
+      ],
+      [
+        -0.056299999356269836,
+        0.9870999455451965,
+        -0.019099999219179153,
+        0.14710000157356262
+      ],
+      [
+        -0.056299999356269836,
+        -0.18930000066757202,
+        1.1574000120162964,
+        0.14710000157356262
+      ]
+    ],
+    "key": {
+      "height": 1,
+      "angle": 0,
+      "spread": 1.3962634015954636,
+      "amount": 0.5,
+      "heightOffset": 0
+    },
+    "fill": {
+      "height": 1,
+      "angle": 3.141592653589793,
+      "spread": 1.3962634015954636,
+      "amount": 0.5,
+      "heightOffset": 0
+    },
+    "projection": [
+      1,
+      0,
+      -1.5707963267948966,
+      4.93778906170859,
+      3.2678308584368905
+    ],
+    "status": "Native effect values and matrix; projection and envelope remain a measured WebGL approximation.",
+    "projectionSource": "reference calibration"
+  },
+  "dark-menu": {
+    "curvature": 0.75,
+    "diffuseHeightScale": 8,
+    "diffuseSpreadScale": 0.6499999761581421,
+    "diffuseAmountScale": 0.15000000596046448,
+    "matrix": [
+      [
+        1.1201999187469482,
+        -0.18940000236034393,
+        -0.01899999938905239,
+        0.14710000157356262
+      ],
+      [
+        -0.056299999356269836,
+        0.9870999455451965,
+        -0.019099999219179153,
+        0.14710000157356262
+      ],
+      [
+        -0.056299999356269836,
+        -0.18930000066757202,
+        1.1574000120162964,
+        0.14710000157356262
+      ]
+    ],
+    "key": {
+      "height": 1,
+      "angle": 0,
+      "spread": 1.5635241215782536,
+      "amount": 0.5,
+      "heightOffset": 0
+    },
+    "fill": {
+      "height": 1,
+      "angle": 3.141592653589793,
+      "spread": 1.5635241215782536,
+      "amount": 0.5,
+      "heightOffset": 0
+    },
+    "projection": [
+      0.861305783405394,
+      -0.004856749037355225,
+      -1.5936538455128344,
+      3.4552324433025556,
+      0.9866132039578872
+    ],
+    "status": "Native effect values and matrix; projection and envelope remain a measured WebGL approximation.",
+    "projectionSource": "reference calibration"
+  }
+}

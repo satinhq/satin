@@ -1,0 +1,29 @@
+{
+  "source": "owner-phone-0924-compositor; deduplicated navigation-release-handoff events with raw >= .5 and no attached tracks",
+  "cases": [
+    {
+      "client": "1790231754322-asikg5",
+      "at": 72733,
+      "raw": 0.8772727272727273,
+      "renderedProgress": 0,
+      "velocity": 5146.666666666667,
+      "width": 440
+    },
+    {
+      "client": "1790231754322-asikg5",
+      "at": 72940,
+      "raw": 0.9583333333333333,
+      "renderedProgress": 0,
+      "velocity": 5353.333333333332,
+      "width": 440
+    },
+    {
+      "client": "1790231754322-asikg5",
+      "at": 73267,
+      "raw": 0.9015151515151516,
+      "renderedProgress": 0,
+      "velocity": 4311.594202898551,
+      "width": 440
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "semi": false,
+  "singleQuote": true,
+  "printWidth": 100,
+  "trailingComma": "all",
+  "arrowParens": "avoid",
+  "overrides": [
+    {
+      "files": "apps/docs-preview/src/**/*.{ts,tsx}",
+      "options": {
+        "printWidth": 76
+      }
+    }
+  ]
+}

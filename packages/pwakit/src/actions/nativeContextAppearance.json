@@ -1,0 +1,86 @@
+{
+  "light": [
+    [
+      0,
+      0,
+      "contrast(1.015) brightness(0.992)"
+    ],
+    [
+      114.8,
+      0.006,
+      "contrast(1.015) brightness(0.992)"
+    ],
+    [
+      158.2,
+      0.089,
+      "contrast(0.616) brightness(1.206)"
+    ],
+    [
+      208.2,
+      0.474,
+      "contrast(0.622) brightness(1.186)"
+    ],
+    [
+      256.5,
+      0.818,
+      "contrast(0.846) brightness(1.066)"
+    ],
+    [
+      304.8,
+      0.981,
+      "contrast(0.976) brightness(1.008)"
+    ],
+    [
+      356.5,
+      1,
+      "contrast(0.988) brightness(1.006)"
+    ],
+    [
+      454.8,
+      1,
+      "none"
+    ]
+  ],
+  "dark": [
+    [
+      0,
+      0,
+      "contrast(1.168) brightness(0.927)"
+    ],
+    [
+      107.7,
+      0.024,
+      "contrast(1.168) brightness(0.927)"
+    ],
+    [
+      156.0,
+      0.024,
+      "contrast(1.004) brightness(1.009)"
+    ],
+    [
+      196.0,
+      0.081,
+      "contrast(0.996) brightness(0.808)"
+    ],
+    [
+      244.3,
+      0.463,
+      "contrast(0.981) brightness(0.687)"
+    ],
+    [
+      294.3,
+      0.78,
+      "contrast(1.001) brightness(0.901)"
+    ],
+    [
+      341.0,
+      0.943,
+      "contrast(0.998) brightness(0.973)"
+    ],
+    [
+      457.7,
+      1,
+      "none"
+    ]
+  ]
+}

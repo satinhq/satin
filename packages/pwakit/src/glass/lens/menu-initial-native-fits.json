@@ -1,0 +1,1007 @@
+{
+  "schemaVersion": 1,
+  "coordinateSpace": "iPhone 17 Pro screen points; PWA subtracts physical top inset from y",
+  "button": {
+    "centerX": 364,
+    "centerY": 156,
+    "diameter": 44
+  },
+  "panel": {
+    "centerX": 267.5,
+    "centerY": 221.5,
+    "cornerRadius": 31.5,
+    "height": 190,
+    "width": 250
+  },
+  "open": {
+    "buttonTransition": {
+      "behavior": "the fixed glass circle merges into the expanding rounded rect; its glyph fades rather than scaling",
+      "fixedCenterX": 364,
+      "fixedCenterY": 156,
+      "glyphFadeDurationSeconds": 0.12
+    },
+    "direction": "open",
+    "geometry": {
+      "centerX": {
+        "durationSeconds": 0.4816673333333331,
+        "knots": [
+          {
+            "seconds": 0,
+            "value": 363.5,
+            "slopePerSecond": -775.0000000000036
+          },
+          {
+            "seconds": 0.019999999999999907,
+            "value": 348,
+            "slopePerSecond": -1000.0000000000028
+          },
+          {
+            "seconds": 0.029999999999999916,
+            "value": 333.5,
+            "slopePerSecond": -621.4108168338057
+          },
+          {
+            "seconds": 0.04333399999999987,
+            "value": 333.5,
+            "slopePerSecond": -524.9934375820303
+          },
+          {
+            "seconds": 0.05666699999999991,
+            "value": 319.5,
+            "slopePerSecond": -883.3333333333326
+          },
+          {
+            "seconds": 0.0733339999999999,
+            "value": 307,
+            "slopePerSecond": -535.7219388848401
+          },
+          {
+            "seconds": 0.07999999999999996,
+            "value": 307,
+            "slopePerSecond": -524.9999999999995
+          },
+          {
+            "seconds": 0.09333399999999992,
+            "value": 296.5,
+            "slopePerSecond": -712.4910938613268
+          },
+          {
+            "seconds": 0.10666699999999996,
+            "value": 288,
+            "slopePerSecond": -564.7125260297147
+          },
+          {
+            "seconds": 0.12166700000000008,
+            "value": 280.5,
+            "slopePerSecond": -321.43316333090405
+          },
+          {
+            "seconds": 0.13,
+            "value": 280.5,
+            "slopePerSecond": -253.84224858079247
+          },
+          {
+            "seconds": 0.14333399999999996,
+            "value": 275,
+            "slopePerSecond": -326.0812855428612
+          },
+          {
+            "seconds": 0.16833399999999987,
+            "value": 268,
+            "slopePerSecond": -190.91256204658222
+          },
+          {
+            "seconds": 0.18000000000000005,
+            "value": 268,
+            "slopePerSecond": -53.846153846153705
+          },
+          {
+            "seconds": 0.23333400000000004,
+            "value": 264.5,
+            "slopePerSecond": -5.581364197037055
+          },
+          {
+            "seconds": 0.3591676666666662,
+            "value": 267,
+            "slopePerSecond": 12.08053691275169
+          },
+          {
+            "seconds": 0.4816673333333331,
+            "value": 267.5,
+            "slopePerSecond": 4.081643759574848
+          }
+        ],
+        "maxAbsoluteError": 0.8314973317395697,
+        "model": "adaptive piecewise cubic Hermite spline",
+        "rmse": 0.33401242802340947,
+        "sampleCount": 55,
+        "tolerance": 1
+      },
+      "centerY": {
+        "durationSeconds": 0.4816673333333331,
+        "knots": [
+          {
+            "seconds": 0,
+            "value": 158.5,
+            "slopePerSecond": 750.0000000000035
+          },
+          {
+            "seconds": 0.019999999999999907,
+            "value": 173.5,
+            "slopePerSecond": 1066.6666666666697
+          },
+          {
+            "seconds": 0.029999999999999916,
+            "value": 190.5,
+            "slopePerSecond": 728.5506128396343
+          },
+          {
+            "seconds": 0.04333399999999987,
+            "value": 190.5,
+            "slopePerSecond": 524.9934375820303
+          },
+          {
+            "seconds": 0.05666699999999991,
+            "value": 204.5,
+            "slopePerSecond": 816.666666666666
+          },
+          {
+            "seconds": 0.0733339999999999,
+            "value": 215,
+            "slopePerSecond": 450.0064286632657
+          },
+          {
+            "seconds": 0.07999999999999996,
+            "value": 215,
+            "slopePerSecond": 374.99999999999966
+          },
+          {
+            "seconds": 0.09333399999999992,
+            "value": 222.5,
+            "slopePerSecond": 335.99731202150286
+          },
+          {
+            "seconds": 0.12166700000000008,
+            "value": 229,
+            "slopePerSecond": 54.09871540141245
+          },
+          {
+            "seconds": 0.19499999999999995,
+            "value": 228,
+            "slopePerSecond": -38.18167933934788
+          },
+          {
+            "seconds": 0.21333400000000002,
+            "value": 225.5,
+            "slopePerSecond": -76.92149904617325
+          },
+          {
+            "seconds": 0.22750066666666668,
+            "value": 225.5,
+            "slopePerSecond": -99.99999999999991
+          },
+          {
+            "seconds": 0.23333400000000004,
+            "value": 223.5,
+            "slopePerSecond": -104.34964086331902
+          },
+          {
+            "seconds": 0.24666700000000008,
+            "value": 223.5,
+            "slopePerSecond": -63.158337953249024
+          },
+          {
+            "seconds": 0.28083366666666654,
+            "value": 220.5,
+            "slopePerSecond": -10.638282782577626
+          },
+          {
+            "seconds": 0.4816673333333331,
+            "value": 221,
+            "slopePerSecond": 2.489622423863198
+          }
+        ],
+        "maxAbsoluteError": 0.8780367252133203,
+        "model": "adaptive piecewise cubic Hermite spline",
+        "rmse": 0.2650360150113111,
+        "sampleCount": 55,
+        "tolerance": 1
+      },
+      "width": {
+        "durationSeconds": 0.4816673333333331,
+        "knots": [
+          {
+            "seconds": 0,
+            "value": 58,
+            "slopePerSecond": 1550.0000000000073
+          },
+          {
+            "seconds": 0.019999999999999907,
+            "value": 89,
+            "slopePerSecond": 2000.0000000000057
+          },
+          {
+            "seconds": 0.029999999999999916,
+            "value": 118,
+            "slopePerSecond": 1242.8216336676114
+          },
+          {
+            "seconds": 0.04333399999999987,
+            "value": 118,
+            "slopePerSecond": 974.987812652342
+          },
+          {
+            "seconds": 0.05666699999999991,
+            "value": 144,
+            "slopePerSecond": 1633.333333333332
+          },
+          {
+            "seconds": 0.0733339999999999,
+            "value": 167,
+            "slopePerSecond": 985.7283675481058
+          },
+          {
+            "seconds": 0.07999999999999996,
+            "value": 167,
+            "slopePerSecond": 1049.999999999999
+          },
+          {
+            "seconds": 0.09333399999999992,
+            "value": 188,
+            "slopePerSecond": 1424.9821877226536
+          },
+          {
+            "seconds": 0.10666699999999996,
+            "value": 205,
+            "slopePerSecond": 1058.835986305715
+          },
+          {
+            "seconds": 0.12166700000000008,
+            "value": 218,
+            "slopePerSecond": 557.1508164402337
+          },
+          {
+            "seconds": 0.13,
+            "value": 218,
+            "slopePerSecond": 599.9907693727822
+          },
+          {
+            "seconds": 0.14333399999999996,
+            "value": 231,
+            "slopePerSecond": 756.5085824594381
+          },
+          {
+            "seconds": 0.16833399999999987,
+            "value": 247,
+            "slopePerSecond": 436.3715703921879
+          },
+          {
+            "seconds": 0.18000000000000005,
+            "value": 247,
+            "slopePerSecond": 230.77633157943123
+          },
+          {
+            "seconds": 0.19000000000000006,
+            "value": 252,
+            "slopePerSecond": 136.36239670548449
+          },
+          {
+            "seconds": 0.25333400000000006,
+            "value": 257,
+            "slopePerSecond": 5.911295105644713
+          },
+          {
+            "seconds": 0.3591676666666662,
+            "value": 253,
+            "slopePerSecond": -30.65693430656938
+          },
+          {
+            "seconds": 0.4816673333333331,
+            "value": 250,
+            "slopePerSecond": -24.48986255744909
+          }
+        ],
+        "maxAbsoluteError": 0.989849208051794,
+        "model": "adaptive piecewise cubic Hermite spline",
+        "rmse": 0.4656512705194105,
+        "sampleCount": 55,
+        "tolerance": 1
+      },
+      "height": {
+        "durationSeconds": 0.4816673333333331,
+        "knots": [
+          {
+            "seconds": 0,
+            "value": 64,
+            "slopePerSecond": 1500.000000000007
+          },
+          {
+            "seconds": 0.019999999999999907,
+            "value": 94,
+            "slopePerSecond": 2133.3333333333394
+          },
+          {
+            "seconds": 0.029999999999999916,
+            "value": 128,
+            "slopePerSecond": 1457.1012256792685
+          },
+          {
+            "seconds": 0.04333399999999987,
+            "value": 128,
+            "slopePerSecond": 974.987812652342
+          },
+          {
+            "seconds": 0.05666699999999991,
+            "value": 154,
+            "slopePerSecond": 1499.9999999999986
+          },
+          {
+            "seconds": 0.0733339999999999,
+            "value": 173,
+            "slopePerSecond": 814.297347104957
+          },
+          {
+            "seconds": 0.07999999999999996,
+            "value": 173,
+            "slopePerSecond": 749.9999999999993
+          },
+          {
+            "seconds": 0.09333399999999992,
+            "value": 188,
+            "slopePerSecond": 862.4892188847641
+          },
+          {
+            "seconds": 0.10666699999999996,
+            "value": 196,
+            "slopePerSecond": 388.2398616454289
+          },
+          {
+            "seconds": 0.12166700000000008,
+            "value": 199,
+            "slopePerSecond": 40.909276860349316
+          },
+          {
+            "seconds": 0.18000000000000005,
+            "value": 199,
+            "slopePerSecond": -58.536870911565444
+          },
+          {
+            "seconds": 0.19000000000000006,
+            "value": 195,
+            "slopePerSecond": -209.9958000839985
+          },
+          {
+            "seconds": 0.21333400000000002,
+            "value": 192,
+            "slopePerSecond": -13.714254367418603
+          },
+          {
+            "seconds": 0.4816673333333331,
+            "value": 191,
+            "slopePerSecond": -3.726708074534165
+          }
+        ],
+        "maxAbsoluteError": 0.9908753512589783,
+        "model": "adaptive piecewise cubic Hermite spline",
+        "rmse": 0.47209290903572715,
+        "sampleCount": 55,
+        "tolerance": 1
+      },
+      "cornerRadius": {
+        "durationSeconds": 0.4816673333333331,
+        "knots": [
+          {
+            "seconds": 0,
+            "value": 32,
+            "slopePerSecond": 625.000000000003
+          },
+          {
+            "seconds": 0.019999999999999907,
+            "value": 44.5,
+            "slopePerSecond": 900.0000000000025
+          },
+          {
+            "seconds": 0.029999999999999916,
+            "value": 59,
+            "slopePerSecond": 621.4108168338057
+          },
+          {
+            "seconds": 0.04333399999999987,
+            "value": 59,
+            "slopePerSecond": 37.49953125585931
+          },
+          {
+            "seconds": 0.05666699999999991,
+            "value": 60,
+            "slopePerSecond": 6.06060606060606
+          },
+          {
+            "seconds": 0.2083339999999999,
+            "value": 60,
+            "slopePerSecond": -47.87223856970514
+          },
+          {
+            "seconds": 0.21333400000000002,
+            "value": 52.5,
+            "slopePerSecond": -391.3043478260847
+          },
+          {
+            "seconds": 0.22750066666666668,
+            "value": 52.5,
+            "slopePerSecond": -249.99999999999977
+          },
+          {
+            "seconds": 0.23333400000000004,
+            "value": 47.5,
+            "slopePerSecond": -260.87410215829755
+          },
+          {
+            "seconds": 0.24666700000000008,
+            "value": 47.5,
+            "slopePerSecond": -287.4999999999998
+          },
+          {
+            "seconds": 0.25333400000000006,
+            "value": 41.75,
+            "slopePerSecond": -650.0000000000042
+          },
+          {
+            "seconds": 0.261667,
+            "value": 37.75,
+            "slopePerSecond": -171.43102044315046
+          },
+          {
+            "seconds": 0.2766669999999999,
+            "value": 37.75,
+            "slopePerSecond": 352.17391304348035
+          },
+          {
+            "seconds": 0.28083366666666654,
+            "value": 44.5,
+            "slopePerSecond": 337.4943750937511
+          },
+          {
+            "seconds": 0.29666733333333306,
+            "value": 44.5,
+            "slopePerSecond": 0
+          },
+          {
+            "seconds": 0.31083366666666634,
+            "value": 44.5,
+            "slopePerSecond": 54.54644629902382
+          },
+          {
+            "seconds": 0.315000333333333,
+            "value": 45.5,
+            "slopePerSecond": -584.9883002339958
+          },
+          {
+            "seconds": 0.32750066666666633,
+            "value": 34.75,
+            "slopePerSecond": -268.96180742334656
+          },
+          {
+            "seconds": 0.36333433333333287,
+            "value": 32.5,
+            "slopePerSecond": -4.615384615384613
+          },
+          {
+            "seconds": 0.381667333333333,
+            "value": 34.5,
+            "slopePerSecond": -85.71526531731705
+          },
+          {
+            "seconds": 0.3925006666666665,
+            "value": 30,
+            "slopePerSecond": -7.792248271419592
+          },
+          {
+            "seconds": 0.44583366666666635,
+            "value": 34,
+            "slopePerSecond": 50.467289719626194
+          },
+          {
+            "seconds": 0.4816673333333331,
+            "value": 34.5,
+            "slopePerSecond": 13.953358573408583
+          }
+        ],
+        "maxAbsoluteError": 1.1455964108798753,
+        "model": "adaptive piecewise cubic Hermite spline",
+        "rmse": 0.527897428041898,
+        "sampleCount": 55,
+        "tolerance": 1.5
+      }
+    },
+    "items": [
+      {
+        "durationSeconds": 0.12,
+        "index": 0,
+        "offsetXPt": 6,
+        "onsetSeconds": 0.04
+      },
+      {
+        "durationSeconds": 0.12,
+        "index": 1,
+        "offsetXPt": 6,
+        "onsetSeconds": 0.04
+      },
+      {
+        "durationSeconds": 0.12,
+        "index": 2,
+        "offsetXPt": 6,
+        "onsetSeconds": 0.04
+      },
+      {
+        "durationSeconds": 0.12,
+        "index": 3,
+        "offsetXPt": 6,
+        "onsetSeconds": 0.04
+      }
+    ],
+    "sourceOnsetSeconds": 0.998333
+  },
+  "close": {
+    "buttonTransition": {
+      "behavior": "the fixed glass circle merges into the expanding rounded rect; its glyph fades rather than scaling",
+      "fixedCenterX": 364,
+      "fixedCenterY": 156,
+      "glyphFadeDurationSeconds": 0.12
+    },
+    "direction": "close",
+    "geometry": {
+      "centerX": {
+        "durationSeconds": 0.1783329999999994,
+        "knots": [
+          {
+            "seconds": 0,
+            "value": 270,
+            "slopePerSecond": 300.00545464464193
+          },
+          {
+            "seconds": 0.018332999999999267,
+            "value": 275.5,
+            "slopePerSecond": 645.0064500645038
+          },
+          {
+            "seconds": 0.033332999999999835,
+            "value": 291.5,
+            "slopePerSecond": 505.2578393911554
+          },
+          {
+            "seconds": 0.04999999999999982,
+            "value": 291.5,
+            "slopePerSecond": 333.3333333333306
+          },
+          {
+            "seconds": 0.06333300000000008,
+            "value": 301.5,
+            "slopePerSecond": 876.9500600018567
+          },
+          {
+            "seconds": 0.07166599999999956,
+            "value": 310.5,
+            "slopePerSecond": 925.0000000000197
+          },
+          {
+            "seconds": 0.08333299999999966,
+            "value": 320,
+            "slopePerSecond": 874.9999999999798
+          },
+          {
+            "seconds": 0.09166600000000003,
+            "value": 328,
+            "slopePerSecond": 479.9904001919965
+          },
+          {
+            "seconds": 0.09999999999999964,
+            "value": 328,
+            "slopePerSecond": 450.0000000000096
+          },
+          {
+            "seconds": 0.1116659999999996,
+            "value": 337,
+            "slopePerSecond": 385.7197959970849
+          },
+          {
+            "seconds": 0.12333299999999969,
+            "value": 337,
+            "slopePerSecond": 374.99999999999136
+          },
+          {
+            "seconds": 0.13166600000000006,
+            "value": 344.5,
+            "slopePerSecond": 346.1485207919897
+          },
+          {
+            "seconds": 0.14499999999999957,
+            "value": 344.5,
+            "slopePerSecond": 436.34776917204425
+          },
+          {
+            "seconds": 0.14999999999999947,
+            "value": 352.5,
+            "slopePerSecond": 733.333333333349
+          },
+          {
+            "seconds": 0.15999999999999925,
+            "value": 355.5,
+            "slopePerSecond": 180.00720028801317
+          },
+          {
+            "seconds": 0.16666599999999931,
+            "value": 355.5,
+            "slopePerSecond": 381.8251240931621
+          },
+          {
+            "seconds": 0.1783329999999994,
+            "value": 362.5,
+            "slopePerSecond": 599.9828576326342
+          }
+        ],
+        "maxAbsoluteError": 0,
+        "model": "adaptive piecewise cubic Hermite spline",
+        "rmse": 0,
+        "sampleCount": 17,
+        "tolerance": 1
+      },
+      "centerY": {
+        "durationSeconds": 0.1783329999999994,
+        "knots": [
+          {
+            "seconds": 0,
+            "value": 228,
+            "slopePerSecond": 60.000600006000354
+          },
+          {
+            "seconds": 0.033332999999999835,
+            "value": 230,
+            "slopePerSecond": 40.00000000000014
+          },
+          {
+            "seconds": 0.04999999999999982,
+            "value": 230,
+            "slopePerSecond": -216.66666666666487
+          },
+          {
+            "seconds": 0.06333300000000008,
+            "value": 223.5,
+            "slopePerSecond": -692.3289947383079
+          },
+          {
+            "seconds": 0.07166599999999956,
+            "value": 215,
+            "slopePerSecond": -925.0000000000197
+          },
+          {
+            "seconds": 0.08333299999999966,
+            "value": 205,
+            "slopePerSecond": -949.9999999999781
+          },
+          {
+            "seconds": 0.09166600000000003,
+            "value": 196,
+            "slopePerSecond": -539.9892002159961
+          },
+          {
+            "seconds": 0.09999999999999964,
+            "value": 196,
+            "slopePerSecond": -450.0000000000096
+          },
+          {
+            "seconds": 0.1116659999999996,
+            "value": 187,
+            "slopePerSecond": -385.7197959970849
+          },
+          {
+            "seconds": 0.12333299999999969,
+            "value": 187,
+            "slopePerSecond": -524.9999999999878
+          },
+          {
+            "seconds": 0.13166600000000006,
+            "value": 176.5,
+            "slopePerSecond": -484.6079291087856
+          },
+          {
+            "seconds": 0.14499999999999957,
+            "value": 176.5,
+            "slopePerSecond": -518.1629758918025
+          },
+          {
+            "seconds": 0.14999999999999947,
+            "value": 167,
+            "slopePerSecond": -1333.3333333333617
+          },
+          {
+            "seconds": 0.15999999999999925,
+            "value": 156.5,
+            "slopePerSecond": -630.0252010080461
+          },
+          {
+            "seconds": 0.16666599999999931,
+            "value": 156.5,
+            "slopePerSecond": -163.63933889706948
+          },
+          {
+            "seconds": 0.1783329999999994,
+            "value": 153.5,
+            "slopePerSecond": -257.1355104139861
+          }
+        ],
+        "maxAbsoluteError": 0.8092577626161415,
+        "model": "adaptive piecewise cubic Hermite spline",
+        "rmse": 0.19627383727161027,
+        "sampleCount": 17,
+        "tolerance": 1
+      },
+      "width": {
+        "durationSeconds": 0.1783329999999994,
+        "knots": [
+          {
+            "seconds": 0,
+            "value": 245,
+            "slopePerSecond": -709.1038018873354
+          },
+          {
+            "seconds": 0.018332999999999267,
+            "value": 232,
+            "slopePerSecond": -1470.0147001470089
+          },
+          {
+            "seconds": 0.033332999999999835,
+            "value": 196,
+            "slopePerSecond": -1136.8301386300998
+          },
+          {
+            "seconds": 0.04999999999999982,
+            "value": 196,
+            "slopePerSecond": -599.999999999995
+          },
+          {
+            "seconds": 0.06333300000000008,
+            "value": 178,
+            "slopePerSecond": -1661.589587371939
+          },
+          {
+            "seconds": 0.07166599999999956,
+            "value": 160,
+            "slopePerSecond": -1750.0000000000373
+          },
+          {
+            "seconds": 0.08333299999999966,
+            "value": 143,
+            "slopePerSecond": -1649.9999999999618
+          },
+          {
+            "seconds": 0.09166600000000003,
+            "value": 127,
+            "slopePerSecond": -959.980800383993
+          },
+          {
+            "seconds": 0.09999999999999964,
+            "value": 127,
+            "slopePerSecond": -800.000000000017
+          },
+          {
+            "seconds": 0.1116659999999996,
+            "value": 111,
+            "slopePerSecond": -685.7240817725954
+          },
+          {
+            "seconds": 0.12333299999999969,
+            "value": 111,
+            "slopePerSecond": -749.9999999999827
+          },
+          {
+            "seconds": 0.13166600000000006,
+            "value": 96,
+            "slopePerSecond": -692.2970415839794
+          },
+          {
+            "seconds": 0.14499999999999957,
+            "value": 96,
+            "slopePerSecond": -872.6955383440885
+          },
+          {
+            "seconds": 0.14999999999999947,
+            "value": 80,
+            "slopePerSecond": -1466.666666666698
+          },
+          {
+            "seconds": 0.15999999999999925,
+            "value": 74,
+            "slopePerSecond": -360.01440057602633
+          },
+          {
+            "seconds": 0.16666599999999931,
+            "value": 74,
+            "slopePerSecond": -763.6502481863242
+          },
+          {
+            "seconds": 0.1783329999999994,
+            "value": 60,
+            "slopePerSecond": -1199.9657152652685
+          }
+        ],
+        "maxAbsoluteError": 0,
+        "model": "adaptive piecewise cubic Hermite spline",
+        "rmse": 0,
+        "sampleCount": 17,
+        "tolerance": 1
+      },
+      "height": {
+        "durationSeconds": 0.1783329999999994,
+        "knots": [
+          {
+            "seconds": 0,
+            "value": 197,
+            "slopePerSecond": 218.1857851961032
+          },
+          {
+            "seconds": 0.018332999999999267,
+            "value": 201,
+            "slopePerSecond": 120.00120001200071
+          },
+          {
+            "seconds": 0.033332999999999835,
+            "value": 201,
+            "slopePerSecond": 0
+          },
+          {
+            "seconds": 0.04999999999999982,
+            "value": 201,
+            "slopePerSecond": -366.6666666666636
+          },
+          {
+            "seconds": 0.06333300000000008,
+            "value": 190,
+            "slopePerSecond": -1292.3474568448414
+          },
+          {
+            "seconds": 0.07166599999999956,
+            "value": 173,
+            "slopePerSecond": -1750.0000000000373
+          },
+          {
+            "seconds": 0.08333299999999966,
+            "value": 155,
+            "slopePerSecond": -1799.9999999999584
+          },
+          {
+            "seconds": 0.09166600000000003,
+            "value": 137,
+            "slopePerSecond": -1079.9784004319922
+          },
+          {
+            "seconds": 0.09999999999999964,
+            "value": 137,
+            "slopePerSecond": -800.000000000017
+          },
+          {
+            "seconds": 0.1116659999999996,
+            "value": 121,
+            "slopePerSecond": -685.7240817725954
+          },
+          {
+            "seconds": 0.12333299999999969,
+            "value": 121,
+            "slopePerSecond": -749.9999999999827
+          },
+          {
+            "seconds": 0.13166600000000006,
+            "value": 106,
+            "slopePerSecond": -692.2970415839794
+          },
+          {
+            "seconds": 0.14499999999999957,
+            "value": 106,
+            "slopePerSecond": -599.9781826115608
+          },
+          {
+            "seconds": 0.14999999999999947,
+            "value": 95,
+            "slopePerSecond": -2000.0000000000427
+          },
+          {
+            "seconds": 0.15999999999999925,
+            "value": 76,
+            "slopePerSecond": -1140.0456018240834
+          },
+          {
+            "seconds": 0.16666599999999931,
+            "value": 76,
+            "slopePerSecond": -109.09289259804632
+          },
+          {
+            "seconds": 0.1783329999999994,
+            "value": 74,
+            "slopePerSecond": -171.42367360932406
+          }
+        ],
+        "maxAbsoluteError": 0,
+        "model": "adaptive piecewise cubic Hermite spline",
+        "rmse": 0,
+        "sampleCount": 17,
+        "tolerance": 1
+      },
+      "cornerRadius": {
+        "durationSeconds": 0.1783329999999994,
+        "knots": [
+          {
+            "seconds": 0,
+            "value": 60,
+            "slopePerSecond": 0
+          },
+          {
+            "seconds": 0.09999999999999964,
+            "value": 60,
+            "slopePerSecond": -40.298748052227324
+          },
+          {
+            "seconds": 0.1116659999999996,
+            "value": 55.5,
+            "slopePerSecond": -192.85989799854244
+          },
+          {
+            "seconds": 0.12333299999999969,
+            "value": 55.5,
+            "slopePerSecond": -374.99999999999136
+          },
+          {
+            "seconds": 0.13166600000000006,
+            "value": 48,
+            "slopePerSecond": -346.1485207919897
+          },
+          {
+            "seconds": 0.14499999999999957,
+            "value": 48,
+            "slopePerSecond": -436.34776917204425
+          },
+          {
+            "seconds": 0.14999999999999947,
+            "value": 40,
+            "slopePerSecond": -330.00330003300195
+          },
+          {
+            "seconds": 0.1783329999999994,
+            "value": 37,
+            "slopePerSecond": -105.88359863057234
+          }
+        ],
+        "maxAbsoluteError": 0.5926892548209253,
+        "model": "adaptive piecewise cubic Hermite spline",
+        "rmse": 0.29762731455591757,
+        "sampleCount": 17,
+        "tolerance": 1.5
+      }
+    },
+    "items": [
+      {
+        "durationSeconds": 0.12,
+        "index": 0,
+        "offsetXPt": 6,
+        "onsetSeconds": 0.04
+      },
+      {
+        "durationSeconds": 0.12,
+        "index": 1,
+        "offsetXPt": 6,
+        "onsetSeconds": 0.04
+      },
+      {
+        "durationSeconds": 0.12,
+        "index": 2,
+        "offsetXPt": 6,
+        "onsetSeconds": 0.04
+      },
+      {
+        "durationSeconds": 0.12,
+        "index": 3,
+        "offsetXPt": 6,
+        "onsetSeconds": 0.04
+      }
+    ],
+    "sourceOnsetSeconds": 2.6475006666666667
+  }
+}

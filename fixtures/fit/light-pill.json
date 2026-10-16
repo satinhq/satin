@@ -1,0 +1,393 @@
+{
+  "appearance": "light",
+  "surfaceKind": "pill",
+  "variant": "linear-local-pinned-0.001",
+  "knots": [
+    0,
+    0.12549019607843137,
+    0.450758431372549,
+    0.8470588235294118,
+    1
+  ],
+  "coefficients": [
+    [
+      1,
+      0,
+      0.20392156862745098,
+      0.20392156862745098,
+      0.20392156862745098
+    ],
+    [
+      1.1531625614771979,
+      0.29796889917426456,
+      0.057112914741777265,
+      0.057112914741777265,
+      0.057112914741777265
+    ],
+    [
+      0.518170824589991,
+      0,
+      0.42673839903568667,
+      0.45333902413380855,
+      0.4269272146256953
+    ],
+    [
+      0.7944460246945823,
+      0,
+      0.20941042614105976,
+      0.20941042614105976,
+      0.20941042614105976
+    ],
+    [
+      0.9118384261532125,
+      0,
+      0.009730201297767804,
+      0.009730201297767804,
+      0.009730201297767804
+    ]
+  ],
+  "ridge": 0.001,
+  "converged": true,
+  "cases": [
+    {
+      "id": "light-shapes-offset-0-tab-0",
+      "set": "fitting",
+      "samples": 2408,
+      "rms": 15.410645043754881,
+      "meanAbsolute": 10.990154764342499,
+      "p95MaxChannel": 38.21196030432634
+    },
+    {
+      "id": "light-shapes-offset-0-tab-1",
+      "set": "evaluation",
+      "samples": 2520,
+      "rms": 18.125846280253157,
+      "meanAbsolute": 14.22430059036878,
+      "p95MaxChannel": 36.71491310748882
+    },
+    {
+      "id": "light-shapes-offset-0-tab-2",
+      "set": "evaluation",
+      "samples": 2576,
+      "rms": 26.882380017867543,
+      "meanAbsolute": 24.77763613675501,
+      "p95MaxChannel": 36.71491310748882
+    },
+    {
+      "id": "light-shapes-offset-0-tab-3",
+      "set": "evaluation",
+      "samples": 2436,
+      "rms": 22.35664046287362,
+      "meanAbsolute": 19.64419895709407,
+      "p95MaxChannel": 35.72687069546107
+    },
+    {
+      "id": "light-shapes-offset-120-tab-0",
+      "set": "held-out",
+      "samples": 2408,
+      "rms": 7.580410385806362,
+      "meanAbsolute": 6.907888014053129,
+      "p95MaxChannel": 12.330254049235041
+    },
+    {
+      "id": "light-shapes-offset-240-tab-0",
+      "set": "fitting",
+      "samples": 2408,
+      "rms": 10.108363405621576,
+      "meanAbsolute": 8.957853049173954,
+      "p95MaxChannel": 21.3679684303399
+    },
+    {
+      "id": "light-shapes-offset-360-tab-0",
+      "set": "held-out",
+      "samples": 2408,
+      "rms": 11.154106707971952,
+      "meanAbsolute": 7.975327305606917,
+      "p95MaxChannel": 33.76586622856641
+    },
+    {
+      "id": "light-shapes-offset-480-tab-0",
+      "set": "fitting",
+      "samples": 2408,
+      "rms": 15.7070937747083,
+      "meanAbsolute": 7.944240730957064,
+      "p95MaxChannel": 57.44699194616041
+    },
+    {
+      "id": "light-shapes-offset-600-tab-0",
+      "set": "held-out",
+      "samples": 2408,
+      "rms": 11.125527352512925,
+      "meanAbsolute": 9.994243584763321,
+      "p95MaxChannel": 23.06589191939414
+    },
+    {
+      "id": "light-wallpaper-offset-0-tab-0",
+      "set": "fitting",
+      "samples": 2408,
+      "rms": 2.820507558203308,
+      "meanAbsolute": 2.4291450228209914,
+      "p95MaxChannel": 4.266398390808838
+    },
+    {
+      "id": "light-wallpaper-offset-0-tab-1",
+      "set": "evaluation",
+      "samples": 2520,
+      "rms": 4.021503105085945,
+      "meanAbsolute": 3.582659684919762,
+      "p95MaxChannel": 6.602416094306722
+    },
+    {
+      "id": "light-wallpaper-offset-0-tab-2",
+      "set": "evaluation",
+      "samples": 2576,
+      "rms": 8.340671559646523,
+      "meanAbsolute": 7.876580194648243,
+      "p95MaxChannel": 14.471852575916396
+    },
+    {
+      "id": "light-wallpaper-offset-0-tab-3",
+      "set": "evaluation",
+      "samples": 2436,
+      "rms": 11.76733930356194,
+      "meanAbsolute": 9.832526794943279,
+      "p95MaxChannel": 22.15572435178317
+    },
+    {
+      "id": "light-wallpaper-offset-120-tab-0",
+      "set": "held-out",
+      "samples": 2408,
+      "rms": 3.920052185808774,
+      "meanAbsolute": 3.8278895548390786,
+      "p95MaxChannel": 5.362610103714919
+    },
+    {
+      "id": "light-wallpaper-offset-240-tab-0",
+      "set": "fitting",
+      "samples": 2408,
+      "rms": 7.444115137410002,
+      "meanAbsolute": 7.235165927492332,
+      "p95MaxChannel": 10.584324688550193
+    },
+    {
+      "id": "light-wallpaper-offset-360-tab-0",
+      "set": "held-out",
+      "samples": 2408,
+      "rms": 13.19211471610187,
+      "meanAbsolute": 11.570878966764571,
+      "p95MaxChannel": 22.602112195782883
+    },
+    {
+      "id": "light-wallpaper-offset-480-tab-0",
+      "set": "fitting",
+      "samples": 2408,
+      "rms": 12.188244362758256,
+      "meanAbsolute": 10.464964430839842,
+      "p95MaxChannel": 21.800905795549752
+    },
+    {
+      "id": "light-wallpaper-offset-600-tab-0",
+      "set": "held-out",
+      "samples": 2408,
+      "rms": 11.11971738854026,
+      "meanAbsolute": 10.952246001073059,
+      "p95MaxChannel": 13.921290368082238
+    },
+    {
+      "id": "light-tint-black-offset-0-tab-0",
+      "set": "fitting",
+      "samples": 2408,
+      "rms": 0,
+      "meanAbsolute": 0,
+      "p95MaxChannel": 0
+    },
+    {
+      "id": "light-tint-black-offset-0-tab-1",
+      "set": "evaluation",
+      "samples": 2520,
+      "rms": 0,
+      "meanAbsolute": 0,
+      "p95MaxChannel": 0
+    },
+    {
+      "id": "light-tint-black-offset-0-tab-2",
+      "set": "evaluation",
+      "samples": 2576,
+      "rms": 0,
+      "meanAbsolute": 0,
+      "p95MaxChannel": 0
+    },
+    {
+      "id": "light-tint-black-offset-0-tab-3",
+      "set": "evaluation",
+      "samples": 2436,
+      "rms": 0,
+      "meanAbsolute": 0,
+      "p95MaxChannel": 0
+    },
+    {
+      "id": "light-tint-dark-grey-offset-0-tab-0",
+      "set": "fitting",
+      "samples": 2408,
+      "rms": 0,
+      "meanAbsolute": 0,
+      "p95MaxChannel": 0
+    },
+    {
+      "id": "light-tint-dark-grey-offset-0-tab-1",
+      "set": "evaluation",
+      "samples": 2520,
+      "rms": 0,
+      "meanAbsolute": 0,
+      "p95MaxChannel": 0
+    },
+    {
+      "id": "light-tint-dark-grey-offset-0-tab-2",
+      "set": "evaluation",
+      "samples": 2576,
+      "rms": 0,
+      "meanAbsolute": 0,
+      "p95MaxChannel": 0
+    },
+    {
+      "id": "light-tint-dark-grey-offset-0-tab-3",
+      "set": "evaluation",
+      "samples": 2436,
+      "rms": 0,
+      "meanAbsolute": 0,
+      "p95MaxChannel": 0
+    },
+    {
+      "id": "light-tint-saturated-blue-offset-0-tab-0",
+      "set": "fitting",
+      "samples": 2408,
+      "rms": 1.827446996103435e-14,
+      "meanAbsolute": 1.4155343563970746e-14,
+      "p95MaxChannel": 2.8310687127941492e-14
+    },
+    {
+      "id": "light-tint-saturated-blue-offset-0-tab-1",
+      "set": "evaluation",
+      "samples": 2520,
+      "rms": 1.827446996103435e-14,
+      "meanAbsolute": 1.4155343563970746e-14,
+      "p95MaxChannel": 2.8310687127941492e-14
+    },
+    {
+      "id": "light-tint-saturated-blue-offset-0-tab-2",
+      "set": "evaluation",
+      "samples": 2576,
+      "rms": 1.827446996103435e-14,
+      "meanAbsolute": 1.4155343563970746e-14,
+      "p95MaxChannel": 2.8310687127941492e-14
+    },
+    {
+      "id": "light-tint-saturated-blue-offset-0-tab-3",
+      "set": "evaluation",
+      "samples": 2436,
+      "rms": 0.0025994903938651075,
+      "meanAbsolute": 0.000030408076399240532,
+      "p95MaxChannel": 2.8310687127941492e-14
+    },
+    {
+      "id": "light-tint-light-grey-offset-0-tab-0",
+      "set": "fitting",
+      "samples": 2408,
+      "rms": 0,
+      "meanAbsolute": 0,
+      "p95MaxChannel": 0
+    },
+    {
+      "id": "light-tint-light-grey-offset-0-tab-1",
+      "set": "evaluation",
+      "samples": 2520,
+      "rms": 0,
+      "meanAbsolute": 0,
+      "p95MaxChannel": 0
+    },
+    {
+      "id": "light-tint-light-grey-offset-0-tab-2",
+      "set": "evaluation",
+      "samples": 2576,
+      "rms": 0,
+      "meanAbsolute": 0,
+      "p95MaxChannel": 0
+    },
+    {
+      "id": "light-tint-light-grey-offset-0-tab-3",
+      "set": "evaluation",
+      "samples": 2436,
+      "rms": 0,
+      "meanAbsolute": 0,
+      "p95MaxChannel": 0
+    },
+    {
+      "id": "light-tint-white-offset-0-tab-0",
+      "set": "fitting",
+      "samples": 2408,
+      "rms": 0,
+      "meanAbsolute": 0,
+      "p95MaxChannel": 0
+    },
+    {
+      "id": "light-tint-white-offset-0-tab-1",
+      "set": "evaluation",
+      "samples": 2520,
+      "rms": 0,
+      "meanAbsolute": 0,
+      "p95MaxChannel": 0
+    },
+    {
+      "id": "light-tint-white-offset-0-tab-2",
+      "set": "evaluation",
+      "samples": 2576,
+      "rms": 0,
+      "meanAbsolute": 0,
+      "p95MaxChannel": 0
+    },
+    {
+      "id": "light-tint-white-offset-0-tab-3",
+      "set": "evaluation",
+      "samples": 2436,
+      "rms": 0,
+      "meanAbsolute": 0,
+      "p95MaxChannel": 0
+    },
+    {
+      "id": "light-stripes0-offset-0-tab-0",
+      "set": "held-out",
+      "samples": 2408,
+      "rms": 26.324777608996285,
+      "meanAbsolute": 17.96811240390413,
+      "p95MaxChannel": 79.59012796957
+    },
+    {
+      "id": "light-stripes45-offset-0-tab-0",
+      "set": "held-out",
+      "samples": 2408,
+      "rms": 18.839797722948305,
+      "meanAbsolute": 13.450280129806295,
+      "p95MaxChannel": 54.4245333938301
+    },
+    {
+      "id": "light-stripes90-offset-0-tab-0",
+      "set": "held-out",
+      "samples": 2408,
+      "rms": 11.96252857136278,
+      "meanAbsolute": 9.795407139578261,
+      "p95MaxChannel": 28.020850282411274
+    }
+  ],
+  "fitting": {
+    "samples": 26488,
+    "rms": 8.518979878981476
+  },
+  "held-out": {
+    "samples": 21672,
+    "rms": 14.180326260900388
+  },
+  "evaluation": {
+    "samples": 52724,
+    "rms": 9.201842778979831
+  }
+}

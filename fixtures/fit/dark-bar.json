@@ -1,0 +1,393 @@
+{
+  "appearance": "dark",
+  "surfaceKind": "bar",
+  "variant": "linear-local-pinned-1e-05",
+  "knots": [
+    0,
+    0.12549019607843137,
+    0.450758431372549,
+    0.8470588235294118,
+    1
+  ],
+  "coefficients": [
+    [
+      1,
+      0,
+      0.07450980392156863,
+      0.07450980392156863,
+      0.07450980392156863
+    ],
+    [
+      0.6585780037907135,
+      0.06389811216839343,
+      0.0191402521149356,
+      0.0191402521149356,
+      0.0191402521149356
+    ],
+    [
+      0.5675665839591706,
+      0.011463049711054862,
+      0.06277149902843385,
+      0.06573964317345804,
+      0.06648203600883851
+    ],
+    [
+      0.5241201177764462,
+      0,
+      -0.024352727214558334,
+      -0.024352727214558334,
+      -0.024352727214558334
+    ],
+    [
+      1.2008806182059044,
+      0.18444751453927302,
+      -0.39317127000007934,
+      -0.39317127000007934,
+      -0.39317127000007934
+    ]
+  ],
+  "ridge": 0.00001,
+  "converged": true,
+  "cases": [
+    {
+      "id": "dark-shapes-offset-0-tab-0",
+      "set": "fitting",
+      "samples": 8697,
+      "rms": 4.920794993617997,
+      "meanAbsolute": 2.7526037270637183,
+      "p95MaxChannel": 17.22053316026642
+    },
+    {
+      "id": "dark-shapes-offset-0-tab-1",
+      "set": "evaluation",
+      "samples": 8454,
+      "rms": 5.465811552722434,
+      "meanAbsolute": 3.018339679866799,
+      "p95MaxChannel": 17.06317135428103
+    },
+    {
+      "id": "dark-shapes-offset-0-tab-2",
+      "set": "evaluation",
+      "samples": 8403,
+      "rms": 7.3412923307498605,
+      "meanAbsolute": 4.670100327156564,
+      "p95MaxChannel": 21.83157479731918
+    },
+    {
+      "id": "dark-shapes-offset-0-tab-3",
+      "set": "evaluation",
+      "samples": 8730,
+      "rms": 7.588928565343689,
+      "meanAbsolute": 5.342954248796299,
+      "p95MaxChannel": 21.712006815984356
+    },
+    {
+      "id": "dark-shapes-offset-120-tab-0",
+      "set": "held-out",
+      "samples": 8697,
+      "rms": 7.948311543498522,
+      "meanAbsolute": 4.792946884801492,
+      "p95MaxChannel": 17.869238648432294
+    },
+    {
+      "id": "dark-shapes-offset-240-tab-0",
+      "set": "fitting",
+      "samples": 8697,
+      "rms": 9.082676928958353,
+      "meanAbsolute": 5.045746396379811,
+      "p95MaxChannel": 29.11274222113213
+    },
+    {
+      "id": "dark-shapes-offset-360-tab-0",
+      "set": "held-out",
+      "samples": 8697,
+      "rms": 1.7400201788563212,
+      "meanAbsolute": 1.1303747097478982,
+      "p95MaxChannel": 2.1561441173043328
+    },
+    {
+      "id": "dark-shapes-offset-480-tab-0",
+      "set": "fitting",
+      "samples": 8697,
+      "rms": 4.518276923988254,
+      "meanAbsolute": 2.226136467336474,
+      "p95MaxChannel": 6.007049584972855
+    },
+    {
+      "id": "dark-shapes-offset-600-tab-0",
+      "set": "held-out",
+      "samples": 8697,
+      "rms": 5.910898600888028,
+      "meanAbsolute": 3.8367406233680867,
+      "p95MaxChannel": 13.695735915261304
+    },
+    {
+      "id": "dark-wallpaper-offset-0-tab-0",
+      "set": "fitting",
+      "samples": 8697,
+      "rms": 4.539256632950051,
+      "meanAbsolute": 1.9490779399101665,
+      "p95MaxChannel": 16.62224654133817
+    },
+    {
+      "id": "dark-wallpaper-offset-0-tab-1",
+      "set": "evaluation",
+      "samples": 8454,
+      "rms": 4.873195707191992,
+      "meanAbsolute": 2.490955750234937,
+      "p95MaxChannel": 18.239625889402202
+    },
+    {
+      "id": "dark-wallpaper-offset-0-tab-2",
+      "set": "evaluation",
+      "samples": 8403,
+      "rms": 5.058835167729549,
+      "meanAbsolute": 2.963179157197096,
+      "p95MaxChannel": 18.26924389045666
+    },
+    {
+      "id": "dark-wallpaper-offset-0-tab-3",
+      "set": "evaluation",
+      "samples": 8730,
+      "rms": 2.3892083841873597,
+      "meanAbsolute": 1.9310030688236108,
+      "p95MaxChannel": 4.97705669491462
+    },
+    {
+      "id": "dark-wallpaper-offset-120-tab-0",
+      "set": "held-out",
+      "samples": 8697,
+      "rms": 5.986355967206371,
+      "meanAbsolute": 5.6025843614527915,
+      "p95MaxChannel": 9.476879474862592
+    },
+    {
+      "id": "dark-wallpaper-offset-240-tab-0",
+      "set": "fitting",
+      "samples": 8697,
+      "rms": 4.409098655095273,
+      "meanAbsolute": 3.737964877801215,
+      "p95MaxChannel": 8.200151453930586
+    },
+    {
+      "id": "dark-wallpaper-offset-360-tab-0",
+      "set": "held-out",
+      "samples": 8697,
+      "rms": 1.0493682985764294,
+      "meanAbsolute": 0.8294008184757831,
+      "p95MaxChannel": 2.315127789660218
+    },
+    {
+      "id": "dark-wallpaper-offset-480-tab-0",
+      "set": "fitting",
+      "samples": 8697,
+      "rms": 3.532089544654163,
+      "meanAbsolute": 2.010929286264317,
+      "p95MaxChannel": 4.441904088000221
+    },
+    {
+      "id": "dark-wallpaper-offset-600-tab-0",
+      "set": "held-out",
+      "samples": 8697,
+      "rms": 1.3955693114095737,
+      "meanAbsolute": 0.9868450842360097,
+      "p95MaxChannel": 3.5711360551311278
+    },
+    {
+      "id": "dark-tint-black-offset-0-tab-0",
+      "set": "fitting",
+      "samples": 8697,
+      "rms": 0,
+      "meanAbsolute": 0,
+      "p95MaxChannel": 0
+    },
+    {
+      "id": "dark-tint-black-offset-0-tab-1",
+      "set": "evaluation",
+      "samples": 8454,
+      "rms": 0,
+      "meanAbsolute": 0,
+      "p95MaxChannel": 0
+    },
+    {
+      "id": "dark-tint-black-offset-0-tab-2",
+      "set": "evaluation",
+      "samples": 8403,
+      "rms": 0,
+      "meanAbsolute": 0,
+      "p95MaxChannel": 0
+    },
+    {
+      "id": "dark-tint-black-offset-0-tab-3",
+      "set": "evaluation",
+      "samples": 8730,
+      "rms": 0,
+      "meanAbsolute": 0,
+      "p95MaxChannel": 0
+    },
+    {
+      "id": "dark-tint-dark-grey-offset-0-tab-0",
+      "set": "fitting",
+      "samples": 8697,
+      "rms": 0,
+      "meanAbsolute": 0,
+      "p95MaxChannel": 0
+    },
+    {
+      "id": "dark-tint-dark-grey-offset-0-tab-1",
+      "set": "evaluation",
+      "samples": 8454,
+      "rms": 0,
+      "meanAbsolute": 0,
+      "p95MaxChannel": 0
+    },
+    {
+      "id": "dark-tint-dark-grey-offset-0-tab-2",
+      "set": "evaluation",
+      "samples": 8403,
+      "rms": 0,
+      "meanAbsolute": 0,
+      "p95MaxChannel": 0
+    },
+    {
+      "id": "dark-tint-dark-grey-offset-0-tab-3",
+      "set": "evaluation",
+      "samples": 8730,
+      "rms": 0,
+      "meanAbsolute": 0,
+      "p95MaxChannel": 0
+    },
+    {
+      "id": "dark-tint-saturated-blue-offset-0-tab-0",
+      "set": "fitting",
+      "samples": 8697,
+      "rms": 0.030674844595215717,
+      "meanAbsolute": 0.001660360848275226,
+      "p95MaxChannel": 0
+    },
+    {
+      "id": "dark-tint-saturated-blue-offset-0-tab-1",
+      "set": "evaluation",
+      "samples": 8454,
+      "rms": 0.0413125105291284,
+      "meanAbsolute": 0.0030116251600896676,
+      "p95MaxChannel": 0
+    },
+    {
+      "id": "dark-tint-saturated-blue-offset-0-tab-2",
+      "set": "evaluation",
+      "samples": 8403,
+      "rms": 0.041592019932509654,
+      "meanAbsolute": 0.003052514719297778,
+      "p95MaxChannel": 0
+    },
+    {
+      "id": "dark-tint-saturated-blue-offset-0-tab-3",
+      "set": "evaluation",
+      "samples": 8730,
+      "rms": 0.031017049959758868,
+      "meanAbsolute": 0.0016976131114744557,
+      "p95MaxChannel": 0
+    },
+    {
+      "id": "dark-tint-light-grey-offset-0-tab-0",
+      "set": "fitting",
+      "samples": 8697,
+      "rms": 0.0480515265968182,
+      "meanAbsolute": 0.004491891310469493,
+      "p95MaxChannel": 1.4155343563970746e-14
+    },
+    {
+      "id": "dark-tint-light-grey-offset-0-tab-1",
+      "set": "evaluation",
+      "samples": 8454,
+      "rms": 0.06471521615406525,
+      "meanAbsolute": 0.00814756195981834,
+      "p95MaxChannel": 1.4155343563970746e-14
+    },
+    {
+      "id": "dark-tint-light-grey-offset-0-tab-2",
+      "set": "evaluation",
+      "samples": 8403,
+      "rms": 0.0651530620081476,
+      "meanAbsolute": 0.008258183368342914,
+      "p95MaxChannel": 1.4155343563970746e-14
+    },
+    {
+      "id": "dark-tint-light-grey-offset-0-tab-3",
+      "set": "evaluation",
+      "samples": 8730,
+      "rms": 0.04858758441203803,
+      "meanAbsolute": 0.00459267248555757,
+      "p95MaxChannel": 1.4155343563970746e-14
+    },
+    {
+      "id": "dark-tint-white-offset-0-tab-0",
+      "set": "fitting",
+      "samples": 8697,
+      "rms": 0.15210030431162175,
+      "meanAbsolute": 0.014218446364596737,
+      "p95MaxChannel": 0
+    },
+    {
+      "id": "dark-tint-white-offset-0-tab-1",
+      "set": "evaluation",
+      "samples": 8454,
+      "rms": 0.20484685436149047,
+      "meanAbsolute": 0.025789954547221973,
+      "p95MaxChannel": 0
+    },
+    {
+      "id": "dark-tint-white-offset-0-tab-2",
+      "set": "evaluation",
+      "samples": 8403,
+      "rms": 0.20623279342241335,
+      "meanAbsolute": 0.02614011096356753,
+      "p95MaxChannel": 0
+    },
+    {
+      "id": "dark-tint-white-offset-0-tab-3",
+      "set": "evaluation",
+      "samples": 8730,
+      "rms": 0.15379711943068516,
+      "meanAbsolute": 0.014537454914339587,
+      "p95MaxChannel": 0
+    },
+    {
+      "id": "dark-stripes0-offset-0-tab-0",
+      "set": "held-out",
+      "samples": 8697,
+      "rms": 17.423070959496705,
+      "meanAbsolute": 10.595798272739268,
+      "p95MaxChannel": 67.2439845116181
+    },
+    {
+      "id": "dark-stripes45-offset-0-tab-0",
+      "set": "held-out",
+      "samples": 8697,
+      "rms": 17.905095153914964,
+      "meanAbsolute": 12.050193233796968,
+      "p95MaxChannel": 50.87353630067361
+    },
+    {
+      "id": "dark-stripes90-offset-0-tab-0",
+      "set": "held-out",
+      "samples": 8697,
+      "rms": 8.593530967899488,
+      "meanAbsolute": 6.498197395748749,
+      "p95MaxChannel": 20.935615160616223
+    }
+  ],
+  "fitting": {
+    "samples": 95667,
+    "rms": 4.04150188787156
+  },
+  "held-out": {
+    "samples": 78273,
+    "rms": 9.649593559702604
+  },
+  "evaluation": {
+    "samples": 179109,
+    "rms": 3.057998758162943
+  }
+}

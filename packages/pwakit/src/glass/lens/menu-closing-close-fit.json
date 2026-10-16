@@ -1,0 +1,380 @@
+{
+  "source": "Fresh native light neutral-grey close, 2026-09-06, assigned Simulator. 60 fps review samples measured by shared measureSurface against uniform sampled backdrop at 8 levels. Source 2.9 s visual onset. Fit is diagnostic; .217 onward is manually observed tail, not a validated contour gate. Duplicated presentation frames omitted. Opening unchanged.",
+  "geometry": {
+    "centerX": {
+      "durationSeconds": 0.4,
+      "knots": [
+        {
+          "seconds": 0,
+          "value": 268,
+          "slopePerSecond": 0.0
+        },
+        {
+          "seconds": 0.03333333333333333,
+          "value": 270.5,
+          "slopePerSecond": 131.41592920353983
+        },
+        {
+          "seconds": 0.05,
+          "value": 276.0,
+          "slopePerSecond": 383.2258064516128
+        },
+        {
+          "seconds": 0.08333333333333333,
+          "value": 292.0,
+          "slopePerSecond": 496.21621621621614
+        },
+        {
+          "seconds": 0.1,
+          "value": 300.5,
+          "slopePerSecond": 494.5454545454544
+        },
+        {
+          "seconds": 0.11666666666666667,
+          "value": 308.5,
+          "slopePerSecond": 494.5454545454546
+        },
+        {
+          "seconds": 0.13333333333333333,
+          "value": 317.0,
+          "slopePerSecond": 494.5454545454546
+        },
+        {
+          "seconds": 0.15,
+          "value": 325.0,
+          "slopePerSecond": 430.344827586207
+        },
+        {
+          "seconds": 0.16666666666666666,
+          "value": 331.5,
+          "slopePerSecond": 374.40000000000003
+        },
+        {
+          "seconds": 0.18333333333333332,
+          "value": 337.5,
+          "slopePerSecond": 377.1042732934575
+        },
+        {
+          "seconds": 0.217,
+          "value": 351,
+          "slopePerSecond": 363.93317408136824
+        },
+        {
+          "seconds": 0.25,
+          "value": 362,
+          "slopePerSecond": 75.47741739921189
+        },
+        {
+          "seconds": 0.3,
+          "value": 364,
+          "slopePerSecond": 0.0
+        },
+        {
+          "seconds": 0.4,
+          "value": 364,
+          "slopePerSecond": 0.0
+        }
+      ]
+    },
+    "centerY": {
+      "durationSeconds": 0.4,
+      "knots": [
+        {
+          "seconds": 0,
+          "value": 222,
+          "slopePerSecond": 150.0000000000002
+        },
+        {
+          "seconds": 0.03333333333333333,
+          "value": 235.0,
+          "slopePerSecond": 531.8181818181818
+        },
+        {
+          "seconds": 0.05,
+          "value": 247.5,
+          "slopePerSecond": 122.7272727272727
+        },
+        {
+          "seconds": 0.08333333333333333,
+          "value": 249.5,
+          "slopePerSecond": 0.0
+        },
+        {
+          "seconds": 0.1,
+          "value": 241.0,
+          "slopePerSecond": -597.0731707317073
+        },
+        {
+          "seconds": 0.11666666666666667,
+          "value": 229.0,
+          "slopePerSecond": -762.3529411764707
+        },
+        {
+          "seconds": 0.13333333333333333,
+          "value": 215.5,
+          "slopePerSecond": -824.727272727273
+        },
+        {
+          "seconds": 0.15,
+          "value": 201.5,
+          "slopePerSecond": -336.00000000000006
+        },
+        {
+          "seconds": 0.16666666666666666,
+          "value": 198.0,
+          "slopePerSecond": -302.40000000000003
+        },
+        {
+          "seconds": 0.18333333333333332,
+          "value": 189.0,
+          "slopePerSecond": -585.0766129821334
+        },
+        {
+          "seconds": 0.217,
+          "value": 167,
+          "slopePerSecond": -674.5892138310044
+        },
+        {
+          "seconds": 0.25,
+          "value": 144,
+          "slopePerSecond": 0.0
+        },
+        {
+          "seconds": 0.3,
+          "value": 149,
+          "slopePerSecond": 83.99999999999999
+        },
+        {
+          "seconds": 0.4,
+          "value": 156,
+          "slopePerSecond": 49.99999999999993
+        }
+      ]
+    },
+    "width": {
+      "durationSeconds": 0.4,
+      "knots": [
+        {
+          "seconds": 0,
+          "value": 250,
+          "slopePerSecond": 0.0
+        },
+        {
+          "seconds": 0.03333333333333333,
+          "value": 245,
+          "slopePerSecond": -272.093023255814
+        },
+        {
+          "seconds": 0.05,
+          "value": 232,
+          "slopePerSecond": -889.8591549295774
+        },
+        {
+          "seconds": 0.08333333333333333,
+          "value": 196,
+          "slopePerSecond": -1173.1034482758619
+        },
+        {
+          "seconds": 0.1,
+          "value": 175,
+          "slopePerSecond": -1229.2682926829266
+        },
+        {
+          "seconds": 0.11666666666666667,
+          "value": 155,
+          "slopePerSecond": -1169.2307692307693
+        },
+        {
+          "seconds": 0.13333333333333333,
+          "value": 136,
+          "slopePerSecond": -1109.1891891891894
+        },
+        {
+          "seconds": 0.15,
+          "value": 118,
+          "slopePerSecond": -1049.1428571428573
+        },
+        {
+          "seconds": 0.16666666666666666,
+          "value": 101,
+          "slopePerSecond": -921.2903225806454
+        },
+        {
+          "seconds": 0.18333333333333332,
+          "value": 87,
+          "slopePerSecond": -745.5674422084237
+        },
+        {
+          "seconds": 0.217,
+          "value": 65,
+          "slopePerSecond": -440.9946880185306
+        },
+        {
+          "seconds": 0.25,
+          "value": 54,
+          "slopePerSecond": 0.0
+        },
+        {
+          "seconds": 0.3,
+          "value": 56,
+          "slopePerSecond": 27.69230769230769
+        },
+        {
+          "seconds": 0.4,
+          "value": 58,
+          "slopePerSecond": 6.666666666666643
+        }
+      ]
+    },
+    "height": {
+      "durationSeconds": 0.4,
+      "knots": [
+        {
+          "seconds": 0,
+          "value": 190,
+          "slopePerSecond": 0.0
+        },
+        {
+          "seconds": 0.03333333333333333,
+          "value": 186,
+          "slopePerSecond": -211.30434782608694
+        },
+        {
+          "seconds": 0.05,
+          "value": 177,
+          "slopePerSecond": -441.81818181818187
+        },
+        {
+          "seconds": 0.08333333333333333,
+          "value": 165,
+          "slopePerSecond": -481.62162162162144
+        },
+        {
+          "seconds": 0.1,
+          "value": 154,
+          "slopePerSecond": -628.5714285714284
+        },
+        {
+          "seconds": 0.11666666666666667,
+          "value": 144,
+          "slopePerSecond": -568.4210526315791
+        },
+        {
+          "seconds": 0.13333333333333333,
+          "value": 135,
+          "slopePerSecond": -508.23529411764724
+        },
+        {
+          "seconds": 0.15,
+          "value": 127,
+          "slopePerSecond": -740.5714285714288
+        },
+        {
+          "seconds": 0.16666666666666666,
+          "value": 100,
+          "slopePerSecond": -1106.3414634146343
+        },
+        {
+          "seconds": 0.18333333333333332,
+          "value": 86,
+          "slopePerSecond": -494.9836098142445
+        },
+        {
+          "seconds": 0.217,
+          "value": 75,
+          "slopePerSecond": -432.2389102340202
+        },
+        {
+          "seconds": 0.25,
+          "value": 54,
+          "slopePerSecond": 0.0
+        },
+        {
+          "seconds": 0.3,
+          "value": 56,
+          "slopePerSecond": 27.69230769230769
+        },
+        {
+          "seconds": 0.4,
+          "value": 58,
+          "slopePerSecond": 6.666666666666643
+        }
+      ]
+    },
+    "cornerRadius": {
+      "durationSeconds": 0.4,
+      "knots": [
+        {
+          "seconds": 0,
+          "value": 31.5,
+          "slopePerSecond": 128.49999999999994
+        },
+        {
+          "seconds": 0.03333333333333333,
+          "value": 40.55,
+          "slopePerSecond": 359.6974102680599
+        },
+        {
+          "seconds": 0.05,
+          "value": 48.65,
+          "slopePerSecond": 450.3369524522651
+        },
+        {
+          "seconds": 0.08333333333333333,
+          "value": 62.4,
+          "slopePerSecond": 0.0
+        },
+        {
+          "seconds": 0.1,
+          "value": 60.25,
+          "slopePerSecond": -127.48235294117644
+        },
+        {
+          "seconds": 0.11666666666666667,
+          "value": 58.15,
+          "slopePerSecond": -145.09090909090918
+        },
+        {
+          "seconds": 0.13333333333333333,
+          "value": 55.3,
+          "slopePerSecond": -227.32941176470598
+        },
+        {
+          "seconds": 0.15,
+          "value": 49.65,
+          "slopePerSecond": -293.0050251256281
+        },
+        {
+          "seconds": 0.16666666666666666,
+          "value": 45.35,
+          "slopePerSecond": -290.7411167512691
+        },
+        {
+          "seconds": 0.18333333333333332,
+          "value": 39.8,
+          "slopePerSecond": -313.0037596778835
+        },
+        {
+          "seconds": 0.217,
+          "value": 30,
+          "slopePerSecond": -138.3069473367288
+        },
+        {
+          "seconds": 0.25,
+          "value": 27,
+          "slopePerSecond": 0.0
+        },
+        {
+          "seconds": 0.3,
+          "value": 28,
+          "slopePerSecond": 13.846153846153845
+        },
+        {
+          "seconds": 0.4,
+          "value": 29,
+          "slopePerSecond": 3.3333333333333215
+        }
+      ]
+    }
+  }
+}

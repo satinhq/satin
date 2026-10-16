@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "widthPt": 402,
+  "heightPt": 874,
+  "contentHeightPt": 1900,
+  "captureOffsetsPt": [0, 137, 281, 419, 563, 701],
+  "motion": {
+    "delayMs": 700,
+    "durationMs": 1200,
+    "settleMs": 300,
+    "flickTravelPt": 720,
+    "flickDecay": 5.5,
+    "constantVelocityPtPerSecond": 300,
+    "dragDurationMs": 2400,
+    "dragCapsuleStart": [201, 650],
+    "dragCapsuleEnd": [201, 210],
+    "dragCircleStart": [96, 220],
+    "dragCircleEnd": [306, 620]
+  },
+  "stripes": {
+    "widthPt": 24,
+    "colors": ["#ff2d55", "#00c7be", "#ffd60a", "#0a84ff"]
+  },
+  "tintBackdrops": [
+    { "id": "black", "color": "#000000" },
+    { "id": "dark-grey", "color": "#202020" },
+    { "id": "saturated-blue", "color": "#0a84ff" },
+    { "id": "light-grey", "color": "#d8d8d8" },
+    { "id": "white", "color": "#ffffff" }
+  ],
+  "shapes": {
+    "gradient": {
+      "start": [0, 0],
+      "end": [402, 1900],
+      "stops": [
+        { "at": 0, "color": "#071a52" },
+        { "at": 0.24, "color": "#4120a9" },
+        { "at": 0.49, "color": "#d61f69" },
+        { "at": 0.73, "color": "#ff8a16" },
+        { "at": 1, "color": "#00a78e" }
+      ]
+    },
+    "elements": [
+      { "id": "disc-a", "type": "disc", "cx": 54, "cy": 116, "radius": 58, "color": "#ff375f" },
+      { "id": "rect-15-a", "type": "rotatedRect", "cx": 234, "cy": 138, "width": 176, "height": 74, "angle": 15, "color": "#30d158" },
+      { "id": "rect-75-a", "type": "rotatedRect", "cx": 368, "cy": 238, "width": 132, "height": 62, "angle": 75, "color": "#ffd60a" },
+      { "id": "disc-b", "type": "disc", "cx": 162, "cy": 284, "radius": 76, "color": "#0a84ff" },
+      { "id": "rect-30-a", "type": "rotatedRect", "cx": 278, "cy": 390, "width": 218, "height": 68, "angle": 30, "color": "#bf5af2" },
+      { "id": "rect-0-a", "type": "rotatedRect", "cx": 71, "cy": 448, "width": 126, "height": 52, "angle": 0, "color": "#ff9f0a" },
+      { "id": "disc-c", "type": "disc", "cx": 362, "cy": 525, "radius": 92, "color": "#64d2ff" },
+      { "id": "rect-60-a", "type": "rotatedRect", "cx": 159, "cy": 604, "width": 212, "height": 64, "angle": 60, "color": "#ff453a" },
+      { "id": "rect-45-a", "type": "rotatedRect", "cx": 304, "cy": 716, "width": 206, "height": 82, "angle": 45, "color": "#32d74b" },
+      { "id": "disc-d", "type": "disc", "cx": 92, "cy": 778, "radius": 69, "color": "#5e5ce6" },
+      { "id": "rect-90-a", "type": "rotatedRect", "cx": 214, "cy": 831, "width": 154, "height": 58, "angle": 90, "color": "#ffd60a" },
+      { "id": "rect-15-b", "type": "rotatedRect", "cx": 313, "cy": 909, "width": 194, "height": 66, "angle": 15, "color": "#ff375f" },
+      { "id": "disc-e", "type": "disc", "cx": 43, "cy": 971, "radius": 84, "color": "#00c7be" },
+      { "id": "rect-75-b", "type": "rotatedRect", "cx": 164, "cy": 1041, "width": 188, "height": 72, "angle": 75, "color": "#0a84ff" },
+      { "id": "rect-0-b", "type": "rotatedRect", "cx": 306, "cy": 1086, "width": 176, "height": 62, "angle": 0, "color": "#ff9f0a" },
+      { "id": "disc-f", "type": "disc", "cx": 241, "cy": 1180, "radius": 91, "color": "#bf5af2" },
+      { "id": "rect-30-b", "type": "rotatedRect", "cx": 75, "cy": 1231, "width": 170, "height": 58, "angle": 30, "color": "#30d158" },
+      { "id": "rect-60-b", "type": "rotatedRect", "cx": 351, "cy": 1324, "width": 186, "height": 68, "angle": 60, "color": "#ff453a" },
+      { "id": "disc-g", "type": "disc", "cx": 118, "cy": 1399, "radius": 72, "color": "#64d2ff" },
+      { "id": "rect-45-b", "type": "rotatedRect", "cx": 267, "cy": 1466, "width": 236, "height": 78, "angle": 45, "color": "#ffd60a" },
+      { "id": "rect-90-b", "type": "rotatedRect", "cx": 49, "cy": 1552, "width": 144, "height": 54, "angle": 90, "color": "#5e5ce6" },
+      { "id": "disc-h", "type": "disc", "cx": 334, "cy": 1624, "radius": 96, "color": "#00c7be" },
+      { "id": "rect-15-c", "type": "rotatedRect", "cx": 169, "cy": 1713, "width": 224, "height": 70, "angle": 15, "color": "#ff375f" },
+      { "id": "polygon-a", "type": "polygon", "color": "#0a84ff", "points": [[0, 1816], [108, 1748], [205, 1837], [124, 1900], [0, 1900]] },
+      { "id": "polygon-b", "type": "polygon", "color": "#32d74b", "points": [[245, 1792], [402, 1741], [402, 1900], [284, 1900]] }
+    ]
+  },
+  "wallpaper": {
+    "gradient": {
+      "start": [0, 0],
+      "end": [402, 1900],
+      "stops": [
+        { "at": 0, "color": "#121b5f" },
+        { "at": 0.36, "color": "#5b2cc4" },
+        { "at": 0.7, "color": "#e6488d" },
+        { "at": 1, "color": "#f8a83a" }
+      ]
+    },
+    "blobs": [
+      { "cx": 62, "cy": 174, "radius": 230, "inner": "#00d4ff", "outer": "#00d4ff00" },
+      { "cx": 348, "cy": 486, "radius": 270, "inner": "#ff2d8d", "outer": "#ff2d8d00" },
+      { "cx": 70, "cy": 822, "radius": 250, "inner": "#6d5cff", "outer": "#6d5cff00" },
+      { "cx": 345, "cy": 1180, "radius": 290, "inner": "#ff8a00", "outer": "#ff8a0000" },
+      { "cx": 88, "cy": 1540, "radius": 280, "inner": "#10d9a6", "outer": "#10d9a600" }
+    ],
+    "highlights": [
+      { "type": "rotatedRect", "cx": 302, "cy": 764, "width": 192, "height": 46, "angle": 30, "color": "#fff7d6" },
+      { "type": "rotatedRect", "cx": 92, "cy": 1268, "width": 164, "height": 52, "angle": 75, "color": "#bffcff" },
+      { "type": "disc", "cx": 322, "cy": 1538, "radius": 42, "color": "#fff1a8" }
+    ]
+  },
+  "flatEdgeProbes": [
+    { "background": "shapes", "offset": 0, "center": [214, 801], "normal": [1, 0] },
+    { "background": "shapes", "offset": 137, "center": [270, 792], "normal": [0.70710678, -0.70710678] },
+    { "background": "shapes", "offset": 281, "center": [300, 805], "normal": [0, 1] },
+    { "background": "shapes", "offset": 419, "center": [222, 798], "normal": [0.5, -0.8660254] },
+    { "background": "shapes", "offset": 563, "center": [266, 803], "normal": [0.70710678, -0.70710678] },
+    { "background": "shapes", "offset": 701, "center": [169, 800], "normal": [-0.25881905, 0.96592583] }
+  ]
+}

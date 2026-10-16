@@ -1,0 +1,11 @@
+node_modules
+dist
+**/dist-*
+pnpm-lock.yaml
+packages/pwakit/api
+packages/pwakit/src/glass/webgpu/shaders.ts
+*.md
+*.json
+# Copied from the satin build by packages/pwakit-push/scripts/sync-routes.mjs
+packages/pwakit-push/src/routes.*
+packages/pwakit-push/src/schema.*

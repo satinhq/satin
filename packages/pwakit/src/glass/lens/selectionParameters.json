@@ -1,0 +1,94 @@
+{
+  "light": {
+    "matrix": [
+      [
+        1.1850999593734741,
+        -0.050200000405311584,
+        -0.004999999888241291,
+        -0.19999998807907104
+      ],
+      [
+        -0.01489999983459711,
+        1.149899959564209,
+        -0.0050999997183680534,
+        -0.19999998807907104
+      ],
+      [
+        -0.01489999983459711,
+        -0.04999999701976776,
+        1.1948999166488647,
+        -0.19999998807907104
+      ]
+    ],
+    "blurRadius": 2,
+    "captureScale": 0.25,
+    "displacementAmount": 0,
+    "effect": {
+      "angle": 0,
+      "class": "CASDFGlassDisplacementEffect",
+      "curvature": 1,
+      "height": 11.2,
+      "maskOffset": 0
+    },
+    "contour": {
+      "width": 0.45,
+      "center": 0.15,
+      "angular": [
+        0.3888888888888889,
+        0.003888888888888889,
+        0,
+        -0.2916666666666667
+      ]
+    },
+    "sourceSha256": "9b3a7257b8f6806de3937d2174ff7070058ac709e3e0427e27fde496738bf7a6",
+    "blurSigmaPerRadius": 1.112882892579091,
+    "status": "Native radius and capture scale; finite separable Gaussian uses the measured equivalent sigma.",
+    "calibration": "measured-reference/reference calibration; mean horizontal/vertical equivalent sigma; kernel identity remains approximate"
+  },
+  "dark": {
+    "matrix": [
+      [
+        1.1297999620437622,
+        -0.2360999882221222,
+        -0.02369999885559082,
+        -0.07000000029802322
+      ],
+      [
+        -0.07009999454021454,
+        0.9639999866485596,
+        -0.023799998685717583,
+        -0.07000000029802322
+      ],
+      [
+        -0.07019999623298645,
+        -0.23600000143051147,
+        1.1761999130249023,
+        -0.07000000029802322
+      ]
+    ],
+    "blurRadius": 2,
+    "captureScale": 0.25,
+    "displacementAmount": 0,
+    "effect": {
+      "angle": 0,
+      "class": "CASDFGlassDisplacementEffect",
+      "curvature": 1,
+      "height": 11.2,
+      "maskOffset": 0
+    },
+    "contour": {
+      "width": 0.45,
+      "center": 0.15,
+      "angular": [
+        0.28,
+        -0.11666666666666667,
+        0,
+        -0.16333333333333333
+      ]
+    },
+    "sourceSha256": "c7f0e3cfe8baf0c4ff4bc17a9805e0f4f7c5beb1d55d6023991410bace93aa53",
+    "blurSigmaPerRadius": 1.1272081853738953,
+    "status": "Native radius and capture scale; finite separable Gaussian uses the measured equivalent sigma.",
+    "calibration": "measured-reference/reference calibration; mean horizontal/vertical equivalent sigma; kernel identity remains approximate"
+  }
+}

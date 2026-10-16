@@ -1,0 +1,222 @@
+{
+  "tab": {
+    "light": {
+      "faceGain": 0.9535753149344098,
+      "faceBias": 0.07428450972865408,
+      "diffuseGain": 6.82138349482023e-12,
+      "crestGain": 1.617457943002003e-14,
+      "crestTopGain": 0.27749786995686015,
+      "crestBottomGain": 0.29657532926751246,
+      "crestCenterPt": 0.8871902989680073,
+      "crestSigmaPt": 0.4003320481309149,
+      "bandScale": 2.000000000000001,
+      "diffusionSigmaPt": 0.0,
+      "shadowOpacity": 0.0,
+      "shadowOffsetPt": 0.0,
+      "shadowSigmaPt": 3.0,
+      "capBandScale": 0.801236917890798,
+      "bottomBandScale": 1.5000000082072864,
+      "straightFringeGain": 6.4529390271208075e-12,
+      "capFringeGain": 0.7999999999999995,
+      "straightFringeWidthPt": 0.5000000000000001,
+      "capFringeWidthPt": 11.790241521255702,
+      "faceSaturation": 1,
+      "faceRadialMix": 1,
+      "depthShade": [
+        0.026601933490694313,
+        0.11427453868374764,
+        -0.14227354002391535,
+        -0.12169719067775288
+      ]
+    },
+    "dark": {
+      "faceGain": 0.8769088561703318,
+      "faceBias": 0.10451779134671482,
+      "diffuseGain": 6.29555926919939e-18,
+      "crestGain": 8.1638921709594835e-22,
+      "crestTopGain": 0.19988128936249752,
+      "crestBottomGain": 0.14484030251989458,
+      "crestCenterPt": 0.9225987263495657,
+      "crestSigmaPt": 0.31144024104418044,
+      "bandScale": 2.000000000000001,
+      "diffusionSigmaPt": 0.0,
+      "shadowOpacity": 0.0,
+      "shadowOffsetPt": 0.0,
+      "shadowSigmaPt": 3.0,
+      "capBandScale": 0.7932357318725383,
+      "bottomBandScale": 1.4441801715833327,
+      "straightFringeGain": 0.11986531053768512,
+      "capFringeGain": 0.5001864094915092,
+      "straightFringeWidthPt": 2.9999202527769886,
+      "capFringeWidthPt": 7.999990998603149,
+      "faceSaturation": 1,
+      "faceRadialMix": 1,
+      "depthShade": [
+        0.04068140747451645,
+        0.14554422943794712,
+        -0.1687211725535042,
+        -0.1715273247987743
+      ]
+    }
+  },
+  "button": {
+    "light": {
+      "faceGain": 0.6562781364338706,
+      "faceBias": 0.3253454120700193,
+      "diffuseGain": 0,
+      "crestGain": 0.05999999998988953,
+      "crestCenterPt": 0.9999999911852108,
+      "crestSigmaPt": 0.7999999998658809,
+      "bandScale": 1.0,
+      "diffusionSigmaPt": 14.0,
+      "shadowOpacity": 0.016870209182626314,
+      "shadowOffsetPt": 4.016283730708484,
+      "shadowSigmaPt": 14.999999999999998,
+      "crestTopGain": 0.05999999998988953,
+      "crestBottomGain": 0.05999999998988953,
+      "faceSaturation": 1.536366412243485,
+      "faceRadialMix": 0,
+      "capBandScale": 1,
+      "bottomBandScale": 1,
+      "straightFringeGain": 1,
+      "capFringeGain": 1,
+      "straightFringeWidthPt": 11.2,
+      "capFringeWidthPt": 11.2,
+      "depthShade": [
+        -0.06195068884047315,
+        -0.04701307999523258,
+        0.21999999999999886,
+        0.0
+      ]
+    },
+    "dark": {
+      "faceGain": 0.4405010842812847,
+      "faceBias": 0.21672959250677928,
+      "diffuseGain": 0,
+      "crestGain": 0.05999999998402269,
+      "crestCenterPt": 0.3824719040981131,
+      "crestSigmaPt": 0.5035083005673687,
+      "bandScale": 1.0,
+      "diffusionSigmaPt": 14.0,
+      "shadowOpacity": 0.026170717477807463,
+      "shadowOffsetPt": 3.9598395520713012,
+      "shadowSigmaPt": 14.999999999999993,
+      "crestTopGain": 0.05999999998402269,
+      "crestBottomGain": 0.05999999998402269,
+      "faceSaturation": 2.0840555218220658,
+      "faceRadialMix": 0,
+      "capBandScale": 1,
+      "bottomBandScale": 1,
+      "straightFringeGain": 1,
+      "capFringeGain": 1,
+      "straightFringeWidthPt": 11.2,
+      "capFringeWidthPt": 11.2,
+      "depthShade": [
+        0.0074782972887765635,
+        0.06990765835330968,
+        -0.044144922802949696,
+        0.0
+      ]
+    }
+  },
+  "control": {
+    "light": {
+      "faceGain": 1.0,
+      "faceBias": 0.018,
+      "diffuseGain": 0,
+      "crestGain": 0,
+      "crestTopGain": 0.3,
+      "crestBottomGain": 0.3,
+      "crestCenterPt": 1.15,
+      "crestSigmaPt": 0.25,
+      "rimLineGain": 0.15,
+      "rimLineWidthPt": 0.7,
+      "bandScale": 1.0,
+      "diffusionSigmaPt": 0.0,
+      "shadowOpacity": 0.12,
+      "shadowOffsetPt": 5,
+      "shadowSigmaPt": 4,
+      "capBandScale": 1.0,
+      "bottomBandScale": 1.0,
+      "straightFringeGain": 0,
+      "capFringeGain": 0,
+      "straightFringeWidthPt": 0.5,
+      "capFringeWidthPt": 0.5,
+      "faceSaturation": 1,
+      "faceRadialMix": 0,
+      "depthShade": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "lensMap": [
+        -4.25,
+        36,
+        0,
+        8
+      ],
+      "fieldGain": [
+        0,
+        1,
+        1,
+        0
+      ],
+      "topShade": [
+        -0.085,
+        9,
+        6,
+        4.5
+      ]
+    },
+    "dark": {
+      "faceGain": 0.84,
+      "faceBias": 0.114,
+      "diffuseGain": 0,
+      "crestGain": 0,
+      "crestTopGain": 0.3,
+      "crestBottomGain": 0.36,
+      "crestCenterPt": 1.15,
+      "crestSigmaPt": 0.25,
+      "rimLineGain": 0.85,
+      "rimLineWidthPt": 0.6,
+      "bandScale": 1.0,
+      "diffusionSigmaPt": 0.0,
+      "shadowOpacity": 0.28,
+      "shadowOffsetPt": 5,
+      "shadowSigmaPt": 4,
+      "capBandScale": 1.0,
+      "bottomBandScale": 1.0,
+      "straightFringeGain": 0,
+      "capFringeGain": 0,
+      "straightFringeWidthPt": 0.5,
+      "capFringeWidthPt": 0.5,
+      "faceSaturation": 1,
+      "faceRadialMix": 0,
+      "depthShade": [
+        0,
+        0.04,
+        0,
+        0
+      ],
+      "lensMap": [
+        -4.25,
+        36,
+        0,
+        8
+      ],
+      "fieldGain": [
+        0,
+        1,
+        1,
+        0
+      ],
+      "topShade": [
+        -0.047,
+        9,
+        4,
+        4.5
+      ]
+    }
+  }
+}

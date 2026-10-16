@@ -1,0 +1,25 @@
+{
+  "packageProfile": "scoped",
+  "brand": "Satin",
+  "slug": "satin",
+  "engine": "Lumen",
+  "domain": "satin.build",
+  "repository": "https://github.com/satinhq/satin",
+  "version": "0.1.0-beta.0",
+  "distTag": "beta",
+  "createPackage": "create-satin",
+  "profiles": {
+    "scoped": {
+      "kit": "@satinhq/kit",
+      "lint": "@satinhq/lint",
+      "push": "@satinhq/push"
+    },
+    "unscoped": {
+      "kit": "satinjs",
+      "lint": "satinjs-lint",
+      "push": "satinjs-push"
+    }
+  },
+  "identifierPrefix": "Satin",
+  "workspaceScope": "@satinhq"
+}

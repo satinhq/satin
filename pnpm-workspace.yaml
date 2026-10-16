@@ -1,0 +1,5 @@
+packages:
+  - packages/*
+
+patchedDependencies:
+  '@types/react@19.2.2': patches/@types__react@19.2.2.patch

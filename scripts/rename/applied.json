@@ -1,0 +1,14 @@
+{
+  "brand": "Satin",
+  "identifierPrefix": "Satin",
+  "slug": "satin",
+  "domain": "satin.build",
+  "repository": "https://github.com/satinhq/satin",
+  "createPackage": "create-satin",
+  "workspaceScope": "@satinhq",
+  "packages": {
+    "kit": "@satinhq/kit",
+    "lint": "@satinhq/lint",
+    "push": "@satinhq/push"
+  }
+}
