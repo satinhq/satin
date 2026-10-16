@@ -2,7 +2,7 @@
 
 **Build the app you've always wanted.** Satin is a React framework for iPhone and iPad apps that install from Safari and feel native.
 
-You write React. Satin gives you screens and navigation, lists and forms, sheets and menus, local data, and glass drawn by Lumen, its rendering engine. People install your app from a link: Share, then Add to Home Screen. It opens full screen, with its own icon and no browser around it.
+You write React. Satin gives you screens and navigation, lists and forms, sheets and menus, local data, and glass that refracts whatever is behind it. People install your app from a link: Share, then Add to Home Screen. It opens full screen, with its own icon and no browser around it.
 
 > **Public beta for iOS 27.** APIs may change before 1.0. [Known issues](docs/known-issues.md) lists what iOS limits, what we're fixing and what we won't do.
 
