@@ -1,3 +1,4 @@
+import { useControlStyle } from '../public/controlStyle.tsx'
 import { orderedTabItems, TopTabLabel } from '../tabs/presentation.tsx'
 import { handleTabKeyDown } from '../tabs/keyboard.ts'
 import { readDeviceIdiom } from '../layout/deviceIdiom.ts'
@@ -55,6 +56,7 @@ export type TabBarProps = Omit<HTMLAttributes<HTMLElement>, 'children' | 'onSele
 export type TabItemFrame = Readonly<{ x: number; width: number }>
 
 type TabBarStyle = CSSProperties & {
+  '--satin-tab-tint'?: string
   '--satin-tab-count': number
   '--satin-tab-selection-offset': string
   '--satin-tab-selected-index': number
@@ -71,6 +73,7 @@ export function TabBar({
   variant = 'regular',
   ...props
 }: TabBarProps) {
+  const { tint } = useControlStyle()
   const liquid = useContext(MaterialEffectContext)
   const layoutClass = useLayoutClass()
   const metrics = useSafeAreaMetrics()
@@ -142,6 +145,7 @@ export function TabBar({
       onSelect,
       adaptive,
       variant,
+      tint,
       insetHost: elementRef.current ?? undefined,
       placement: 'top',
       itemFrames,
@@ -155,6 +159,7 @@ export function TabBar({
     onSelect,
     adaptive,
     variant,
+    tint,
     liquidTop,
     itemFrames,
   ])
@@ -167,6 +172,7 @@ export function TabBar({
       onSelect,
       adaptive,
       variant,
+      tint,
       insetHost: elementRef.current ?? undefined,
       intrinsicWidth,
     })
@@ -179,6 +185,7 @@ export function TabBar({
     onSelect,
     adaptive,
     variant,
+    tint,
     sidebar,
     intrinsicWidth,
   ])
@@ -266,6 +273,7 @@ export function TabBar({
   const tabBarStyle: TabBarStyle = {
     ...style,
     ...(sidebar ? sidebarCssTokens : {}),
+    '--satin-tab-tint': tint,
     '--satin-tab-count': items.length,
     '--satin-tab-selection-offset': `${selectedIndex * 100}%`,
     '--satin-tab-selected-index': selectedIndex,

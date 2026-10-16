@@ -1,6 +1,6 @@
 {
   "name": "@satinhq/kit",
-  "version": "0.1.0-beta.0",
+  "version": "0.1.0-beta.1",
   "type": "module",
   "description": "Opinionated single-target framework for agent-generated personal iOS Home Screen apps.",
   "main": "./dist/index.js",
@@ -115,5 +115,6 @@
   },
   "bin": {
     "satin": "./bin/satin.mjs"
-  }
+  },
+  "homepage": "https://satin.build"
 }

@@ -31,7 +31,8 @@ For how the app should look, load the `satin-design` skill. This skill is about 
    Sheets and alerts always start closed after a relaunch.
 5. **Test in WebKit only.** Safari on iPhone or iPad, the iOS Simulator, then the installed Home
    Screen app. Desktop Chrome and Firefox show an unsupported page by design; never bypass the
-   platform gate to make them work.
+   platform gate to make them work. The Simulator has no WebGPU, so test a release build there
+   (see [done](references/done.md)).
 
 ## A screen, the Satin way
 

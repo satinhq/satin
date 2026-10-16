@@ -43,3 +43,20 @@ describe('resting tab selection material', () => {
     })
   })
 })
+
+it('preserves explicit app tint across appearance and sampled backdrops', () => {
+  for (const appearance of ['light', 'dark'] as const) {
+    for (const backdrop of [
+      [0, 0, 0],
+      [1, 1, 1],
+      [0.1, 0.5, 1],
+    ]) {
+      const defaults = tabGlyphContextStyle(appearance, backdrop)
+      const tinted = tabGlyphContextStyle(appearance, backdrop, '#d9480f')
+      expect(tinted['--tab-selected-icon']).toBe('#d9480f')
+      expect(tinted['--tab-selected-label']).toBe('#d9480f')
+      expect(tinted['--tab-unselected-icon']).toBe(defaults['--tab-unselected-icon'])
+      expect(tinted['--tab-unselected-label']).toBe(defaults['--tab-unselected-label'])
+    }
+  }
+})

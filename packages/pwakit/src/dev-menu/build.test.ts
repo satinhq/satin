@@ -1,3 +1,4 @@
+import framework from '../../package.json' with { type: 'json' }
 import { expect, it } from 'vitest'
 import { satinApp } from '../app/vite.ts'
 import { defineApp } from '../public/definition.ts'
@@ -30,7 +31,7 @@ it('captures framework version and git revision at build time, and validates sta
     version: 'owner-test',
     statusUrl: 'https://owner.test/status',
   })
-  expect(metadata).toMatchObject({ version: 'owner-test', frameworkVersion: '0.1.0-beta.0' })
+  expect(metadata).toMatchObject({ version: 'owner-test', frameworkVersion: framework.version })
   expect(metadata.commit).toMatch(/^[a-f0-9]{40}$/)
   expect(metadata.branch.length).toBeGreaterThan(0)
   expect(() => devMenuBuild(process.cwd(), { statusUrl: 'javascript:alert(1)' })).toThrow('HTTP')

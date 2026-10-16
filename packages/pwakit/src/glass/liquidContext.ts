@@ -3,6 +3,7 @@ import { createContext } from 'react'
 import type { TabBarProps, TabItemFrame } from './TabBar.tsx'
 export type RegisteredTabBar = TabBarProps &
   Readonly<{
+    tint?: string
     insetHost?: HTMLElement
     intrinsicWidth?: boolean
     /** 'top': the regular-width iPad bar, laid out by `itemFrames` inside `insetHost`. */

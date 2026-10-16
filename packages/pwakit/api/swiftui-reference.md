@@ -1883,7 +1883,7 @@ export function DraftEditor() {
 - `@satinhq/kit:6b1393b088849383b4d58af841b53afabf734a131abd2a0c51e5e47d76a031ee`
 - `@satinhq/kit/vite:63ab5323f1fdbfe3425716de812e63889353f0a7252fdb379ddd29f0113c6c7b`
 - `@satinhq/kit/install:85c36af3f6d918e999f65db362675d8982468350930a540177d3d9809c88ca01`
-- `@satinhq/kit/internal:debba3992b9960c73ceaa33af510cfd6162fbb3271b7807f1041fd9968c4a6e0`
+- `@satinhq/kit/internal:39d720eaa8548f9bf1a0c01ef5868efc9b437c21e18114ef50436047fdbd4e80`
 - `@satinhq/kit/unstable:09d854e967c086ed0eaa8b3decbbd326306e1f35e493b79cc1f375060319a840`
 - `@satinhq/kit/server:1b9db029ea048edc062313e7116510843dab71d9a5630842f778bc45736e3990`
 - `@satinhq/kit/testing:cb9036de4e4b3df41671c759c0fc123b059bd412849ac0796479ead545fa8728`
@@ -1892,4 +1892,4 @@ export function DraftEditor() {
 
 ## Framework source fingerprint
 
-SHA-256 of sorted TS/TSX/CSS source paths and bytes, excluding tests: c4f66a9a5ac0b203be131846ee35fd33d9ec84aaf9fbf8a7dacd1c3278f251e3
+SHA-256 of sorted TS/TSX/CSS source paths and bytes, excluding tests: b5ce591e73a0ec3a6d860cfa0434aa456a6128aa55251eed3e46b4e35ad8d223

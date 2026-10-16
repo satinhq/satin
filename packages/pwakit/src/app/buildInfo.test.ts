@@ -1,3 +1,4 @@
+import framework from '../../package.json' with { type: 'json' }
 import sharp from 'sharp'
 import { runInNewContext } from 'node:vm'
 import { build } from 'vite'
@@ -17,7 +18,7 @@ afterEach(() => {
 it('issues a distinct identity even when the app has no git checkout', () => {
   const first = createBuildInfo('build')
   const second = createBuildInfo('build')
-  expect(first.frameworkVersion).toBe('0.1.0-beta.0')
+  expect(first.frameworkVersion).toBe(framework.version)
   expect(first.appBuildId).toMatch(/^[a-f0-9]{32}$/)
   expect(second.appBuildId).not.toBe(first.appBuildId)
   expect(Date.parse(first.builtAt!)).toBeGreaterThan(0)
@@ -39,7 +40,7 @@ it('embeds build metadata in ordinary release builds without the developer menu'
   const values = config({}, { command: 'build' }).define
   expect(values['import.meta.env.SATIN_DEV_MENU']).toBe('false')
   expect(JSON.parse(values['import.meta.env.SATIN_BUILD_INFO']!)).toMatchObject({
-    frameworkVersion: '0.1.0-beta.0',
+    frameworkVersion: framework.version,
     buildKind: 'production',
   })
 })
@@ -88,7 +89,7 @@ it('puts the running identity in the built JavaScript rather than a fetched serv
     const context: Record<string, unknown> = {}
     runInNewContext(source, context)
     expect(context.__runningBuildInfo).toMatchObject({
-      frameworkVersion: '0.1.0-beta.0',
+      frameworkVersion: framework.version,
       buildKind: 'production',
     })
     expect((context.__runningBuildInfo as { appBuildId: string }).appBuildId).toMatch(

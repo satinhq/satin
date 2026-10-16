@@ -19,7 +19,11 @@ function neutral(appearance: Appearance, k: number, kind: 'selected' | 'unselect
  * glass mirror; scrolling needs no new GPU readback and no fixture-name lookup.
  * The chroma correction is a first-order fit, pending textured ink acceptance.
  */
-export function tabGlyphContextStyle(appearance: Appearance, rgb: readonly number[]) {
+export function tabGlyphContextStyle(
+  appearance: Appearance,
+  rgb: readonly number[],
+  tint?: string,
+) {
   const k = luma(rgb)
   const chroma = rgb.reduce((sum, v, i) => sum + (v - k) * axis[i], 0) / norm
   const colour = (kind: 'selected' | 'unselected') => {
@@ -33,7 +37,8 @@ export function tabGlyphContextStyle(appearance: Appearance, rgb: readonly numbe
       )
       .join(' ')})`
   }
-  const selected = colour('selected'),
+  // Explicit author tint is a semantic colour, not the system-blue vibrancy fit.
+  const selected = tint || colour('selected'),
     unselected = colour('unselected')
   return {
     '--tab-selected-icon': selected,
@@ -42,6 +47,11 @@ export function tabGlyphContextStyle(appearance: Appearance, rgb: readonly numbe
     '--tab-unselected-label': unselected,
   }
 }
-export function tabGlyphStyle(appearance: Appearance, _background: string, _index: number) {
-  return tabGlyphContextStyle(appearance, appearance === 'light' ? [1, 1, 1] : [0, 0, 0])
+export function tabGlyphStyle(
+  appearance: Appearance,
+  _background: string,
+  _index: number,
+  tint?: string,
+) {
+  return tabGlyphContextStyle(appearance, appearance === 'light' ? [1, 1, 1] : [0, 0, 0], tint)
 }

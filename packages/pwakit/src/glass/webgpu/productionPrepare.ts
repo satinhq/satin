@@ -849,7 +849,10 @@ function applyTabGlyphContext(
       elements.scroller.scrollTop + geometry.height,
     )
     if (!sample) return
-    for (const [property, value] of Object.entries(tabGlyphContextStyle(appearance, sample.rgb)))
+    const tint = getComputedStyle(tab).getPropertyValue('--satin-tab-tint').trim()
+    for (const [property, value] of Object.entries(
+      tabGlyphContextStyle(appearance, sample.rgb, tint),
+    ))
       tab.style.setProperty(property, value)
   })
 }

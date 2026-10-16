@@ -349,7 +349,7 @@ body[data-satin-document='true'],
 }
 
 [data-satin-tab-item='true'][data-satin-tab-selected='true'] {
-  color: rgb(0 122 255);
+  color: var(--satin-tab-tint, rgb(0 122 255));
 }
 
 [data-satin-tab-icon='true'] {
@@ -387,7 +387,7 @@ body[data-satin-document='true'],
 }
 :where(html[data-satin-appearance='dark'])
   [data-satin-tab-item='true'][data-satin-tab-selected='true'] {
-  color: rgb(64 156 255);
+  color: var(--satin-tab-tint, rgb(64 156 255));
 }
 :where(html[data-satin-appearance='dark']) [data-satin-tab-selection='true'] {
   background: rgb(98 99 107 / 34%);
@@ -1129,7 +1129,7 @@ body[data-satin-document='true'],
   color: inherit;
 }
 [data-satin-tab-placement='top'] [data-satin-tab-selected='true'] {
-  color: var(--satin-sidebar-light-tabTint);
+  color: var(--satin-tab-tint, var(--satin-sidebar-light-tabTint));
   background: var(--satin-sidebar-light-tabSelection);
 }
 [data-satin-tab-placement='top'] [data-satin-tab-label] {
@@ -1162,7 +1162,7 @@ body[data-satin-document='true'],
 :where(html[data-satin-appearance='dark'])
   [data-satin-tab-placement='top']
   [data-satin-tab-selected='true'] {
-  color: var(--satin-sidebar-dark-tabTint);
+  color: var(--satin-tab-tint, var(--satin-sidebar-dark-tabTint));
   background: var(--satin-sidebar-dark-tabSelection);
 }
 
@@ -2261,7 +2261,7 @@ body[data-satin-document='true'],
   white-space: nowrap;
 }
 [data-satin-tab-layout='top'] .satin-lens-tab-item.satin-lens-is-selected small {
-  color: var(--satin-sidebar-light-tabTint);
+  color: var(--satin-tab-tint, var(--satin-sidebar-light-tabTint));
   font-weight: var(--satin-sidebar-tabSelectedFontWeight);
 }
 :where(html[data-satin-appearance='dark'])
@@ -2274,7 +2274,7 @@ body[data-satin-document='true'],
   [data-satin-tab-layout='top']
   .satin-lens-tab-item.satin-lens-is-selected
   small {
-  color: var(--satin-sidebar-dark-tabTint);
+  color: var(--satin-tab-tint, var(--satin-sidebar-dark-tabTint));
 }
 [data-satin-tab-layout='compact'] .satin-lens-tab-items .satin-lens-tab-icon {
   width: 24px;

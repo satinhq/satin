@@ -10,18 +10,20 @@ Use Node 22.12 or later in the 22.x series, or Node 24 or later, and pnpm 10. Th
 pnpm install --frozen-lockfile
 PREVIEW_DIR="$(mktemp -d "${TMPDIR:-/tmp}/satin-preview.XXXXXX")"
 mkdir -p "$PREVIEW_DIR/packages" "$PREVIEW_DIR/scaffolder"
+KIT_ARCHIVE="$(node -p "const { name, version } = require('./packages/pwakit/package.json'); name.replace(/^@/, '').replaceAll('/', '-') + '-' + version + '.tgz'")"
+CREATE_ARCHIVE="$(node -p "const { name, version } = require('./packages/create-pwakit/package.json'); name.replace(/^@/, '').replaceAll('/', '-') + '-' + version + '.tgz'")"
 pnpm --filter @satinhq/kit pack --pack-destination "$PREVIEW_DIR/packages"
 pnpm --filter create-satin pack --pack-destination "$PREVIEW_DIR/packages"
-tar -xzf "$PREVIEW_DIR/packages/create-satin-0.1.0-beta.0.tgz" -C "$PREVIEW_DIR/scaffolder"
+tar -xzf "$PREVIEW_DIR/packages/$CREATE_ARCHIVE" -C "$PREVIEW_DIR/scaffolder"
 ```
 
-Packing builds the framework and copies the current starter and guide into the scaffolder. The filenames above match this checkout's `0.1.0-beta.0` package version; use the emitted filenames if that version changes. Keep the temporary directory while using this preview, since the app's local dependency points into it.
+Packing builds the framework and copies the current starter and guide into the scaffolder. The archive filenames are derived from the package manifests, so the commands follow the configured package names and version. Keep the temporary directory while using this preview, since the app's local dependency points into it.
 
 In the same shell, create the app outside the repository and install its dependencies:
 
 ```sh
 cd "$PREVIEW_DIR"
-node scaffolder/package/bin/create-satin.mjs my-app --yes --name "My App" --id /my-app --satin-package "$PREVIEW_DIR/packages/satin-0.1.0-beta.0.tgz"
+node scaffolder/package/bin/create-satin.mjs my-app --yes --name "My App" --id my-app --satin-package "$PREVIEW_DIR/packages/$KIT_ARCHIVE"
 cd my-app
 npm install
 npm run typecheck

@@ -1,6 +1,6 @@
 {
   "name": "@satinhq/push",
-  "version": "0.1.0-beta.0",
+  "version": "0.1.0-beta.1",
   "type": "module",
   "exports": {
     ".": {
@@ -46,5 +46,11 @@
   "publishConfig": {
     "access": "public",
     "tag": "beta"
+  },
+  "homepage": "https://satin.build",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/satinhq/satin.git",
+    "directory": "packages/pwakit-push"
   }
 }

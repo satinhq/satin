@@ -119,6 +119,7 @@ export type GlassPresentationConsumer = Readonly<{
   content: HTMLDivElement
   scroller: HTMLDivElement
   tabs?: Readonly<{
+    tint?: string
     insetHost?: HTMLElement
     intrinsicWidth?: boolean
     placement?: 'bottom' | 'top'
@@ -1311,7 +1312,12 @@ export function GlassPresentation({ consumer }: { consumer?: GlassPresentationCo
                         ? 'satin-lens-tab-item satin-lens-is-selected'
                         : 'satin-lens-tab-item'
                     }
-                    style={tabGlyphStyle(appearance, contentPage, index) as CSSProperties}
+                    style={
+                      {
+                        ...tabGlyphStyle(appearance, contentPage, index, consumer?.tabs?.tint),
+                        '--satin-tab-tint': consumer?.tabs?.tint,
+                      } as CSSProperties
+                    }
                     type="button"
                     role="tab"
                     data-tab-index={index}

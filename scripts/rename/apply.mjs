@@ -1,5 +1,6 @@
 // Apply the public identity without tying source directories to npm coordinates.
 import { isUtf8 } from 'node:buffer'
+import { createHash } from 'node:crypto'
 import { execFileSync } from 'node:child_process'
 import {
   existsSync,
@@ -36,6 +37,7 @@ const current = {
   repository: config.repository,
   createPackage: config.createPackage,
   workspaceScope: config.workspaceScope,
+  version: config.version,
   packages,
 }
 const replacements = new Map()
@@ -179,6 +181,12 @@ for (const [directory, name] of [
   const manifest = JSON.parse(readFileSync(path, 'utf8'))
   manifest.name = name
   manifest.version = config.version
+  manifest.homepage = `https://${config.domain}`
+  manifest.repository = {
+    type: 'git',
+    url: `git+${config.repository}.git`,
+    directory: `packages/${directory}`,
+  }
   manifest.publishConfig = { ...manifest.publishConfig, access: 'public', tag: config.distTag }
   writeFileSync(path, `${JSON.stringify(manifest, null, 2)}\n`)
 }
@@ -186,5 +194,27 @@ const templatePath = resolve(root, 'templates/basic/package.json')
 const template = JSON.parse(readFileSync(templatePath, 'utf8'))
 template.dependencies[packages.kit] = config.version
 writeFileSync(templatePath, `${JSON.stringify(template, null, 2)}\n`)
+// Release pins and notice metadata follow the same configured version.
+const fixturePath = resolve(root, 'fixtures/consumer/package.json')
+const fixture = JSON.parse(readFileSync(fixturePath, 'utf8'))
+const kitArchive = `${packages.kit.replace(/^@/, '').replaceAll('/', '-')}-${config.version}.tgz`
+fixture.dependencies[packages.kit] = `file:.artifacts/${kitArchive}`
+writeFileSync(fixturePath, `${JSON.stringify(fixture, null, 2)}\n`)
+const inventoryPath = resolve(root, 'packages/pwakit/src/acknowledgements/inventory.json')
+const notices = JSON.parse(readFileSync(inventoryPath, 'utf8'))
+const frameworkNotice = notices.find(notice => notice.role === 'framework')
+if (!frameworkNotice) throw new Error('Missing framework license notice')
+frameworkNotice.version = config.version
+for (const notice of notices) {
+  notice.sha256 = createHash('sha256').update(notice.text).digest('hex')
+}
+writeFileSync(inventoryPath, `${JSON.stringify(notices, null, 2)}\n`)
+for (const name of ['NOTICE', 'packages/pwakit/NOTICE']) {
+  const noticePath = resolve(root, name)
+  const content = readFileSync(noticePath, 'utf8')
+  const heading = new RegExp(`^## ${escape(config.brand)} [^\\n]+$`, 'm')
+  if (!heading.test(content)) throw new Error(`Missing framework notice heading: ${name}`)
+  writeFileSync(noticePath, content.replace(heading, `## ${config.brand} ${config.version}`))
+}
 writeFileSync(statePath, `${JSON.stringify(current, null, 2)}\n`)
 console.log(`Applied ${current.brand} (${config.packageProfile}) to ${changed} files.`)

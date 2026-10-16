@@ -1,4 +1,5 @@
 // @vitest-environment happy-dom
+import { ControlStyleProvider } from '../public/controlStyle.tsx'
 import { act, StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, expect, it, vi } from 'vitest'
@@ -148,17 +149,20 @@ it('keeps inset-slot tab foreground in the glass presentation layer', () => {
           },
         }}
       >
-        <TabView bottomAccessory={<textarea aria-label="Message" />}>
-          <Tab id="star" label="Star" symbol="star">
-            Thread
-          </Tab>
-          <Tab id="house" label="House" symbol="house">
-            Home
-          </Tab>
-        </TabView>
+        <ControlStyleProvider tint="#d9480f">
+          <TabView bottomAccessory={<textarea aria-label="Message" />}>
+            <Tab id="star" label="Star" symbol="star">
+              Thread
+            </Tab>
+            <Tab id="house" label="House" symbol="house">
+              Home
+            </Tab>
+          </TabView>
+        </ControlStyleProvider>
       </MaterialEffectContext>,
     ),
   )
+  expect(registered?.tint).toBe('#d9480f')
   const insetHost = registered!.insetHost!
   expect(insetHost.closest('[data-satin-safe-area-inset]')).not.toBeNull()
   const rect = vi.spyOn(insetHost, 'getBoundingClientRect').mockReturnValue({
@@ -198,6 +202,9 @@ it('keeps inset-slot tab foreground in the glass presentation layer', () => {
     // The slot is in the content stacking context, below the GPU chrome canvas. Merely having
     // glyphs in the DOM is insufficient: their foreground must share the canvas's chrome layer.
     expect(shell.contains(dock)).toBe(true)
+    const tab = dock.querySelector<HTMLElement>('[role=tab]')!
+    expect(tab.style.getPropertyValue('--tab-selected-icon')).toBe('#d9480f')
+    expect(tab.style.getPropertyValue('--satin-tab-tint')).toBe('#d9480f')
     expect(dock.querySelector('[data-satin-symbol="star"]')).not.toBeNull()
     expect(dock.querySelector('small')?.textContent).toBe('Star')
     expect((dock as HTMLElement).style.left).toBe('20px')
