@@ -230,3 +230,51 @@ it('reports an unreconstructed settled device at the visible deadline and cancel
     vi.useRealTimers()
   }
 })
+
+it.each(['error', 'timeout', 'constructor'] as const)(
+  'retries a worker startup %s before transferring its canvas',
+  async failure => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    let created = 0
+    class Worker {
+      number = ++created
+      constructor() {
+        if (failure === 'constructor' && this.number === 1) throw Error('script unavailable')
+      }
+      onmessage?: (event: { data: unknown }) => void
+      onerror?: (event: { message: string }) => void
+      terminate() {}
+      postMessage({ id, request }: { id: number; request: { type: string } }) {
+        if (this.number === 1 && request.type === 'capability') {
+          if (failure === 'error')
+            queueMicrotask(() => this.onerror?.({ message: 'Failed to load worker script' }))
+          return
+        }
+        queueMicrotask(() => this.onmessage?.({ data: { id, value: {} } }))
+      }
+    }
+    vi.stubGlobal('Worker', Worker)
+    vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+      queueMicrotask(() => callback(0))
+      return 1
+    })
+    vi.stubGlobal('cancelAnimationFrame', () => {})
+    const transfer = vi.fn(() => ({}))
+    const client = new WebGPUClient()
+    try {
+      const ready = client.init(
+        { transferControlToOffscreen: transfer } as unknown as HTMLCanvasElement,
+        1,
+        true,
+        true,
+      )
+      await vi.advanceTimersByTimeAsync(3000)
+      await ready
+      expect(created).toBe(2)
+      expect(transfer).toHaveBeenCalledOnce()
+    } finally {
+      client.close()
+      vi.useRealTimers()
+    }
+  },
+)

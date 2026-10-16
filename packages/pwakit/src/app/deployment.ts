@@ -98,7 +98,12 @@ export async function checkDeployment(
     )
     return failures
   }
-  const request = async (path: string, kind: string, allowDirectoryCanonicalization = false) => {
+  const request = async (
+    path: string,
+    kind: string,
+    allowDirectoryCanonicalization = false,
+    attempt = 0,
+  ): Promise<{ body: string; bytes: Uint8Array<ArrayBuffer>; url: string } | null> => {
     const url = new URL(path, page).href
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), requestTimeoutMs)
@@ -109,7 +114,7 @@ export async function checkDeployment(
         cache: 'no-store',
         redirect: path === expected.scope + 'sw.js' ? 'manual' : 'follow',
       })
-      definite = true
+      definite = response.status < 500 && response.status !== 408 && response.status !== 429
       if (response.status !== 200) throw new Error(`HTTP ${response.status}`)
       const finalUrl = new URL(response.url || url)
       const requestedUrl = new URL(url)
@@ -158,6 +163,12 @@ export async function checkDeployment(
       return { body: new TextDecoder().decode(bytes), bytes, url: finalUrl.href }
     } catch (error) {
       const reason = error instanceof Error ? error.message : String(error)
+      // Retry transport failures only. A mismatched deployment cannot heal with backoff.
+      if ((!definite || controller.signal.aborted) && attempt < 2) {
+        clearTimeout(timer)
+        await new Promise(resolve => setTimeout(resolve, 250 * 2 ** attempt))
+        return request(path, kind, allowDirectoryCanonicalization, attempt + 1)
+      }
       if (controller.signal.aborted) {
         fail(
           `${label(url)} did not finish within ${requestTimeoutMs / 1000} s`,

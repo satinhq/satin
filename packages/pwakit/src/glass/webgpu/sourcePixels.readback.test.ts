@@ -66,6 +66,7 @@ it('reads a capture canvas back on the page: no bitmap, no upload worker, and th
 })
 
 it('a readback does not depend on the upload worker: it works after the worker has failed', async () => {
+  vi.useFakeTimers()
   const { create, reply } = workerFixture()
   vi.spyOn(console, 'error').mockImplementation(() => {})
   vi.stubGlobal(
@@ -77,6 +78,10 @@ it('a readback does not depend on the upload worker: it works after the worker h
   await Promise.resolve()
   const rejected = expect(lost).rejects.toThrow('device lost')
   reply(0, { id: 0, error: 'device lost' })
+  await vi.advanceTimersByTimeAsync(250)
+  reply(1, { id: 0, error: 'device lost' })
+  await vi.advanceTimersByTimeAsync(500)
+  reply(2, { id: 0, error: 'device lost' })
   await rejected
   expect(source.failed).toBe(true)
   const bytes = new Uint8ClampedArray(8)
@@ -86,6 +91,7 @@ it('a readback does not depend on the upload worker: it works after the worker h
 })
 
 it('a replacement after a failure has its own worker, and a late reply of the failed one changes nothing', async () => {
+  vi.useFakeTimers()
   const { workers, create, reply } = workerFixture()
   vi.spyOn(console, 'error').mockImplementation(() => {})
   vi.stubGlobal(
@@ -99,6 +105,10 @@ it('a replacement after a failure has its own worker, and a late reply of the fa
   await Promise.resolve()
   const rejected = expect(lost).rejects.toThrow('device lost')
   reply(0, { id: 0, error: 'device lost' })
+  await vi.advanceTimersByTimeAsync(250)
+  reply(1, { id: 0, error: 'device lost' })
+  await vi.advanceTimersByTimeAsync(500)
+  reply(2, { id: 0, error: 'device lost' })
   await rejected
   expect(failed.failed).toBe(true)
   expect(workers[0].terminate).toHaveBeenCalledOnce()
@@ -108,14 +118,14 @@ it('a replacement after a failure has its own worker, and a late reply of the fa
   const second = bitmap()
   const job = replacement.prepare(second)
   await Promise.resolve()
-  expect(workers).toHaveLength(2)
+  expect(workers).toHaveLength(4)
   // The failed worker answers its old job late, with the id the replacement's job also has.
   const stale = new Uint8Array([9, 9, 9, 9, 9, 9, 9, 9])
   reply(0, { id: 1, width: 2, height: 1, buffer: stale.buffer })
   expect(takeSourcePixels(first)).toBeUndefined()
   expect(takeSourcePixels(second)).toBeUndefined()
   const fresh = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8])
-  reply(1, { id: 1, width: 2, height: 1, buffer: fresh.buffer })
+  reply(3, { id: 1, width: 2, height: 1, buffer: fresh.buffer })
   await job
   expect(takeSourcePixels(second)).toEqual(fresh)
 })

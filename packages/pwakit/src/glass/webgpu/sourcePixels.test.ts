@@ -65,7 +65,8 @@ it('closes the untransferred clone if admission throws and leaves no timeout', a
   expect(clone.close).toHaveBeenCalledOnce()
   expect(vi.getTimerCount()).toBe(0)
 })
-it('a dead worker rejects every pending preparation and subsequent calls', async () => {
+it('exhausts a bounded restart burst for every pending preparation', async () => {
+  vi.useFakeTimers()
   const { source, worker, reply } = fixture()
   vi.spyOn(console, 'error').mockImplementation(() => {})
   const a = source.prepare(image()),
@@ -76,9 +77,12 @@ it('a dead worker rejects every pending preparation and subsequent calls', async
     expect(b).rejects.toThrow('device lost'),
   ]
   reply({ id: 0, error: 'device lost' })
+  await vi.advanceTimersByTimeAsync(250)
+  reply({ id: 0, error: 'device lost' })
+  await vi.advanceTimersByTimeAsync(500)
+  reply({ id: 0, error: 'device lost' })
   await Promise.all(checks)
-  expect(worker.terminate).toHaveBeenCalledOnce()
-  await expect(source.prepare(image())).rejects.toThrow('device lost')
+  expect(worker.terminate).toHaveBeenCalledTimes(3)
 })
 it('bounds a missing acknowledgement and rejects rather than falling back', async () => {
   vi.useFakeTimers()
@@ -86,9 +90,9 @@ it('bounds a missing acknowledgement and rejects rather than falling back', asyn
   const { source, worker } = fixture(),
     job = source.prepare(image())
   const rejected = expect(job).rejects.toThrow('exceeded 10 seconds')
-  await vi.advanceTimersByTimeAsync(10000)
+  await vi.advanceTimersByTimeAsync(30750)
   await rejected
-  expect(worker.terminate).toHaveBeenCalledOnce()
+  expect(worker.terminate).toHaveBeenCalledTimes(3)
   expect(vi.getTimerCount()).toBe(0)
 })
 it('takes the worker bitmap from the capture canvas and never copies the retained snapshot', async () => {

@@ -6,17 +6,18 @@ import { sampleMenuCorner } from '../lens/menuCornerMotion.ts'
 import { confirmHeldSources, heldPresentations } from '../presentationFrame.ts'
 import { animateElement, timelineStart } from '../../motion/animate.ts'
 import { FallbackMaterial } from './material.ts'
+import { FallbackCanvasOwnership } from './canvasOwnership.ts'
 import { GLASS_SHAPE_TRACK_EVENT, glassShapeTrack } from '../shapeTrackRegistry.ts'
 import { trackedShapeSpec } from '../shapeTrack.ts'
 import { glassRadius } from '../regions.ts'
 
 /** Registered DOM owners already follow scroll, sheets and navigation on the compositor. */
 export class FallbackRegions {
+  private canvases = new FallbackCanvasOwnership()
   private entries = new Map<
     string,
     {
       material: FallbackMaterial
-      restoreCanvas: () => void
       signature: string
       generation: number
       ink?: Animation
@@ -55,12 +56,15 @@ export class FallbackRegions {
   }
   refresh() {
     const registrations = this.registry?.values() ?? []
+    this.canvases.update([
+      ...registrations.flatMap(entry => [entry.canvas, ...(entry.overlay ? [entry.overlay] : [])]),
+      ...[...(this.registry?.containers.values() ?? [])].map(entry => entry.canvas),
+    ])
     const live = new Set(registrations.map(entry => entry.id))
     for (const [id, entry] of this.entries) {
       if (!live.has(id)) {
         entry.ink?.cancel()
         entry.material.dispose()
-        entry.restoreCanvas()
         this.entries.delete(id)
       }
     }
@@ -105,18 +109,10 @@ export class FallbackRegions {
       const signature = JSON.stringify([region, this.appearance])
       let entry = this.entries.get(id)
       if (!entry) {
-        // A live demotion can leave the last GPU frame on this canvas. Retain the
-        // canvas for presentation receipts, but let only the CSS material paint.
-        const canvas = registration.canvas
-        const visibility = canvas.style.visibility
-        canvas.style.visibility = 'hidden'
         entry = {
           material: new FallbackMaterial(element),
           signature: '',
           generation: 0,
-          restoreCanvas: () => {
-            canvas.style.visibility = visibility
-          },
         }
         this.entries.set(id, entry)
       }
@@ -153,7 +149,7 @@ export class FallbackRegions {
           void entry.material.play(
             frames,
             track.duration,
-            timelineStart(track.epoch - performance.timeOrigin),
+            track.epoch - performance.timeOrigin,
             this.appearance,
           )
         continue
@@ -247,7 +243,7 @@ export class FallbackRegions {
           }
         })
         entry.ink = animateElement(ink, frames, { duration, easing: 'linear', fill: 'both' })
-        entry.ink.startTime = at
+        entry.ink.startTime = timelineStart(at)
       }
       if (emerge.closing)
         this.registry?.emergeInk({
@@ -286,8 +282,8 @@ export class FallbackRegions {
     this.entries.forEach(entry => {
       entry.ink?.cancel()
       entry.material.dispose()
-      entry.restoreCanvas()
     })
     this.entries.clear()
+    this.canvases.dispose()
   }
 }

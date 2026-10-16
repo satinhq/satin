@@ -187,8 +187,15 @@ export function installLaunchWatchdog(budgetMs: number) {
       progress.downloading &&
       Number.isFinite(progress.loaded) &&
       progress.loaded >= 0
-    )
+    ) {
       receiveProgress(progress)
+      // A first install can download before the application module is available.
+      // Controlled documents are cached launches/updates and keep their existing policy.
+      if (!navigator.serviceWorker?.controller && !revealed)
+        (
+          window as unknown as { __SATIN_LAUNCH_SCREEN__?: { progress(value: unknown): void } }
+        ).__SATIN_LAUNCH_SCREEN__?.progress(progress)
+    }
   })
   // A client's worker messages are queued until DOMContentLoaded, and a bootstrap module that
   // never finishes holds DOMContentLoaded back: the worker's "this resource stalled" message

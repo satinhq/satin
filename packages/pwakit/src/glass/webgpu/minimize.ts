@@ -451,7 +451,26 @@ export class WorkerMinimize {
         },
       }
     }
-    if (atRest(f)) return spec
+    if (atRest(f)) {
+      // A retargeted track includes its pre-onset frames. They must use the current
+      // slot too; returning the captured spec preserves the old expanded width.
+      return {
+        ...spec,
+        frameWidth: geometry.dockWidth,
+        frameHeight: geometry.dockHeight,
+        shape: {
+          ...spec.shape,
+          first: {
+            ...spec.shape.first,
+            centerX: geometry.dockWidth / 2,
+            centerY: geometry.dockHeight / 2,
+            halfWidth: geometry.dockWidth / 2,
+            halfHeight: geometry.dockHeight / 2,
+            radius: geometry.dockRadius,
+          },
+        },
+      }
+    }
     const g = this.options.geometry,
       p = minimizePlacement(f.progress, g.dockWidth, g.dockHeight, g.tabBarMinimizedOffsetX),
       height = g.dockHeight + (48 - g.dockHeight) * f.heightProgress,

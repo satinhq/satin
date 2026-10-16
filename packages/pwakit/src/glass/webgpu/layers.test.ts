@@ -104,3 +104,48 @@ describe('page device and glass layers', () => {
     expect(listener.mock.calls[1][0]).toBe(f.devices[1])
   })
 })
+
+it('retries a repeated-loss burst after cooldown instead of disabling recovery for the session', async () => {
+  vi.useFakeTimers()
+  const f = fixture()
+  const owner = new LayerDevice(vi.fn())
+  await owner.ready()
+  for (let i = 0; i < 4; i++) {
+    owner.liveDevice!.destroy()
+    await vi.advanceTimersByTimeAsync(0)
+  }
+  owner.setAdapterVisible(false)
+  await vi.advanceTimersByTimeAsync(60_000)
+  const requests = f.requestDevice.mock.calls.length
+  expect(owner.liveDevice).toBeUndefined()
+  owner.setAdapterVisible(true)
+  await owner.retryAdapter()
+  await vi.advanceTimersByTimeAsync(1000)
+  expect(f.requestDevice.mock.calls.length).toBeGreaterThan(requests)
+  expect(owner.liveDevice).toBeDefined()
+  owner.stop()
+  vi.useRealTimers()
+})
+
+it('does not reconstruct a device returned while re-backgrounded until foreground returns', async () => {
+  const f = fixture()
+  const owner = new LayerDevice(vi.fn())
+  await owner.ready()
+  let deliver!: (device: Awaited<ReturnType<typeof f.requestDevice>>) => void
+  const pending = new Promise<Awaited<ReturnType<typeof f.requestDevice>>>(resolve => {
+    deliver = resolve
+  })
+  f.requestDevice.mockReturnValueOnce(pending)
+  const restored = vi.fn()
+  owner.subscribe(restored)
+  owner.liveDevice!.destroy()
+  await vi.waitFor(() => expect(f.requestDevice).toHaveBeenCalledTimes(2))
+  owner.setAdapterVisible(false)
+  deliver(await f.requestDevice())
+  await Promise.resolve()
+  await Promise.resolve()
+  expect(restored.mock.calls.filter(([device]) => device)).toHaveLength(0)
+  owner.setAdapterVisible(true)
+  await vi.waitFor(() => expect(owner.report().restores).toBe(1))
+  owner.stop()
+})

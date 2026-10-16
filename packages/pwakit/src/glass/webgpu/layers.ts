@@ -48,7 +48,9 @@ export class LayerDevice {
   private stopped = false
   private adapterPending = false
   private recovering = false
-  private recoveryBlocked = false
+  private recoveryBlockedUntil = 0
+  private recoveryTimer?: ReturnType<typeof setTimeout>
+  private recoveryFailures = 0
   private forcedNullAdapters = 0
   private lastLoss?: { reason: string; message: string }
   readonly stats = {
@@ -70,7 +72,10 @@ export class LayerDevice {
   }
   async ready(): Promise<GPUDevice> {
     if (this.device) return this.device
-    if (this.recoveryBlocked) throw Error('Glass device repeatedly lost during recovery')
+    if (Date.now() < this.recoveryBlockedUntil) {
+      this.scheduleRecovery()
+      throw Error('Glass device recovery is cooling down')
+    }
     if (this.starting) return this.starting
     this.starting = this.acquire()
     try {
@@ -88,8 +93,13 @@ export class LayerDevice {
         }
       }
       failedDevice?.destroy()
-      if (!this.stopped)
+      if (!this.stopped) {
         this.reportError(this.recovering ? 'device recreation' : 'device acquisition', error)
+        if (this.recovering) {
+          this.recoveryFailures++
+          this.scheduleRecovery()
+        }
+      }
       throw error
     } finally {
       this.starting = undefined
@@ -99,19 +109,50 @@ export class LayerDevice {
   setAdapterVisible(visible: boolean) {
     this.adapterVisible = visible
     this.retryWake?.()
+    if (!visible) {
+      clearTimeout(this.recoveryTimer)
+      this.recoveryTimer = undefined
+    } else if (this.recovering && !this.starting && !this.device) this.scheduleRecovery()
   }
   stop() {
     this.stopped = true
+    clearTimeout(this.recoveryTimer)
     this.retryWake?.()
   }
   /** Foreground signals wake the single acquisition already in flight. */
   retryAdapter() {
-    if (this.device || this.recoveryBlocked) return
+    if (this.device || this.stopped || !this.adapterVisible) return
+    if (Date.now() < this.recoveryBlockedUntil) {
+      this.scheduleRecovery()
+      return
+    }
     if (this.starting) {
       this.retryWake?.()
       return
     }
     return this.ready()
+  }
+  private scheduleRecovery() {
+    if (this.stopped || !this.adapterVisible || this.recoveryTimer) return
+    const delay = Math.max(
+      this.recoveryBlockedUntil - Date.now(),
+      Math.min(1000 * 2 ** this.recoveryFailures, 30_000),
+    )
+    this.recoveryTimer = setTimeout(() => {
+      this.recoveryTimer = undefined
+      void this.retryAdapter()?.catch(() => {
+        /* ready records and schedules the next attempt. */
+      })
+    }, delay)
+  }
+  private async waitUntilVisible() {
+    while (!this.adapterVisible && !this.stopped) {
+      await new Promise<void>(resolve => {
+        this.retryWake = resolve
+      })
+      this.retryWake = undefined
+    }
+    if (this.stopped) throw Error('Glass renderer stopped during adapter acquisition')
   }
   forceNullAdaptersForTest(attempts: number) {
     if (!Number.isInteger(attempts) || attempts < 0 || attempts > 100)
@@ -171,6 +212,14 @@ export class LayerDevice {
     ).catch(error => {
       throw Error(`requestDevice rejected: ${String(error)}`)
     })
+    // requestDevice may resolve after a quick re-background. Do not rebuild or
+    // announce readiness against a suspended presentation generation.
+    try {
+      await this.waitUntilVisible()
+    } catch (error) {
+      device.destroy()
+      throw error
+    }
     this.device = device
     this.faults.length = 0
     registerGPUReporter(device, (stage, error) => {
@@ -205,11 +254,13 @@ export class LayerDevice {
       }
       if (invalidationError) {
         this.reportError('device recreation', invalidationError)
+        this.scheduleRecovery()
         return
       }
       // WebKit can report destroyed for an unexpected loss as well.
       if (this.lossTimes.length > 3) {
-        this.recoveryBlocked = true
+        this.recoveryBlockedUntil = this.lossTimes[0]! + 60_000
+        this.scheduleRecovery()
         this.reportError('device recreation', 'Glass device repeatedly lost during recovery')
         return
       }
@@ -224,6 +275,9 @@ export class LayerDevice {
       // reconstruct in registration order before presentation can resume.
       for (const listener of this.listeners) listener(device)
       this.stats.restores++
+      this.recoveryFailures = 0
+      clearTimeout(this.recoveryTimer)
+      this.recoveryTimer = undefined
       this.recovering = false
       if (lagTraceEnabled()) glassTiming('device-restored')
     }

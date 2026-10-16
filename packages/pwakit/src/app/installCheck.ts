@@ -114,7 +114,7 @@ export async function installPageCheck(
   title.textContent = standalone
     ? 'Wrong Home Screen icon'
     : unverified
-      ? 'Could not verify this app'
+      ? "Can't reach the app right now"
       : 'This app is misconfigured'
   const explanation = document.createElement('p')
   const action = document.createElement('p')
@@ -133,11 +133,12 @@ export async function installPageCheck(
     return
   }
   if (unverified) {
-    explanation.textContent = 'The connection may be slow or offline.'
-    action.textContent = 'Try again when your connection is ready.'
+    explanation.textContent = 'Check your connection and try again.'
+    action.remove()
     const retry = document.createElement('button')
     retry.textContent = 'Retry'
     retry.addEventListener('click', () => {
+      retry.disabled = true
       void installPageCheck(expected, check, 30_000, onPass)
     })
     content.append(retry)

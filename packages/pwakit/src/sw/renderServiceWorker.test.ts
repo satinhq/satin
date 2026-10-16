@@ -579,7 +579,7 @@ it('classifies a rejected secondary fetch as connectivity after a successful she
   harness.serviceWorkerGlobal.clients.matchAll.mockResolvedValue([{ postMessage }] as never)
   harness.networkFetch
     .mockResolvedValueOnce(new Response('shell'))
-    .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+    .mockRejectedValue(new TypeError('Failed to fetch'))
   let work!: Promise<unknown>
   harness.listeners.get('install')?.({
     waitUntil: (pending: Promise<unknown>) => {
@@ -641,7 +641,7 @@ it.each(['headers', 'body'])(
       // The response may take as long as `satin check` allows; a body may not go silent for 8 s.
       const seconds = phase === 'headers' ? 30 : 8
       const failed = expect(work).rejects.toThrow(`The server stopped responding for ${seconds} s`)
-      await vi.advanceTimersByTimeAsync(seconds * 1000 + 1)
+      await vi.advanceTimersByTimeAsync(seconds * 3000 + 751)
       await failed
       expect(postMessage).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -651,7 +651,7 @@ it.each(['headers', 'body'])(
         }),
       )
       expect(signalListener.mock.calls[0]![0].aborted).toBe(true)
-      if (phase === 'body') expect(cancel).toHaveBeenCalledOnce()
+      if (phase === 'body') expect(cancel).toHaveBeenCalledTimes(3)
       expect(harness.cacheStorage.delete).not.toHaveBeenCalled()
       expect(harness.serviceWorkerGlobal.skipWaiting).not.toHaveBeenCalled()
       harness.networkFetch.mockResolvedValue(
@@ -1012,4 +1012,32 @@ it('defers an unbound legacy suspension rather than guessing its document build 
   expect(source.postMessage).toHaveBeenCalledWith({ type: APP_SHELL_COLD_UPDATE_DENIED })
   expect(harness.serviceWorkerGlobal.registration.active.postMessage).not.toHaveBeenCalled()
   expect(harness.serviceWorkerGlobal.skipWaiting).not.toHaveBeenCalled()
+})
+
+it.each(
+  ['renderer-a.js', 'regionScene-a.js', 'entry.worker-a.js', 'sourcePixels.worker-a.js'].flatMap(
+    name => ['502', 'network', 'timeout'].map(fault => ({ name, fault })),
+  ),
+)('retries $fault for $name before exposing it to the module loader', async ({ name, fault }) => {
+  vi.useFakeTimers()
+  try {
+    const harness = workerHarness([{ url: '/app/assets/' + name, revision: null }])
+    if (fault === '502')
+      harness.networkFetch.mockResolvedValueOnce(new Response('Unavailable', { status: 502 }))
+    else if (fault === 'network')
+      harness.networkFetch.mockRejectedValueOnce(new TypeError('connection reset'))
+    else harness.networkFetch.mockImplementationOnce(() => new Promise(() => {}))
+    let pending!: Promise<void>
+    harness.listeners.get('install')!({
+      waitUntil: (work: Promise<void>) => {
+        pending = work
+      },
+    })
+    await vi.advanceTimersByTimeAsync(fault === 'timeout' ? 30_251 : 251)
+    await pending
+    expect(harness.networkFetch).toHaveBeenCalledTimes(2)
+    expect(harness.cache.put).toHaveBeenCalledTimes(1)
+  } finally {
+    vi.useRealTimers()
+  }
 })

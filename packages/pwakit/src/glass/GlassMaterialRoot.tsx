@@ -16,9 +16,12 @@ function readAccessibilityPreferences(): GlassAccessibilityPreferences {
 export function GlassMaterialRoot({
   children,
   displacement,
+  prepared = true,
   onLaunchReady,
 }: PropsWithChildren<{
   displacement: GlassDisplacementPolicy
+  /** Lazy renderer modules wait for the verified offline bundle on first install. */
+  prepared?: boolean
   onLaunchReady?: (ready: boolean) => void
 }>) {
   const scene = useRef<HTMLDivElement>(null)
@@ -67,8 +70,8 @@ export function GlassMaterialRoot({
         <MaterialEffectRoot
           scene={scene}
           chrome={chromeLayer}
-          enabled={capability.state === 'displacement'}
-          capabilitySettled={true}
+          enabled={prepared && capability.state === 'displacement'}
+          capabilitySettled={prepared}
           onLaunchReady={onLaunchReady}
         >
           {children}

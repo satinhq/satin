@@ -51,6 +51,7 @@ export class WebGPUClient {
   }
   private adapterDeadline?: VisibleDeadline
   private failed?: Error
+  private startingTransport = false
   private frames = new PageFrameHost()
   private webgpu = false
   private currentAppearance: () => 'dark' | 'light' = () =>
@@ -101,7 +102,24 @@ export class WebGPUClient {
     )
     glassTiming('client-start')
     try {
-      await this.initialize(canvas, resolution, worker, webgpu, appearance, execution)
+      for (let attempt = 0; ; attempt++) {
+        this.startingTransport = true
+        try {
+          await this.initialize(canvas, resolution, worker, webgpu, appearance, execution)
+          break
+        } catch (error) {
+          const code = glassFailureCode('renderer initialization', error)
+          const retryable =
+            this.startingTransport &&
+            ['worker-startup', 'readiness-timeout', 'device-request'].includes(code)
+          if (!retryable || attempt === 2) throw error
+          this.close()
+          this.failed = undefined
+          await new Promise(resolve => setTimeout(resolve, 250 * 2 ** attempt))
+        } finally {
+          this.startingTransport = false
+        }
+      }
     } catch (error) {
       reportGlassError(
         glassFailureCode('renderer initialization', error),
@@ -210,7 +228,13 @@ export class WebGPUClient {
           return
         }
         if (glassError) {
-          reportGlassError(glassError.code, glassError.message, glassError.stage, glassError.reason)
+          reportGlassError(
+            glassError.code,
+            glassError.message,
+            glassError.stage,
+            glassError.reason,
+            this.startingTransport ? { recovering: true } : undefined,
+          )
           return
         }
         const request = this.pending.get(id)
@@ -230,14 +254,19 @@ export class WebGPUClient {
           terminate: () => renderer.stop(),
         }
       } else {
-        const transport = new Worker(new URL('./entry.worker.ts', import.meta.url), {
-          type: 'module',
-          name: 'satin-glass-webgpu',
-        })
+        let transport: Worker
+        try {
+          transport = new Worker(new URL('./entry.worker.ts', import.meta.url), {
+            type: 'module',
+            name: 'satin-glass-webgpu',
+          })
+        } catch (error) {
+          throw new Error(`Worker startup: ${String(error)}`, { cause: error })
+        }
         transport.onmessage = receive
         transport.onerror = event =>
           this.failTransport(
-            new Error(event.message || 'Glass worker failed'),
+            new Error(`Worker startup/runtime: ${event.message || 'Glass worker failed'}`),
             'worker startup/runtime',
           )
         transport.onmessageerror = () =>
@@ -268,11 +297,7 @@ export class WebGPUClient {
           this.backend = 'webgpu'
         } catch (error) {
           this.failed = error instanceof Error ? error : Error(String(error))
-          reportGlassError(
-            glassFailureCode('WebGPU startup', this.failed),
-            this.failed,
-            'WebGPU startup',
-          )
+          // init owns the bounded startup retry and terminal report.
           this.transport?.terminate()
           for (const pending of this.pending.values()) pending.reject(this.failed)
           this.pending.clear()
@@ -281,6 +306,7 @@ export class WebGPUClient {
           clearTimeout(timeout)
         }
       }
+      this.startingTransport = false
       const offscreen = this.local ? canvas : canvas.transferControlToOffscreen()
       await this.request(
         {
@@ -302,7 +328,7 @@ export class WebGPUClient {
   private failTransport(error: Error, stage: string) {
     this.adapterDeadline?.cancel()
     this.failed = error
-    reportGlassError(glassFailureCode(stage, error), error, stage)
+    if (!this.startingTransport) reportGlassError(glassFailureCode(stage, error), error, stage)
     for (const pending of this.pending.values()) pending.reject(error)
     this.pending.clear()
   }
@@ -398,6 +424,25 @@ export class WebGPUClient {
   resume() {
     this.bindLifecycle()
     this.visibility()
+  }
+  /** Dispose a failed transport before constructing its replacement. */
+  close() {
+    this.frames.cancel()
+    this.adapterDeadline?.cancel()
+    this.adapterDeadline = undefined
+    document.removeEventListener('visibilitychange', this.visibility, true)
+    window.removeEventListener('pagehide', this.visibility, true)
+    window.removeEventListener('pageshow', this.visibility)
+    window.removeEventListener('focus', this.focus)
+    document.removeEventListener('visibilitychange', this.adapterVisibility, true)
+    window.removeEventListener('pagehide', this.adapterVisibility, true)
+    window.removeEventListener('pageshow', this.adapterVisibility)
+    window.removeEventListener('focus', this.adapterVisibility)
+    this.transport?.terminate()
+    this.transport = undefined
+    this.local = undefined
+    for (const pending of this.pending.values()) pending.reject(Error('Glass transport retired'))
+    this.pending.clear()
   }
   park() {
     this.frames.cancel()

@@ -14,9 +14,11 @@ import { tabHeldGeometry } from '../webgpu/interactionProfiles.ts'
 import { WorkerMinimize } from '../webgpu/minimize.ts'
 import { FallbackMaterial } from './material.ts'
 import { FallbackRegions } from './regions.ts'
+import { FallbackCanvasOwnership } from './canvasOwnership.ts'
 
 /** Material replacement only: semantic controls and measured motion keep their existing owners. */
 export class FallbackGlassRuntime {
+  private canvases = new FallbackCanvasOwnership()
   private regions: FallbackRegions
   private dock: FallbackMaterial
   private thumb: FallbackMaterial
@@ -34,18 +36,30 @@ export class FallbackGlassRuntime {
     Object.assign(globalThis, {
       __SATIN_GLASS_RENDERER__: { backend: 'fallback', errors: getGlassErrors },
     })
+    const band = options.elements.band
+    const shell = band.canvas.closest('[data-satin-liquid]')
+    this.canvases.update([
+      band.canvas,
+      band.rimCanvas,
+      ...(shell?.querySelectorAll<HTMLCanvasElement>(
+        'canvas[data-satin-webgpu],canvas[data-satin-glass-lift]',
+      ) ?? []),
+    ])
     this.regions = new FallbackRegions(options.regions, options.appearance)
     this.dock = new FallbackMaterial(options.elements.chrome.dock)
     this.thumb = new FallbackMaterial(options.elements.chrome.dock)
     this.dock.element.style.zIndex = '-2'
     this.thumb.element.style.zIndex = '-1'
-    this.minimizeDom = new WorkerMinimize(options, path => this.restoreMinimizingTabBar(path), {
-      begin: x => {
-        this.tabPointerDown(x, this.options.geometry.tabBarSelectedIndex ?? 0)
+    this.minimizeDom = new WorkerMinimize(
+      options,
+      path => this.restoreMinimizingTabBar(path),
+      {
+        begin: x => this.tabPointerDown(x, this.options.geometry.tabBarSelectedIndex ?? 0),
+        move: x => this.tabPointerMove(x),
+        end: cancelled => this.tabPointerUp(cancelled),
       },
-      move: x => this.tabPointerMove(x),
-      end: cancelled => this.tabPointerUp(cancelled),
-    })
+      track => this.playMinimizeTrack(track),
+    )
     this.bindScroll()
     this.unsubscribeAppearance = options.subscribeAppearance?.(() =>
       this.commitAppearance(options.currentAppearance?.() ?? options.appearance),
@@ -105,6 +119,9 @@ export class FallbackGlassRuntime {
   }
   private minimizeTrack(direction: 'collapse' | 'restore', path: RestorePath = 'tap') {
     const track = this.minimizeDom.start(direction, this.dockSpec(), path)
+    this.playMinimizeTrack(track)
+  }
+  private playMinimizeTrack(track: { specs: SurfaceRenderSpec[]; duration: number; at: number }) {
     void this.dock.play(track.specs, track.duration, track.at, this.options.appearance)
     void this.thumb.play(
       track.specs.map(spec => this.thumbSpec(spec)),
@@ -301,6 +318,7 @@ export class FallbackGlassRuntime {
     this.unsubscribeAppearance?.()
     this.minimizeDom.dispose()
     this.regions.dispose()
+    this.canvases.dispose()
     this.dock.dispose()
     this.thumb.dispose()
   }

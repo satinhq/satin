@@ -293,3 +293,39 @@ it('returns release glass to WebGPU after adapter reconstruction without losing 
   act(() => view.setGlassAdapterRecovery(false))
   expect(view.host.querySelector('output')?.dataset.backend).toBe('fallback')
 })
+
+it.each(['device-request', 'context-configure', 'presentation', 'out-of-memory'] as const)(
+  'clears a %s outage only after pending device reconstruction succeeds',
+  async code => {
+    const view = await mount()
+    act(() => {
+      view.setGlassAdapterRecovery(true)
+      view.reportGlassError(code, 'Transient loss during resume', 'device recreation')
+    })
+    await waitForFallback(view)
+    expect(view.host.querySelector('output')?.dataset.backend).toBe('fallback')
+    act(() => view.setGlassAdapterRecovery(false))
+    await act(async () => {
+      await vi.dynamicImportSettled()
+    })
+    expect(view.host.querySelector('output')?.dataset.backend).toBe('webgpu')
+    expect(view.getGlassErrors()).toHaveLength(1)
+  },
+)
+
+it('retries a terminal worker transport failure after the visible cooldown', async () => {
+  vi.useFakeTimers({
+    toFake: ['Date', 'setTimeout', 'clearTimeout', 'requestAnimationFrame', 'cancelAnimationFrame'],
+  })
+  const view = await mount()
+  const input = view.host.querySelector('input')!
+  act(() => view.reportGlassError('worker-startup', 'Worker startup failed', 'startup'))
+  await waitForFallback(view)
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(3000)
+    await vi.dynamicImportSettled()
+  })
+  expect(view.host.querySelector('output')?.dataset.backend).toBe('webgpu')
+  expect(view.host.querySelector('input')).toBe(input)
+  expect(view.getGlassErrors()).toHaveLength(1)
+})

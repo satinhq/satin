@@ -37,6 +37,7 @@ export class SourcePixels {
   private worker?: Transport
   private next = 0
   private failure?: Error
+  private retrying?: Promise<void>
   private pending = new Map<
     number,
     {
@@ -56,10 +57,8 @@ export class SourcePixels {
   ) {
     this.create = create
   }
-  /** The upload worker failed (its device was lost, or a reply never came). The instance stays
-   * failed for images that need the worker: the bounded recovery of a source preparation replaces
-   * it (`ProductionGlassRuntime.replaceFailedSourcePixels`), so a failure is reported once per
-   * attempt and never retried in a loop. Canvas readbacks do not use the worker and still work. */
+  /** Exhausted upload failures let the production owner replace this source stager.
+   * Canvas readbacks remain available because they do not use the worker. */
   get failed() {
     return !!this.failure
   }
@@ -67,7 +66,9 @@ export class SourcePixels {
     this.failure = error
     this.worker?.terminate()
     this.worker = undefined
-    reportGlassError('worker-startup', error, 'source upload worker')
+    reportGlassError('worker-startup', error, 'source upload worker', undefined, {
+      recovering: true,
+    })
     for (const job of this.pending.values()) {
       clearTimeout(job.timer)
       job.reject(error)
@@ -85,6 +86,29 @@ export class SourcePixels {
    * in WebKit (157 ms for a 1320 x 5091 capture in the Catalyst host), more than half of the
    * stage. Measured for captures up to 1320 x 6495; the cause inside WebKit was not sampled. */
   async prepare(image: ImageBitmap, capture: ImageBitmapSource = image) {
+    for (let attempt = 0; ; attempt++) {
+      try {
+        if (this.retrying) await this.retrying
+        return await this.prepareOnce(image, capture)
+      } catch (error) {
+        if (!this.failure) throw error
+        if (attempt === 2) {
+          reportGlassError('worker-startup', error, 'source upload worker')
+          throw new Error(`Source upload worker startup failed: ${String(error)}`, { cause: error })
+        }
+        // Concurrent uploads share one restart. Each retry clones from the retained
+        // source, never from the bitmap already transferred to the failed worker.
+        this.retrying ??= new Promise<void>(resolve =>
+          setTimeout(resolve, 250 * 2 ** attempt),
+        ).then(() => {
+          this.failure = undefined
+          this.retrying = undefined
+        })
+        await this.retrying
+      }
+    }
+  }
+  private async prepareOnce(image: ImageBitmap, capture: ImageBitmapSource) {
     const readbackStarted = glassNow()
     const pixels = canvasPixels(capture)
     if (pixels) {
@@ -100,8 +124,15 @@ export class SourcePixels {
     }
     if (this.failure) throw this.failure
     if (!this.worker) {
-      this.worker = this.create()
+      try {
+        this.worker = this.create()
+      } catch (error) {
+        this.fail(error instanceof Error ? error : Error(String(error)))
+        throw error
+      }
+      const worker = this.worker
       this.worker.onmessage = event => {
+        if (this.worker !== worker) return
         const data = event.data as Reply
         if (data.id === 0 && data.error) {
           this.fail(Error(data.error))
@@ -127,10 +158,13 @@ export class SourcePixels {
         prepared.set(job.image, new Uint8Array(data.buffer))
         job.resolve()
       }
-      this.worker.onerror = event =>
-        this.fail(Error(event.message || 'Source upload worker failed'))
-      this.worker.onmessageerror = () =>
-        this.fail(Error('Source upload worker reply could not be decoded'))
+      this.worker.onerror = event => {
+        if (this.worker === worker) this.fail(Error(event.message || 'Source upload worker failed'))
+      }
+      this.worker.onmessageerror = () => {
+        if (this.worker === worker)
+          this.fail(Error('Source upload worker reply could not be decoded'))
+      }
     }
     const started = glassNow(),
       clone = await createImageBitmap(capture)

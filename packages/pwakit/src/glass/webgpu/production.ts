@@ -335,9 +335,15 @@ export class ProductionGlassRuntime {
   private static ownMenuShadow(options: RuntimeOptions) {
     if (options.elements.menu) options.elements.menu.shadow.hidden = true
   }
-  static async create(options: RuntimeOptions) {
+  static async create(options: RuntimeOptions): Promise<ProductionGlassRuntime> {
     if (this.shared) {
       const runtime = await this.shared
+      if (runtime.client.status().failed) {
+        runtime.teardown()
+        runtime.client.close()
+        this.shared = undefined
+        return this.create(options)
+      }
       runtime.rebind(options)
       await runtime.prepare()
       return runtime
@@ -350,7 +356,9 @@ export class ProductionGlassRuntime {
       } catch (error) {
         // A rejected create never reaches the React owner's cleanup. Retire its
         // listeners and captures here before a release app mounts CSS material.
-        runtime.dispose(options)
+        runtime.teardown()
+        runtime.client.close()
+        this.shared = undefined
         throw error
       }
     })()

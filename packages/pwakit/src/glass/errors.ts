@@ -26,10 +26,13 @@ export type GlassError = Readonly<{
   recovering?: true
 }>
 const history: GlassError[] = []
-// Independent of diagnostic history. Only a reconstructed adapter outage can clear fallback.
+// Diagnostic history survives recovery; it is not the fallback state.
 let fallbackRequired = false
 let permanentFallback = false
 let adapterRecoveryPending = false
+let transportRecoveryPending = false
+let nextTransportRetry = 0
+let transportFailures = 0
 const fallbackListeners = new Set<() => void>()
 export function subscribeGlassFallback(listener: () => void) {
   fallbackListeners.add(listener)
@@ -37,7 +40,7 @@ export function subscribeGlassFallback(listener: () => void) {
     fallbackListeners.delete(listener)
   }
 }
-/** Successful resource reconstruction can retire only an adapter-outage fallback. */
+/** Retire a device outage only after resource reconstruction and presentation settle. */
 export function setGlassAdapterRecovery(pending: boolean) {
   adapterRecoveryPending = pending
   if (!pending && fallbackRequired && !permanentFallback) {
@@ -81,7 +84,21 @@ export function reportGlassError(
   if (history.length > 100) history.shift()
   const release = automaticGlassFallbackAllowed()
   if (release && !error.recovering) {
-    if (!adapterRecoveryPending || (code !== 'adapter-unavailable' && code !== 'readiness-timeout'))
+    const transportFailure =
+      code === 'worker-startup' ||
+      (!adapterRecoveryPending &&
+        ['adapter-unavailable', 'device-request', 'readiness-timeout'].includes(code)) ||
+      (code === 'presentation' &&
+        /import.*module|module.*script|loading.*chunk|load failed/i.test(message))
+    if (transportFailure) {
+      transportRecoveryPending = true
+      nextTransportRetry = Date.now() + Math.min(3000 * 2 ** transportFailures++, 30_000)
+    } else if (
+      !adapterRecoveryPending ||
+      ['gpu-unavailable', 'unsupported-configuration', 'shader-compilation', 'validation'].includes(
+        code,
+      )
+    )
       permanentFallback = true
     fallbackRequired = true
     for (const listener of fallbackListeners) listener()
@@ -103,4 +120,38 @@ export function subscribeGlassErrors(listener: (error: GlassError) => void) {
 }
 export function getGlassErrors(): readonly GlassError[] {
   return history.slice()
+}
+
+/** Retry a failed transport on a visible page; device reconstruction keeps its own owner. */
+export function watchGlassTransportRecovery() {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const retry = () => {
+    clearTimeout(timer)
+    if (
+      !fallbackRequired ||
+      permanentFallback ||
+      !transportRecoveryPending ||
+      adapterRecoveryPending
+    )
+      return
+    if (document.visibilityState !== 'visible') return
+    const delay = nextTransportRetry - Date.now()
+    if (delay > 0) {
+      timer = setTimeout(retry, delay)
+      return
+    }
+    transportRecoveryPending = false
+    fallbackRequired = false
+    for (const listener of fallbackListeners) listener()
+  }
+  document.addEventListener('visibilitychange', retry)
+  window.addEventListener('pageshow', retry)
+  window.addEventListener('focus', retry)
+  retry()
+  return () => {
+    clearTimeout(timer)
+    document.removeEventListener('visibilitychange', retry)
+    window.removeEventListener('pageshow', retry)
+    window.removeEventListener('focus', retry)
+  }
 }

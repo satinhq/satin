@@ -1,5 +1,5 @@
 import type { CapsuleShape, SurfaceRenderSpec } from '../renderSpecs.ts'
-import { animateElement } from '../../motion/animate.ts'
+import { animateElement, timelineStart } from '../../motion/animate.ts'
 
 /** CSS owns backdrop sampling, including video that cannot be read into a GPU texture. */
 export class FallbackMaterial {
@@ -71,6 +71,7 @@ export class FallbackMaterial {
     this.paint(specs[specs.length - 1], appearance)
     const count = Math.max(...specs.map(spec => this.shapes(spec).length))
     this.ensure(count, appearance, specs[specs.length - 1])
+    const start = timelineStart(at)
     this.parts.forEach((part, index) => {
       const frames = specs.map((spec, sample) => {
         const shape = this.shapes(spec)[index]
@@ -80,7 +81,7 @@ export class FallbackMaterial {
         }
       })
       const animation = animateElement(part, frames, { duration, easing: 'linear', fill: 'both' })
-      animation.startTime = at
+      animation.startTime = start
       this.animations.push(animation)
     })
     return Promise.all(this.animations.map(animation => animation.finished)).then(

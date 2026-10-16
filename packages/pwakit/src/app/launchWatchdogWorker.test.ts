@@ -203,3 +203,19 @@ it('orders success and a later failure within the same clock tick', () => {
   expect(failure.recordedAt).toBeGreaterThan(success.recordedAt)
   localStorage.clear()
 })
+
+it('paints first-install bytes before modules load, but not an update behind a controlling worker', () => {
+  const progress = vi.fn()
+  const host = window as unknown as { __SATIN_LAUNCH_SCREEN__: { progress: typeof progress } }
+  const previous = host.__SATIN_LAUNCH_SCREEN__
+  host.__SATIN_LAUNCH_SCREEN__ = { progress }
+  try {
+    deliverProgress(25)
+    expect(progress).toHaveBeenCalledWith(expect.objectContaining({ loaded: 25, total: 100 }))
+    Object.assign(workers, { controller: { scriptURL: new URL('/sw.js', location.href).href } })
+    deliverProgress(50)
+    expect(progress).toHaveBeenCalledTimes(1)
+  } finally {
+    host.__SATIN_LAUNCH_SCREEN__ = previous
+  }
+})

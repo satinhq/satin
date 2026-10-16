@@ -237,7 +237,7 @@ it('offers Retry for a slow or offline probe without calling it misconfiguration
     { reason: 'Timed out', url: '/app/sw.js', fix: 'Retry', transient: true },
   ])
   await installPageCheck(expected, check)
-  expect(document.body.textContent).toContain('Could not verify this app')
+  expect(document.body.textContent).toContain("Can't reach the app right now")
   expect(document.body.textContent).not.toContain('misconfigured')
   document.querySelector('button')!.click()
   await Promise.resolve()
@@ -318,4 +318,22 @@ it('shows the guide after Retry when a healthy resource consistently takes five 
   retry.click()
   await vi.advanceTimersByTimeAsync(5001)
   expect(document.querySelector('#satin-install-guide')?.hasAttribute('hidden')).toBe(false)
+})
+
+it('keeps transient outages calm and retries without duplicate requests', async () => {
+  const check = vi
+    .fn()
+    .mockResolvedValueOnce([
+      { reason: 'HTTP 502', url: '/icon.png', fix: 'Check server', transient: true },
+    ])
+    .mockResolvedValue([])
+  await installPageCheck(expected, check)
+  expect(document.body.textContent).toContain("Can't reach the app right now")
+  expect(document.body.textContent).not.toContain('misconfigured')
+  expect(document.body.textContent).not.toContain('Deploy')
+  document.querySelector('button')!.click()
+  document.querySelector('button')!.click()
+  await Promise.resolve()
+  expect(check).toHaveBeenCalledTimes(2)
+  expect(document.getElementById('satin-install-guide')!.hidden).toBe(false)
 })

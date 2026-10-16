@@ -263,3 +263,34 @@ it.each([true, false])(
     expect(failure?.fix).toMatch(transportFailure ? /server or connection/ : /base|deploy|Deploy/)
   },
 )
+
+it.each([502, 503])(
+  'classifies persistent HTTP %s as transient after bounded retries',
+  async status => {
+    fault = ''
+    let attempts = 0
+    const fetcher: typeof fetch = async (input, init) => {
+      if (String(input).endsWith('/icon.png')) {
+        attempts++
+        return new Response('Unavailable', { status })
+      }
+      return fetch(input, init)
+    }
+    const failures = await checkDeployment(expected, origin + '/install', fetcher)
+    expect(attempts).toBe(3)
+    expect(failures).toContainEqual(
+      expect.objectContaining({ transient: true, status: expect.stringContaining(String(status)) }),
+    )
+  },
+)
+it('recovers an intermittent 502 without reporting a deployment mismatch', async () => {
+  fault = ''
+  let attempts = 0
+  const fetcher: typeof fetch = async (input, init) => {
+    if (String(input).endsWith('/icon.png') && ++attempts < 3)
+      return new Response('Unavailable', { status: 502 })
+    return fetch(input, init)
+  }
+  expect(await checkDeployment(expected, origin + '/install', fetcher)).toEqual([])
+  expect(attempts).toBe(3)
+})

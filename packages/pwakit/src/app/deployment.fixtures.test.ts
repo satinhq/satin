@@ -294,13 +294,12 @@ describe('deployment checks with injected responses', () => {
     const { fetcher, decodeImage } = deployment({
       '/app/sw.js': () => Promise.reject(new TypeError('offline')),
     })
-    const failures = await checkDeployment(
-      expected,
-      origin + '/install',
-      fetcher,
-      false,
-      decodeImage,
-    )
+    const checking = checkDeployment(expected, origin + '/install', fetcher, false, decodeImage)
+    await vi.advanceTimersByTimeAsync(750)
+    const failures = await checking
+    expect(
+      fetcher.mock.calls.filter(([input]) => String(input) === origin + '/app/sw.js'),
+    ).toHaveLength(3)
     expect(failures).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ url: origin + '/app/sw.js', transient: true }),
@@ -346,18 +345,23 @@ describe('deployment checks with injected responses', () => {
 
   it('reports an aborted request at the injected timeout without waiting on a real clock', async () => {
     const { fetcher, decodeImage } = deployment()
-    fetcher.mockImplementationOnce(
-      (_input, options) =>
-        new Promise((_resolve, reject) => {
-          options?.signal?.addEventListener(
-            'abort',
-            () => reject(new DOMException('Aborted', 'AbortError')),
-            { once: true },
-          )
-        }),
-    )
+    const respond = fetcher.getMockImplementation()!
+    fetcher.mockImplementation((input, options) => {
+      if (String(input) !== origin + '/app/sw.js') return respond(input, options)
+      return new Promise((_resolve, reject) => {
+        options?.signal?.addEventListener(
+          'abort',
+          () => reject(new DOMException('Aborted', 'AbortError')),
+          { once: true },
+        )
+      })
+    })
     const checking = checkDeployment(expected, origin + '/install', fetcher, false, decodeImage, 20)
-    await vi.advanceTimersByTimeAsync(20)
+    // Three request deadlines, with the two bounded backoffs between them.
+    await vi.advanceTimersByTimeAsync(20 + 250 + 20 + 500 + 20)
+    expect(
+      fetcher.mock.calls.filter(([input]) => String(input) === origin + '/app/sw.js'),
+    ).toHaveLength(3)
     expect(await checking).toEqual(
       expect.arrayContaining([expect.objectContaining({ transient: true })]),
     )

@@ -63,7 +63,8 @@ self.addEventListener('install', (event) => {
     await reportProgress()
     const activeDownloads = new Set()
     let failureReport
-    const download = async (entry) => {
+    const download = async (entry, attempt = 0) => {
+      let received = 0
       let networkFailure = true
       let stalled = false
       const controller = new AbortController()
@@ -100,7 +101,7 @@ self.addEventListener('install', (event) => {
         progress.activity++
         await reportProgress()
         if (installFailure) throw new Error('Installation cancelled')
-        networkFailure = false
+        networkFailure = response.status >= 500 || response.status === 408 || response.status === 429
         if (!response.ok || response.type === 'opaque') throw new Error('HTTP ' + response.status)
         if (response.redirected) throw new Error('Precache resource redirected')
         const mime = (response.headers.get('content-type') || '').split(';')[0].trim().toLowerCase()
@@ -110,7 +111,6 @@ self.addEventListener('install', (event) => {
         networkFailure = true
         reader = response.body?.getReader()
         const chunks = []
-        let received = 0
         if (reader) {
           while (true) {
             const { done, value } = await Promise.race([reader.read(), idleFailure])
@@ -136,6 +136,15 @@ self.addEventListener('install', (event) => {
         if (installFailure) throw new Error('Installation cancelled')
         await cache.put(request, new Response(blob, { status: response.status, statusText: response.statusText, headers: response.headers }))
       } catch (error) {
+        if (!installFailure && (networkFailure || stalled) && attempt < 2) {
+          clearTimeout(idleTimer)
+          activeDownloads.delete(cancelDownload)
+          // Retransmitted bytes are not extra installed bytes.
+          progress.loaded -= received
+          await new Promise(resolve => setTimeout(resolve, 250 * 2 ** attempt))
+          if (installFailure) throw error
+          return download(entry, attempt + 1)
+        }
         if (!installFailure) {
           installFailure = { type: 'SATIN_INSTALL_FAILURE', buildId: BUILD_ID, url: entry.url,
             reason: error instanceof Error ? error.message : String(error), networkFailure, stalled }

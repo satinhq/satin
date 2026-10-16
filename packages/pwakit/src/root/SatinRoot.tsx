@@ -283,6 +283,7 @@ export function SatinRoot({
   const downloadedBytes = useRef(0)
   const [launchAttempt, setLaunchAttempt] = useState(0)
   const [glassReady, setGlassReady] = useState(false)
+  const [bundlePrepared, setBundlePrepared] = useState(import.meta.env.DEV || !app)
   const [glassError, setGlassError] = useState<GlassError | null>(null)
   const [glassFailed, setGlassFailed] = useState(false)
   useLayoutEffect(() => {
@@ -353,9 +354,12 @@ export function SatinRoot({
                   downloadActivity.current = performance.now()
                   downloadedBytes.current = progress.loaded
                 }
-                // Release launch rings confirm updates; first-install bytes
-                // still drive readiness/watchdogs without promising an update.
-                if (app.updateProfile !== 'release') setLaunchProgress(progress)
+                // First-install bytes describe a real download in every profile.
+                // Applied-update confirmation remains a separate successor phase.
+                setLaunchProgress(progress)
+              }).then(ready => {
+                if (!cancelled && ready) setBundlePrepared(true)
+                return ready
               }),
           prepareLaunchContent(rootRef.current!, contentPreparation.signal),
         ])
@@ -639,7 +643,11 @@ export function SatinRoot({
         >
           <AdaptiveTabsContext value={tabs}>
             <div data-satin-status-band-source="scene">
-              <GlassMaterialRoot displacement={glassDisplacement} onLaunchReady={setGlassReady}>
+              <GlassMaterialRoot
+                displacement={glassDisplacement}
+                prepared={bundlePrepared}
+                onLaunchReady={setGlassReady}
+              >
                 {DeveloperMenu && app && launch === 'ready' ? (
                   <Suspense fallback={null}>
                     <DeveloperMenu />

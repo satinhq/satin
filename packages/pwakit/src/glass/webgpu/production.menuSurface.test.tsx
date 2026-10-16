@@ -5,6 +5,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { GlassPresentation, type GlassPresentationConsumer } from '../GlassPresentation.tsx'
 import { subscribeGlassErrors, type GlassError } from '../errors.ts'
 import { ProductionGlassRuntime } from './production.ts'
+import type { WebGPUClient } from './client.ts'
 import { GlassRegionRegistry } from '../regionRegistry.ts'
 
 // The real GlassPresentation and ProductionGlassRuntime: creation, scheduling (schedulePrepare,
@@ -12,6 +13,9 @@ import { GlassRegionRegistry } from '../regionRegistry.ts'
 // watchdog all run as in the app, on fake timers. Only the boundaries are replaced: the worker
 // client (acknowledgements can be withheld) and DOM rasterization (a capture can be made to hang).
 const boundary = vi.hoisted(() => ({
+  transportFailed: false,
+  initialized: 0,
+  closed: 0,
   documentOwned: false,
   visible: true,
   pixelAcks: [] as (() => void)[],
@@ -38,7 +42,23 @@ vi.mock('./client.ts', () => ({
     get documentOwned() {
       return boundary.documentOwned
     }
-    async init() {}
+    async init() {
+      boundary.initialized++
+      // Each newly constructed renderer starts visible; parking belongs to its predecessor.
+      boundary.visible = true
+      boundary.transportFailed = false
+    }
+    status(): ReturnType<WebGPUClient['status']> {
+      return {
+        execution: boundary.documentOwned ? 'document' : 'worker',
+        presentationAllowed: boundary.visible,
+        failed: boundary.transportFailed ? 'Worker transport failed' : undefined,
+        pending: [],
+      }
+    }
+    close() {
+      boundary.closed++
+    }
     async attachLayer() {}
     resume() {}
     async park() {
@@ -133,6 +153,9 @@ beforeEach(async () => {
     ],
   })
   Object.assign(boundary, {
+    transportFailed: false,
+    initialized: 0,
+    closed: 0,
     documentOwned: false,
     visible: true,
     pixelAcks: [],
@@ -320,6 +343,24 @@ it('restores drawing after the last glass presenter closes and another opens', a
   expect(boundary.visible).toBe(false)
   await act(async () => root.render(<GlassPresentation consumer={consumer()} />))
   await flush(100)
-  expect(boundary.visible).toBe(true)
   expect(errors).toEqual([])
+  expect(boundary.visible).toBe(true)
+})
+
+it('replaces a failed retained transport before making a reopened presenter drawable', async () => {
+  const original = await (
+    ProductionGlassRuntime as unknown as { shared: Promise<ProductionGlassRuntime> }
+  ).shared
+  await act(async () => root.render(null))
+  boundary.transportFailed = true
+  await act(async () => root.render(<GlassPresentation consumer={consumer()} />))
+  await flush(100)
+  const replacement = await (
+    ProductionGlassRuntime as unknown as { shared: Promise<ProductionGlassRuntime> }
+  ).shared
+  expect(errors).toEqual([])
+  expect(replacement).not.toBe(original)
+  expect(boundary.closed).toBe(1)
+  expect(boundary.initialized).toBe(2)
+  expect(boundary.visible).toBe(true)
 })
