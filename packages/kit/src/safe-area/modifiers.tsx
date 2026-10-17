@@ -15,7 +15,7 @@ export type { Edge, EdgeLengths } from './context.ts'
 
 /** A logical edge, an axis pair or all edges. */
 export type EdgeSetMember = Edge | 'horizontal' | 'vertical' | 'all'
-/** `Edge.Set`: one member or several. */
+/** One edge group or a list of them. */
 export type EdgeSet = EdgeSetMember | readonly EdgeSetMember[]
 
 /** Default padding used when no length is supplied. */
@@ -47,22 +47,23 @@ function lengthsOf(
   }
 }
 
-/** The content and standard DOM attributes of a layout modifier wrapper. */
+/** The children and plain div attributes every layout wrapper takes. */
 export type LayoutModifierProps = Omit<HTMLAttributes<HTMLDivElement>, 'children'> &
   Readonly<{ children?: ReactNode }>
 
 /** Which edges to pad, and by how much. */
 export type SafeAreaPaddingProps = LayoutModifierProps &
   Readonly<{
-    /** Edges to pad. Defaults to all edges, as `safeAreaPadding()`. */
+    /** Edges to pad. Defaults to all edges. */
     edges?: EdgeSet
     /** Points. Defaults to the system padding, 16 pt. */
     length?: number
-    /** `safeAreaPadding(_ insets: EdgeInsets)`; overrides `edges` and `length`. */
+    /** A length per edge. Overrides `edges` and `length`. */
     insets?: EdgeLengths
   }>
 
-/** Adds to the content safe area. Scroll views keep their frame and inset content; other content is padded. Nested padding adds up. */
+/** Grows the safe area of the content inside it. Scroll views keep their frame and inset their
+ * content; other content is padded. Nested padding adds up. */
 export function SafeAreaPadding({
   edges,
   length,
@@ -102,14 +103,15 @@ export type ContentMarginsProps = LayoutModifierProps &
     /** Points. */
     length: number
     /**
-     * `ContentMarginPlacement`. `scrollContent` (and `automatic`) margins the content;
+     * What the margin applies to. `scrollContent` (and `automatic`) margins the content;
      * `scrollIndicators` only moves the indicator, which Satin draws in the screen frame and does
      * not inset, so it has no effect yet.
      */
     placement?: 'automatic' | 'scrollContent' | 'scrollIndicators'
   }>
 
-/** Sets margins for descendant scroll views. Lists use horizontal layout margins; the innermost value for each edge wins. */
+/** Sets content margins for every scroll view inside it. A `List` takes a horizontal margin as its
+ * layout margin. The innermost value for each edge wins. */
 export function ContentMargins({
   edges = 'all',
   length,
@@ -132,7 +134,8 @@ export function ContentMargins({
 export type SafeAreaBarProps = Omit<SafeAreaInsetProps, 'edge' | 'spacing'> &
   Readonly<{ edge: 'top' | 'bottom' }>
 
-/** Places a top or bottom safe-area inset with no spacing and its own scroll-edge material. */
+/** A bar on the top or bottom edge that content scrolls under. It is a `SafeAreaInset` with no
+ * spacing and its own scroll-edge blur. */
 export function SafeAreaBar({ edge, ...props }: SafeAreaBarProps) {
   return <SafeAreaInset {...props} edge={edge} spacing={0} data-satin-safe-area-bar={edge} />
 }
@@ -140,13 +143,14 @@ export function SafeAreaBar({ edge, ...props }: SafeAreaBarProps) {
 /** Which safe-area regions and edges the content ignores. */
 export type IgnoresSafeAreaProps = LayoutModifierProps &
   Readonly<{
-    /** `SafeAreaRegions`. Defaults to `'all'`. */
+    /** `container` (the bars and screen edges), `keyboard`, or `all`, the default. */
     regions?: 'all' | 'container' | 'keyboard'
     /** Defaults to all edges. */
     edges?: EdgeSet
   }>
 
-/** Extends content through selected safe-area edges. Container edges and keyboard avoidance can be controlled independently. */
+/** Lets content extend through the safe area on the chosen edges, for full-bleed backgrounds and
+ * media. The container edges and keyboard avoidance can be ignored separately. */
 export function IgnoresSafeArea({
   regions = 'all',
   edges = 'all',

@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { readFileSync } from 'node:fs'
+import { frameworkStyleDeclarations } from '../../test/domStyles.ts'
 import { expect, it, vi } from 'vitest'
 import { contextPreviewSource, promoteContextSource } from './preview.ts'
 
@@ -71,7 +71,7 @@ it('lifts non-row content itself, with its own paint, never the framework wrappe
   expect(shape?.style.width).toBe('120px')
   expect(shape?.style.height).toBe('120px')
   expect(shape?.style.borderRadius).toBe('8px')
-  const css = readFileSync('src/styles.css', 'utf8')
+  const css = frameworkStyleDeclarations()
   expect(css).toMatch(
     /\[data-satin-context-shadow-paint\]\s*\{[^}]*filter:\s*drop-shadow\(0 5px 46px rgb\(0 0 0 \/ 40%\)\)/,
   )

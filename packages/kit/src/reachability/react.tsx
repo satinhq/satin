@@ -15,6 +15,8 @@ import { ContentUnavailableView } from '../public/controls.tsx'
 import { browserReachabilityEnvironment, createReachabilityController } from './controller.ts'
 import type { ReachabilityProfile, ReachabilitySurface } from './model.ts'
 
+/** What the offline view shows: why the server is unavailable, how it is presented, and the
+ * recheck and back actions. */
 export interface OfflinePresentationProps {
   readonly reason: 'device-offline' | 'server-unreachable'
   readonly surface: Exclude<ReachabilitySurface, 'none'>
@@ -113,7 +115,8 @@ function useReachabilityController() {
   }
 }
 
-/** The server status and visible offline presentation, with fetch and retry helpers. */
+/** The app server's status and the offline view currently shown, with `fetch` and `recheck`
+ * helpers that feed the status. */
 export function useReachability() {
   const { state, ...commands } = useReachabilityController()
   return {

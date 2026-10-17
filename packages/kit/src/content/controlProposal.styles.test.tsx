@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { readFileSync } from 'node:fs'
+import { frameworkStyleDeclarations } from '../../test/domStyles.ts'
 import { afterEach, expect, it } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { Pressable } from '../press/Pressable.tsx'
@@ -15,7 +15,7 @@ for (const Control of [Pressable, Button]) {
     `${Control === Button ? 'Button' : 'Pressable'} hugs its label in %s unless the label requests fill`,
     parent => {
       const style = document.createElement('style')
-      style.textContent = readFileSync('src/styles.css', 'utf8').replaceAll('\n', ' ')
+      style.textContent = frameworkStyleDeclarations().replaceAll('\n', ' ')
       document.head.append(style)
       const box = document.createElement('div')
       if (parent === 'grid-cell') box.setAttribute('data-satin-grid-cell', 'true')

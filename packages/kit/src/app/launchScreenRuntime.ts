@@ -1,6 +1,22 @@
 import type { DownloadProgress } from './launchScreen.ts'
 
-interface LaunchScreenController {
+export interface LaunchScreenController {
+  readonly version: 1
+  stylesReady(): Promise<void>
+  error(reason: string, title?: string, retry?: () => void, detail?: string): void
+  recover(): void
+  appearance(background: string, ink: string): void
+  snapshot(): {
+    version: 1
+    state: string
+    error: string
+    coverVisible: boolean
+    ringVisible: boolean
+    label: string | null
+    offset: string
+    box: number[]
+    background: string
+  }
   progress(progress: DownloadProgress | null): void
   updated(start?: 0 | 100): Promise<boolean>
   complete(): Promise<boolean>
@@ -9,13 +25,53 @@ interface LaunchScreenController {
   restore(): void
 }
 
-type LaunchWindow = Window & { __SATIN_LAUNCH_SCREEN__?: LaunchScreenController }
+type LaunchWindow = Window & { __SATIN_PRELAUNCH__?: LaunchScreenController }
 
 // Serialized into the head so failures before module loading use the same
 // controller as ordinary readiness. Keep this function self-contained.
-export function installLaunchScreenRuntime() {
+export interface PrelaunchOptions {
+  readonly markup: string
+  readonly css: string
+  readonly scope: string
+  readonly background: string
+  readonly darkBackground: string
+  readonly darkInk: string
+  readonly nonce?: string
+  readonly cover?: boolean
+}
+
+export function installLaunchScreenRuntime(options: PrelaunchOptions) {
   const launchWindow = window as LaunchWindow
-  if (launchWindow.__SATIN_LAUNCH_SCREEN__) return launchWindow.__SATIN_LAUNCH_SCREEN__
+  if (launchWindow.__SATIN_PRELAUNCH__) return launchWindow.__SATIN_PRELAUNCH__
+  const host = document.createElement('satin-prelaunch')
+  const root = host.attachShadow({ mode: 'closed' })
+  const style = document.createElement('style')
+  style.nonce = options.nonce ?? document.currentScript?.nonce ?? ''
+  style.textContent = options.css
+  const content = document.createElement('div')
+  content.innerHTML = options.markup
+  root.append(style, content)
+  document.documentElement.append(host)
+  const element = (id: string) => root.getElementById(id) as HTMLElement | null
+  const cover = element('satin-launch-screen')!
+  const failure = document.createElement('section')
+  failure.id = 'satin-launch-error'
+  failure.setAttribute('role', 'alert')
+  failure.hidden = true
+  let state = options.cover === false ? 'idle' : 'preparing'
+  cover.hidden = options.cover === false
+  const dark = matchMedia('(prefers-color-scheme: dark)')
+  const appearance = (background: string, ink: string) => {
+    host.style.setProperty('--satin-launch-background', background, 'important')
+    host.style.setProperty('--satin-launch-ink', ink, 'important')
+  }
+  const systemAppearance = () =>
+    appearance(
+      dark.matches ? options.darkBackground : options.background,
+      dark.matches ? options.darkInk : '#1c1c1e',
+    )
+  systemAppearance()
+  dark.addEventListener?.('change', systemAppearance)
   let value = 0
   let velocity = 0
   let target = 0
@@ -32,7 +88,7 @@ export function installLaunchScreenRuntime() {
     // Extend the cover into that excluded space so its center stays in the
     // native startup image's screen frame. Windowed apps keep their own frame.
     const excludedTop = standalone && fullWidth ? Math.max(0, screen.height - innerHeight) : 0
-    document.documentElement.style.setProperty('--satin-launch-excluded-top', `${excludedTop}px`)
+    host.style.setProperty('--satin-launch-excluded-top', `${excludedTop}px`, 'important')
   }
   alignCover()
   window.addEventListener('resize', alignCover)
@@ -48,7 +104,7 @@ export function installLaunchScreenRuntime() {
   let retiring: Promise<void> | null = null
   let appliedUpdate: Promise<boolean> | null = null
   let updateAnimation: Animation | null = null
-  const ringElement = () => document.getElementById('satin-launch-progress')
+  const ringElement = () => element('satin-launch-progress')!
   const paint = () => {
     ringElement()
       ?.querySelector('circle')
@@ -113,7 +169,7 @@ export function installLaunchScreenRuntime() {
       .finished.catch(() => {})
   }
   const retire = (onRetired: () => void) => {
-    const screen = document.getElementById('satin-launch-screen')
+    const screen = element('satin-launch-screen')
     if (!screen) {
       onRetired()
       return
@@ -122,7 +178,7 @@ export function installLaunchScreenRuntime() {
     retiring ??= (async () => {
       const ring = ringElement()
       if (ring && !ring.hasAttribute('hidden')) {
-        // React and head failure panels must stay behind the completing arc.
+        // The failure panel stays behind the completing arc.
         screen.style.zIndex = '20003'
         ring.setAttribute('aria-label', 'Finishing launch')
         await complete()
@@ -142,6 +198,97 @@ export function installLaunchScreenRuntime() {
     })
   }
   const controller: LaunchScreenController = {
+    version: 1,
+    stylesReady() {
+      return Promise.all(
+        [...document.querySelectorAll<HTMLLinkElement>('link[data-satin-style]')].map(link => {
+          if (link.dataset.satinStyleReady === 'true') return Promise.resolve()
+          return new Promise<void>((resolve, reject) => {
+            const cleanup = () => {
+              link.removeEventListener('load', loaded)
+              link.removeEventListener('error', failed)
+            }
+            const loaded = () => {
+              cleanup()
+              resolve()
+            }
+            const failed = () => {
+              cleanup()
+              reject(new Error('The app stylesheet failed to load. Please retry.'))
+            }
+            if (link.dataset.satinStyleError === 'true') {
+              failed()
+              return
+            }
+            link.addEventListener('load', loaded, { once: true })
+            link.addEventListener('error', failed, { once: true })
+          })
+        }),
+      ).then(() => {})
+    },
+    appearance,
+    snapshot() {
+      const ring = ringElement()!
+      const box = ring.getBoundingClientRect()
+      const style = getComputedStyle(ring)
+      return {
+        version: 1,
+        state,
+        error: failure.isConnected ? (failure.textContent ?? '') : '',
+        coverVisible: !cover.hidden,
+        ringVisible:
+          !cover.hidden &&
+          !ring.hasAttribute('hidden') &&
+          style.display !== 'none' &&
+          Number(style.opacity) > 0,
+        label: ring.getAttribute('aria-label'),
+        offset: getComputedStyle(ring.querySelector('circle')!).strokeDashoffset,
+        box: [box.x, box.y, box.width, box.height],
+        background: getComputedStyle(cover).backgroundColor,
+      }
+    },
+    error(reason, title = 'Unable to Open App', retry, detail) {
+      state = 'failed'
+      failure.replaceChildren()
+      const heading = document.createElement('h1')
+      heading.textContent = title
+      const message = document.createElement('p')
+      message.textContent = reason
+      const diagnostics = document.createElement('p')
+      diagnostics.className = 'detail'
+      diagnostics.textContent = detail ?? ''
+      diagnostics.hidden = !detail
+      const button = document.createElement('button')
+      button.type = 'button'
+      button.textContent = 'Retry'
+      button.onclick =
+        retry ??
+        (() => {
+          try {
+            sessionStorage.setItem('satin-install-reset:' + options.scope, '1')
+          } catch {
+            /* Retry still reloads without storage. */
+          }
+          location.reload()
+        })
+      failure.append(heading, message, diagnostics, button)
+      root.append(failure)
+      failure.hidden = false
+      // The same controller finishes a visible arc before showing its failure.
+      if (ringElement().hasAttribute('hidden')) cover.hidden = true
+      else
+        controller.fail(() => {
+          if (state === 'failed') cover.hidden = true
+        })
+    },
+    recover() {
+      failure.remove()
+      if (state === 'failed' && !revealed) {
+        state = options.cover === false ? 'idle' : 'preparing'
+        if (options.cover === false) cover.hidden = true
+        else controller.restore()
+      }
+    },
     updated(start: 0 | 100 = 0) {
       if (appliedUpdate) return appliedUpdate
       const ring = ringElement()
@@ -188,7 +335,7 @@ export function installLaunchScreenRuntime() {
       const ring = ringElement()
       // A phase ending does not mean the cover is ready to retire. Keep the
       // real last sample until readiness or an explicit error owns the handoff.
-      if (!ring || revealed || retiring || !progress || progress.total <= 0) return
+      if (revealed || retiring || appliedUpdate || !progress || progress.total <= 0) return
       if (!Number.isFinite(progress.loaded) || !Number.isFinite(progress.total)) return
       const next = Math.max(0, Math.min(100, (progress.loaded / progress.total) * 100))
       // Bundle preparation and update checking may have different denominators.
@@ -201,8 +348,10 @@ export function installLaunchScreenRuntime() {
     },
     complete,
     reveal() {
-      if (revealed) return
+      if (revealed || state === 'failed') return
       revealed = true
+      state = 'ready'
+      failure.remove()
       window.dispatchEvent(new Event('satin-launch-revealed'))
       retire(() => {})
     },
@@ -222,14 +371,14 @@ export function installLaunchScreenRuntime() {
       // spring, rather than leaving a cancelled completion targeted at 100.
       target = downloadTarget
       const ring = ringElement()
-      const cover = document.getElementById('satin-launch-screen')
+      const cover = element('satin-launch-screen')
       if (ring && !ring.hasAttribute('hidden')) start()
       for (const [element, duration] of [
         [ring, 200],
         [cover, 300],
       ] as const) {
         if (!element) continue
-        const opacity = Number(getComputedStyle(element).opacity)
+        const opacity = Number.parseFloat(getComputedStyle(element).opacity)
         element.getAnimations().forEach(animation => animation.cancel())
         if (Number.isFinite(opacity) && opacity < 1 && !element.hidden) {
           void element
@@ -241,43 +390,54 @@ export function installLaunchScreenRuntime() {
             .finished.catch(() => {})
         }
       }
-      const screen = document.getElementById('satin-launch-screen')
+      const screen = element('satin-launch-screen')
       if (screen) {
         screen.hidden = false
         screen.style.removeProperty('z-index')
       }
     },
   }
-  launchWindow.__SATIN_LAUNCH_SCREEN__ = controller
+  launchWindow.__SATIN_PRELAUNCH__ = controller
   return controller
+}
+
+export function prelaunchController() {
+  const controller = (window as LaunchWindow).__SATIN_PRELAUNCH__
+  if (!controller || controller.version !== 1)
+    throw new Error('Satin pre-launch v1 bootstrap is missing.')
+  return controller
+}
+
+export function showLaunchFailure(reason: string, title?: string) {
+  prelaunchController().error(reason, title)
 }
 
 export function setLaunchScreen(visible: boolean) {
   if (visible) {
-    installLaunchScreenRuntime().restore()
+    prelaunchController().restore()
     return
   }
-  installLaunchScreenRuntime().reveal()
+  prelaunchController().reveal()
 }
 
 export function setLaunchProgress(progress: DownloadProgress | null) {
   window.dispatchEvent(new CustomEvent('satin-launch-progress', { detail: progress }))
-  installLaunchScreenRuntime().progress(progress)
+  prelaunchController().progress(progress)
 }
 
 /** Complete a visible arc before a cold-update document replacement. */
 export function completeLaunchProgress() {
   if (typeof document === 'undefined' || typeof document.getElementById !== 'function')
     return Promise.resolve(true)
-  return installLaunchScreenRuntime().complete()
+  return prelaunchController().complete()
 }
 
 /** Confirm an applied update on its successor document before revealing the app. */
 export function showAppliedUpdate() {
-  return installLaunchScreenRuntime().updated()
+  return prelaunchController().updated()
 }
 
-/** Serialized after the declarative cover, before modules and their first paint. */
+/** Runs immediately after the inline environment, before application modules. */
 export function resumeAppliedUpdate(scope: string, buildId?: string) {
   let ringStart: 0 | 100 | null = null
   try {
@@ -317,5 +477,5 @@ export function resumeAppliedUpdate(scope: string, buildId?: string) {
       { once: true },
     )
   }
-  if (ringStart !== null) void (window as LaunchWindow).__SATIN_LAUNCH_SCREEN__?.updated(ringStart)
+  if (ringStart !== null) void (window as LaunchWindow).__SATIN_PRELAUNCH__?.updated(ringStart)
 }

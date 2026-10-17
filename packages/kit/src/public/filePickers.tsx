@@ -1,6 +1,6 @@
 import { NativeFilePicker } from './NativeFilePicker.tsx'
 
-/** Select one photo or video as file bytes through the system chooser. */
+/** The picker's label, the selected file and the kind of media it accepts. */
 export type PhotosPickerProps = {
   label?: string
   selection: File | null
@@ -12,7 +12,7 @@ export type PhotosPickerProps = {
   onError?(error: Error): void
 }
 
-/** Photos-library identifiers and persistent access are not exposed by WebKit. */
+/** A button that opens the system photo chooser and returns one photo or video as a `File`. */
 export function PhotosPicker({
   label = 'Choose Photo',
   selection,
@@ -33,7 +33,8 @@ export function PhotosPicker({
   )
 }
 
-/** Import files from the system chooser. Content types are MIME types or extensions. */
+/** The importer's label, the selected files and the content types it accepts, as MIME types or
+ * extensions. */
 export type FileImporterProps = {
   label?: string
   selection: readonly File[]
@@ -44,7 +45,8 @@ export type FileImporterProps = {
   onError?(error: Error): void
 }
 
-/** Open the system file chooser from a user gesture. Cancel preserves selection. */
+/** A button that opens the system file chooser and returns the chosen files. Cancelling keeps the
+ * current selection. */
 export function FileImporter({
   label = 'Import File',
   selection,

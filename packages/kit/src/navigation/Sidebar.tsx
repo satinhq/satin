@@ -4,12 +4,14 @@ import { ScrollSurface } from '../scroll/ScrollSurface.tsx'
 import { SplitContext } from './splitContext.ts'
 import { chooseSidebarInitialEntry } from './sidebarSelection.ts'
 
+/** One sidebar destination: its id, label, optional icon and disabled state. */
 export type SidebarEntry = Readonly<{
   id: string
   label: string
   icon?: ReactNode
   disabled?: boolean
 }>
+/** The sidebar's entries, the selection callback and which entry starts selected. */
 export type SidebarProps = Readonly<{
   entries: readonly SidebarEntry[]
   onSelect: (id: string) => void
@@ -18,7 +20,7 @@ export type SidebarProps = Readonly<{
   initialSelection?: 'first' | false | string
 }>
 
-/** Ordered sidebar destinations, sharing NavigatorHost's canonical detail selection. */
+/** A list of sidebar destinations. Selecting one shows it in the split view's detail column. */
 export function Sidebar({ entries, onSelect, section, initialSelection = 'first' }: SidebarProps) {
   const split = useContext(SplitContext)
   useLayoutEffect(() => {

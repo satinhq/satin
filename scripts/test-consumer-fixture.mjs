@@ -115,6 +115,18 @@ async function verifyPackage(app) {
   }
   run('npm', ['run', 'typecheck'], app)
   run('npm', ['run', 'build'], app)
+  const output = resolve(app, 'dist')
+  const cssFiles = (await readdir(output, { recursive: true })).filter(file =>
+    file.endsWith('.css'),
+  )
+  const css = (
+    await Promise.all(cssFiles.map(file => readFile(resolve(output, file), 'utf8')))
+  ).join('\n')
+  assert.equal(
+    [...css.matchAll(/@layer\s+satin\s*\{/g)].length,
+    1,
+    'The packed plugin must emit framework CSS once, including with a legacy import',
+  )
 }
 
 try {

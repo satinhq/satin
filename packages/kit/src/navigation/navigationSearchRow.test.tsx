@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { readFileSync } from 'node:fs'
+import { frameworkStyleDeclarations } from '../../test/domStyles.ts'
 import { act, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { expect, it } from 'vitest'
@@ -68,7 +68,7 @@ it('keeps a pinned field painted after cancelling search and returning from a de
   const host = document.createElement('div')
   host.setAttribute('data-satin-navigator-host', '')
   const styles = document.createElement('style')
-  const css = readFileSync('src/styles.css', 'utf8')
+  const css = frameworkStyleDeclarations()
   styles.textContent = css.slice(
     css.indexOf('[data-satin-search-row] {'),
     css.indexOf('[data-satin-search-fill] {'),

@@ -15,6 +15,7 @@ import {
 import { interactivePopRecognizer, nativeScrollRecognizer } from './existingCompetitors.ts'
 import type { Gesture, GesturePoint, GestureSample } from './gesture.ts'
 
+/** The gestures a `GestureView` recognizes: a normal, a simultaneous and a high-priority gesture. */
 export type GestureViewProps = Readonly<{
   gesture?: Gesture
   simultaneousGesture?: Gesture
@@ -25,7 +26,8 @@ type Entry = { gesture: Gesture; id: string; priority: number; simultaneous: boo
 type Contact = { x: number; y: number }
 const regions = new WeakMap<Element, () => Entry[]>()
 
-/** A scoped gesture region. Scroll and navigation retain their own ownership.
+/** A region that recognizes custom gestures on its children. Scrolling and the back swipe still
+ * win the touches they own.
  * @experimental Real-touch arbitration and native thresholds remain unqualified.
  */
 export function GestureView({

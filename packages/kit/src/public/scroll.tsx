@@ -13,14 +13,15 @@ import type {
 } from '../scroll/edgePolicy.ts'
 import type { ScrollOffset, ScrollToTopOptions } from '../scroll/types.ts'
 
-/** The current offset and imperative positioning of a scroll view. */
+/** A scroll view's ref handle: its current offset, `scrollTo` a target and `scrollToTop`. */
 export interface ScrollViewHandle {
   readonly offset: ScrollOffset
   /** Position a vertical ScrollTarget. Horizontal target positioning is unsupported. */
   scrollTo(id: string, anchor?: ScrollAnchor): boolean
   scrollToTop(options?: ScrollToTopOptions): void
 }
-/** Scroll policy. Target positioning, refresh and scalar geometry are vertical-only. */
+/** A scroll view's id, axis, refresh action, keyboard dismissal, edge material and position
+ * options. Targets, refresh and geometry work only on the vertical axis. */
 export type ScrollViewProps = Omit<HTMLAttributes<HTMLDivElement>, 'id'> & {
   id: string
   chain?: boolean
@@ -46,7 +47,9 @@ export type ScrollViewProps = Omit<HTMLAttributes<HTMLDivElement>, 'id'> & {
         onScrollGeometryChange?: never
       }
   )
-/** A scroll surface with framework-owned restoration and native scrolling. */
+/** A scrolling region, vertical by default. Inside a screen its `id` keys scroll restoration, so
+ * keep it stable. `refreshable` adds pull to refresh, and a ref handle scrolls to a
+ * `ScrollTarget`. */
 export const ScrollView = forwardRef<ScrollViewHandle, ScrollViewProps>(
   function ScrollView(props, ref) {
     return <ScrollSurface {...props} ref={ref} />

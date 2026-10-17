@@ -352,7 +352,8 @@ export function GlassEffect({
     </div>
   )
 }
-/** `GlassEffectContainer`: groups related glass outlines into one field. */
+/** Groups nearby glass effects so they render together and blend or morph into one another.
+ * `spacing`, 20 pt by default, sets how close effects must be to merge. */
 export function GlassEffectContainer({
   spacing = 20,
   children,

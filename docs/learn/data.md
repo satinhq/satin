@@ -34,7 +34,6 @@ import {
   Toggle,
   LabeledContent,
 } from '@satinhq/kit'
-import '@satinhq/kit/styles.css'
 import { app as appInput } from './app'
 
 type Note = { id: string; title: string }

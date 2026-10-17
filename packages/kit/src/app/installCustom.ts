@@ -21,6 +21,10 @@ export function installCustomMount(entry: string) {
   script.type = 'module'
   script.src = entry
   script.dataset.satinInstallAuthor = ''
+  script.onerror = () =>
+    (
+      window as Window & { __SATIN_PRELAUNCH__?: { error(reason: string): void } }
+    ).__SATIN_PRELAUNCH__?.error('The install page failed to load. Please retry.')
   document.body.append(script)
 }
 

@@ -78,6 +78,8 @@ import { reportGlassError } from './errors.ts'
 import { glassFailureCode } from './webgpu/errorCode.ts'
 import { traceStage, traceStageStart } from './webgpu/profile.ts'
 import { isPlainMenuSource, type GlassRegion, type MenuSourceKind } from './regions.ts'
+/** The props a custom `Menu` trigger receives. Forward all of them to the element that opens the
+ * menu. */
 export type MenuTriggerProps = Pick<
   PressableProps,
   'onPress' | 'disabled' | 'aria-expanded' | 'aria-haspopup' | 'aria-controls'

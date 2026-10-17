@@ -7,7 +7,7 @@ import {
 } from '../press/activation.ts'
 import { PRESS_CONTACT_CLICK_WINDOW_MS } from '../press/contactReceipt.ts'
 
-/** The native switch selection tick. Other feedback kinds are unsupported. */
+/** The feedback a `SensoryButton` plays. Only `selection`, the switch tick, exists. */
 export type SensoryFeedback = 'selection'
 
 /** A tap target's action, content and the feedback it plays. */
@@ -19,9 +19,9 @@ export type SensoryButtonProps = Omit<HTMLAttributes<HTMLLabelElement>, 'onClick
 }
 
 /**
- * A tap affordance backed by browser label activation. No imperative haptic API exists.
- * Use plain content only: links, buttons and other labelable controls cannot be nested.
- * Keyboard and assistive activation preserve the action, but do not promise a tick.
+ * A tap target that plays the system selection tick where the browser supports it. There is no
+ * other way to trigger haptics. Use plain content only: links, buttons and other form controls
+ * cannot be nested.
  */
 export const SensoryButton = forwardRef<HTMLLabelElement, SensoryButtonProps>(
   function SensoryButton(

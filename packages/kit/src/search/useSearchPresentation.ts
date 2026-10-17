@@ -11,9 +11,11 @@ import { validateSearchPresentation, type Searchable, type SearchSuggestion } fr
 export function useSearchPresentation(
   configuration: Searchable,
   input: RefObject<HTMLInputElement | null>,
+  pad = false,
 ) {
   validateSearchPresentation(configuration)
   const [ownPresented, setOwnPresented] = useState(false)
+  const [focused, setFocused] = useState(false)
   const presented = configuration.isPresented ?? ownPresented
   const [submittedText, setSubmittedText] = useState<string | null>(null)
   const configurationRef = useRef(configuration)
@@ -21,6 +23,7 @@ export function useSearchPresentation(
     configurationRef.current = configuration
   })
   const mounted = useRef(false)
+  const dismissing = useRef(false)
 
   const setPresented = useCallback((next: boolean) => {
     const current = configurationRef.current
@@ -29,10 +32,13 @@ export function useSearchPresentation(
   }, [])
 
   const present = () => {
+    if (pad) setFocused(true)
     if (!presented) setPresented(true)
   }
   const dismiss = () => {
+    dismissing.current = true
     input.current?.blur()
+    dismissing.current = false
     setSubmittedText(null)
     if (configurationRef.current.text) configurationRef.current.onTextChange('')
     setPresented(false)
@@ -46,6 +52,13 @@ export function useSearchPresentation(
     input.current?.blur()
     configuration.onSubmit?.()
   }
+  // An empty iPad field collapses on resigning focus. Submitted text stays
+  // visible and expanded; clearing is a separate action from keyboard dismissal.
+  const resign = () => {
+    if (pad) setFocused(false)
+    if (pad && !dismissing.current && presented && !configurationRef.current.text)
+      setPresented(false)
+  }
   const complete = (suggestion: SearchSuggestion) => {
     change(suggestion.text)
     if (input.current) focusFromFramework(input.current, { preventScroll: true })
@@ -54,13 +67,16 @@ export function useSearchPresentation(
   // Native presents the field focused, including a programmatic `isPresented`.
   useEffect(() => {
     const element = input.current
-    if (presented && element && document.activeElement !== element && mounted.current) {
+    if (presented && element && document.activeElement !== element && (pad || mounted.current)) {
       focusFromFramework(element, { preventScroll: true })
     }
+    if (pad && !presented && element === document.activeElement) element?.blur()
     mounted.current = true
-  }, [presented, input])
+  }, [presented, input, pad])
 
   const suggestions =
-    presented && submittedText !== configuration.text ? (configuration.suggestions ?? []) : []
-  return { presented, present, dismiss, change, submit, complete, suggestions }
+    presented && (!pad || focused) && submittedText !== configuration.text
+      ? (configuration.suggestions ?? [])
+      : []
+  return { presented, present, dismiss, change, submit, complete, suggestions, resign }
 }

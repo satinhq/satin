@@ -258,7 +258,7 @@ it('reloads after claim without starting or completing a ring in the old documen
   vi.useFakeTimers()
   const { registration, workers } = fixture()
   const completingRing = vi.fn(() => new Promise<boolean>(() => {}))
-  Object.assign(window, { __SATIN_LAUNCH_SCREEN__: { complete: completingRing } })
+  Object.assign(window, { __SATIN_PRELAUNCH__: { complete: completingRing } })
   vi.stubGlobal('document', { getElementById: vi.fn() })
   const next = new Worker('installed')
   registration.waiting = next

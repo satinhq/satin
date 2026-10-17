@@ -43,7 +43,8 @@ export function useLayoutClass(): LayoutClass {
   return useSatinLayoutRuntime().layoutClass
 }
 
-/** Register app-managed unsaved state while it exists. Native inputs are checked automatically. */
+/** Tells Satin the app has unsaved work while `unsaved` is true, so a pending app update waits
+ * instead of reloading over it. Edits in text fields are detected without this hook. */
 export function useUnsavedChanges(unsaved: boolean) {
   const { registerUnsavedChanges } = useSatinLayoutRuntime()
   useEffect(() => {

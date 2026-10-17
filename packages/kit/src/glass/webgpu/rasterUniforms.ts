@@ -1,3 +1,9 @@
+import {
+  CONTROL_SPECULAR,
+  controlRimUniform,
+  controlSizeResponse,
+  controlShadowScale,
+} from './controlRim.ts'
 import { touchLightUniforms } from './touchLight.ts'
 import { morphFieldUniforms } from '../morphField.ts'
 import lightingFit from './lensLightingFit.json'
@@ -264,6 +270,14 @@ export function materialUniforms(
     uDiagnosticOutput: 0,
     uInnerShade: BAR_TOP_INNER_SHADE,
     uTabBarOptics: usesTabBarOptics(spec) ? 1 : 0,
+    uControlRim: controlRimUniform(appearance),
+    uControlSpecular: CONTROL_SPECULAR,
+    uControlSize: [
+      controlSizeResponse(appearance, first.halfWidth * 2, first.halfHeight * 2),
+      controlShadowScale(appearance, first.halfWidth * 2, first.halfHeight * 2),
+      0,
+      0,
+    ],
   }
   if (menu)
     Object.assign(material, {

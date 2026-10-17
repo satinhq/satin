@@ -35,7 +35,10 @@ export function installGlassErrorAlert() {
   const paint = () => {
     const errors = getGlassErrors().filter(error => !error.transient)
     if (!errors.length) return
-    if (document.getElementById('satin-launch-error')) {
+    const prelaunch = (
+      window as Window & { __SATIN_PRELAUNCH__?: { snapshot(): { state: string } } }
+    ).__SATIN_PRELAUNCH__
+    if (prelaunch && ['preparing', 'failed'].includes(prelaunch.snapshot().state)) {
       document.querySelector(':root > pre[data-satin-glass-error]')?.remove()
       return
     }

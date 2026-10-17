@@ -49,3 +49,5 @@ Reminders need a server that stores the schedule (time and time zone) and sends 
   call doesn't prove the user saw anything.
 
 See `node_modules/@satinhq/kit/dist/docs/push.md` and the server reminders guide in the public docs.
+
+The generated HTML owns a closed-shadow pre-launch environment for the cover, first-install progress, applied-update confirmation and failure/retry states. Do not implement these in app React or app CSS. Apply `satin-csp.json` hashes when configuring deployment CSP.

@@ -7,14 +7,14 @@ export type StackDeclaration<R extends Routes> = {
     root: K
   } & ({} extends RouteProps<R, K> ? { params?: RouteProps<R, K> } : { params: RouteProps<R, K> })
 }[keyof R['definitions'] & string]
-/** The tab declaration contract used by public app declarations. */
+/** One tab in `defineNavigation`: its id, label, symbol or icon, and the root of its stack. */
 export type TabDeclaration<R extends Routes> = StackDeclaration<R> & {
   /** The tab's identity: typed by `TabId`, used by `TabView selection` and restoration. */
   id: string
   label: string
   icon?: ReactNode
   symbol?: SymbolName
-  /** `Tab(role: .search)`: the separated search tab. */
+  /** `search` marks the search tab, drawn apart from the other tabs. */
   role?: 'search'
   /** Wraps the tab's stack, for per-tab providers. Render `<NavigationStack />` inside it. */
   content?: ComponentType

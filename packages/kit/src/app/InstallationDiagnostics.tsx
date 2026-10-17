@@ -6,7 +6,8 @@ export { readInstallationFailure, type InstallationFailure } from './installatio
 
 /** The app scope whose installation receipts are shown. */
 export type InstallationDiagnosticsProps = { scope: string }
-/** Installation receipts for an optional Settings diagnostics screen. Use the app's scope. */
+/** Shows the app's installation receipts, for an optional diagnostics screen in Settings. Pass the
+ * app's scope. */
 export function InstallationDiagnostics({ scope }: InstallationDiagnosticsProps) {
   const [failure, setFailure] = useState(() => readInstallationFailure(scope))
   const [success, setSuccess] = useState(() => readInstallationSuccess(scope))

@@ -14,10 +14,10 @@ import {
   type CivilFields,
 } from './civilDate.ts'
 
-/** `DatePickerComponents`. */
+/** A part of the value a `DatePicker` edits: the `date`, or the `hourAndMinute`. */
 export type DatePickerComponent = 'date' | 'hourAndMinute'
 
-/** `DatePickerStyle`. `automatic` is `compact`. */
+/** How a `DatePicker` draws. Only the compact style exists; `automatic` is `compact`. */
 export type DatePickerStyle = 'automatic' | 'compact'
 
 /**
@@ -155,8 +155,8 @@ function displayText(field: Field, fields: CivilFields) {
 }
 
 /**
- * `DatePicker` in its compact style: the row's grey value capsules open the system date
- * or time picker.
+ * A row for picking a date, a time or both. Its grey value capsules open the system date or
+ * time picker.
  *
  * Use a civil string selection (`'2026-10-14'`) for a day that must stay the same day in every
  * time zone, such as a due date; use a `Date` for a moment in time.

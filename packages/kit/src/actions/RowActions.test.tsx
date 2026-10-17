@@ -1111,3 +1111,96 @@ it('still catches the presented row when the contact starts on that row', () => 
   expect(navigate).not.toHaveBeenCalled()
   touch('touchend', 180)
 })
+
+describe('destructive full swipe on the touch fallback', () => {
+  function destructiveRow() {
+    vi.stubGlobal('PointerEvent', class extends Event {})
+    onTestFinished(() => {
+      vi.unstubAllGlobals()
+    })
+    const animate = stubAnimations()
+    const remove = vi.fn()
+    render(
+      <Row
+        label="Conversation"
+        swipeActions={{
+          edge: 'trailing',
+          actions: [
+            { id: 'delete', label: 'Delete', role: 'destructive', onPress: remove },
+            { id: 'mute', label: 'Hide Alerts', onPress() {} },
+          ],
+        }}
+      />,
+    )
+    const host = node.querySelector<HTMLElement>('[data-satin-row-actions]')!
+    const content = host.querySelector<HTMLElement>('[data-satin-row-action-content]')!
+    content.getAnimations = () => []
+    host.dataset.satinSwipeLabelLayout = 'below'
+    host
+      .querySelector<HTMLElement>('[data-satin-swipe-tray="trailing"]')!
+      .style.setProperty('--satin-swipe-button-width', '50')
+    vi.spyOn(host, 'getBoundingClientRect').mockReturnValue({
+      left: 0,
+      top: 0,
+      right: 400,
+      bottom: 80,
+      width: 400,
+      height: 80,
+    } as DOMRect)
+    const send = (type: string, x: number) =>
+      act(() =>
+        host.dispatchEvent(
+          Object.assign(new Event(type, { bubbles: true, cancelable: true }), {
+            changedTouches: [{ identifier: 4, clientX: x, clientY: 40 }],
+            touches: type === 'touchend' ? [] : [{}],
+          }),
+        ),
+      )
+    const drag = (path: number[], release = path.at(-1)!) => {
+      send('touchstart', path[0]!)
+      for (const x of path.slice(1)) send('touchmove', x)
+      animate.mockClear()
+      send('touchend', release)
+    }
+    const settled = () => {
+      const index = animate.mock.contexts.findIndex(element => element === content)
+      return index < 0 ? undefined : (animate.mock.calls[index]![0] as Keyframe[]).at(-1)!.transform
+    }
+    return { remove, drag, settled, content, host }
+  }
+  /** Finger x every 10pt from `from` to `to`, either direction. */
+  const stroke = (from: number, to: number) =>
+    Array.from(
+      { length: Math.floor(Math.abs(to - from) / 10) + 1 },
+      (_, index) => from + Math.sign(to - from) * index * 10,
+    )
+
+  it('fires when the finger reaches the far edge, and the row has jumped to its anchor', () => {
+    const row = destructiveRow()
+    row.drag(stroke(380, 60))
+    expect(row.remove).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not fire after the same travel when the finger stays out of the zone', () => {
+    // 290pt of travel from x380 ends at x90, where native never takes over.
+    const row = destructiveRow()
+    row.drag([...stroke(380, 100), 90])
+    expect(row.remove).not.toHaveBeenCalled()
+    expect(row.settled()).toContain('translate3d(-')
+  })
+
+  it('cancels a reversal after takeover and closes the row instead of opening it', () => {
+    const row = destructiveRow()
+    row.drag([...stroke(380, 60), ...stroke(70, 140)])
+    expect(row.remove).not.toHaveBeenCalled()
+    expect(row.settled()).toContain('translate3d(0px')
+    // The tray stays painted while the row returns from far across, like a dismissal.
+    expect(row.host.dataset.satinSwipeActive).toBe('true')
+  })
+
+  it('does not fire when lift-off is the only sample in the zone', () => {
+    const row = destructiveRow()
+    row.drag(stroke(380, 100), 60)
+    expect(row.remove).not.toHaveBeenCalled()
+  })
+})

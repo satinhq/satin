@@ -1,12 +1,12 @@
 // @vitest-environment happy-dom
-import { readFileSync } from 'node:fs'
+import { frameworkStyleDeclarations } from '../../test/domStyles.ts'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { expect, it } from 'vitest'
 import { IgnoresSafeArea } from './modifiers.tsx'
 
 it('keeps a primary scroll frame bounded when responsive ignored edges become empty', () => {
   const style = document.createElement('style')
-  style.textContent = readFileSync('src/styles.css', 'utf8').replaceAll('\n', ' ')
+  style.textContent = frameworkStyleDeclarations().replaceAll('\n', ' ')
   document.head.append(style)
   const host = document.createElement('div')
   document.body.append(host)

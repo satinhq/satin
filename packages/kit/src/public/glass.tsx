@@ -3,10 +3,12 @@ import type { NamespaceID } from '../motion/matchedGeometry.tsx'
 import { Glass, resolveGlass } from './glassValue.ts'
 import { GlassFieldContext } from './fieldContext.ts'
 import { GlassEffect as Effect } from '../glass/GlassEffect.tsx'
-/** Public glass outlines. Sheet-specific corner geometry stays internal. */
+/** The outline of a glass effect: `capsule`, `circle` or a rounded rectangle with a corner radius
+ * in points. */
 export type GlassShape =
   'capsule' | 'circle' | Readonly<{ kind: 'roundedRectangle'; cornerRadius: number }>
-/** The glass material, shape, DOM attributes and independent morph identity. */
+/** The glass material and shape, plus the namespace and id that let effects morph into each
+ * other. Plain div attributes also apply. */
 export type GlassEffectProps = HTMLAttributes<HTMLDivElement> & {
   glass?: Glass
   shape?: GlassShape
@@ -20,7 +22,8 @@ export type GlassEffectProps = HTMLAttributes<HTMLDivElement> & {
   glassEffectTransition?: 'matchedGeometry' | 'materialize' | 'identity'
 }
 /**
- * Draws glass behind its content in the given shape, using a capsule by default. Inside a `GlassEffectContainer`, effects with ids morph into one another.
+ * Draws glass behind its content in the given shape, a capsule by default. Inside a
+ * `GlassEffectContainer`, effects with ids morph into one another.
  *
  * @example
  * <GlassEffect glass={Glass.regular.interactive()} shape="circle">

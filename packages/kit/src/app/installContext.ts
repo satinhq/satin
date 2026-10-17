@@ -1,13 +1,15 @@
 import { classifyInstallSignals } from './installPolicy.ts'
-/**
- * What a custom install page needs to know (public through `@satinhq/kit/install`). Every value is
- * read from the browser as it is; nothing is inferred. In particular "installed" is only the
- * standalone display mode: a Safari tab cannot tell whether the app is on the Home Screen.
- */
+// What a custom install page needs to know. Every value is read from the browser as it is;
+// nothing is inferred. "Installed" is only the standalone display mode: a Safari tab cannot
+// tell whether the app is on the Home Screen.
 
+/** The device the install page is open on: `iphone`, `ipad` or `other`. */
 export type InstallDevice = 'iphone' | 'ipad' | 'other'
+/** The browser the install page is open in. `in-app` is a browser inside another app, which
+ * cannot add to the Home Screen. */
 export type InstallBrowser = 'safari' | 'in-app' | 'other'
 
+/** The app being installed: its name, icon, tint and install page address. */
 export interface InstallApp {
   readonly name: string
   readonly icon: string
@@ -17,6 +19,9 @@ export interface InstallApp {
   readonly installUrl: string
 }
 
+/** What a custom install page knows about where it is open: device, browser, Safari version,
+ * standalone mode and the app. A Safari tab cannot tell whether the app is already on the Home
+ * Screen. */
 export interface InstallContext {
   readonly device: InstallDevice
   readonly browser: InstallBrowser
@@ -27,6 +32,7 @@ export interface InstallContext {
   readonly app: InstallApp
 }
 
+/** Whether `copyInstallLink` copied the address, and the address itself. */
 export interface CopyLinkResult {
   readonly copied: boolean
   /** The address, so a failure can show it for the person to select. */
@@ -69,6 +75,8 @@ function readApp(): InstallApp {
   }
 }
 
+/** Reads the install context from the browser. It throws outside the install page that
+ * `satinApp` builds. */
 export function readInstallContext(): InstallContext {
   const { userAgent, platform, maxTouchPoints } = navigator
   const signals = classifyInstallSignals(userAgent, platform, maxTouchPoints)

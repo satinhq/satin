@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { readFileSync } from 'node:fs'
+import { frameworkStyleDeclarations } from '../../../test/domStyles.ts'
 import { expect, it } from 'vitest'
 import samples from './scopeThumbSlideSamples.json'
 import { SCOPE_THUMB, SCOPE_THUMB_HELD } from './controlLift.ts'
@@ -168,7 +168,7 @@ it("keeps a region's own material blur on resume: only the dock takes the tab ba
 
 it('paints no CSS pill in the scope bar: the glass renderer draws the thumb', () => {
   const style = document.createElement('style')
-  style.textContent = readFileSync('src/styles.css', 'utf8')
+  style.textContent = frameworkStyleDeclarations()
   document.head.append(style)
   document.body.innerHTML =
     '<div data-satin-search-scopes><div data-satin-segmented="true"><span data-satin-segmented-selection="true"></span></div></div>' +
@@ -220,7 +220,7 @@ it('draws the scope labels as region ink in sample space, over the pill', () => 
 })
 
 it('sizes the scope bar like native: compact, centred, equal segments of at least 188.7 pt', () => {
-  const css = readFileSync('src/styles.css', 'utf8')
+  const css = frameworkStyleDeclarations()
   const rule = /\[data-satin-search-scopes\] \{([^}]*)\}/.exec(css)![1]
   expect(rule).toContain('width: fit-content')
   expect(rule).toContain(

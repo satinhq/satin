@@ -732,10 +732,9 @@ export function installKeyboardAdapter(root: HTMLElement) {
 }
 
 /**
- * - `immediately`: a drag on the surface ends editing.
- * - `interactively`: scrolling keeps the keyboard; a drag that reaches the keyboard ends editing.
- *   Native tracks the keyboard under the finger from there; WebKit's keyboard cannot follow a
- *   finger, so it leaves on its own curve (the bottom inset chain follows it).
+ * When scrolling dismisses the keyboard: `never`; `immediately`, as soon as a drag on the surface
+ * starts; or `interactively`, when a drag reaches the keyboard. WebKit's keyboard cannot follow
+ * the finger, so it then slides away on its own curve and the bottom inset follows it.
  */
 export type ScrollDismissesKeyboardMode = 'never' | 'immediately' | 'interactively'
 export function installScrollKeyboardDismissal(

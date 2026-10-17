@@ -31,6 +31,7 @@ import { TabActivityContext, TabRegistrationContext } from '../tabs/context.ts'
 import { SearchDrawer } from '../search/SearchDrawer.tsx'
 import { ContentAdmission } from '../image/ContentAdmission.tsx'
 import { SearchToolbarField } from '../search/SearchToolbarField.tsx'
+import { readDeviceIdiom } from '../layout/deviceIdiom.ts'
 import { resolveSearchPlacement } from '../search/searchPlacement.ts'
 import type { Searchable } from '../search/searchable.ts'
 
@@ -49,6 +50,7 @@ import {
   type HTMLAttributes,
 } from 'react'
 import {
+  NavigationPaneContext,
   ScreenContext,
   SystemScrollRegistryContext,
   useScreenScrollRegistry,
@@ -269,8 +271,11 @@ export const ScrollSurface = forwardRef<ScrollSurfaceHandle, ScrollSurfaceProps>
         ? (listNavigation?.searchable ?? chrome.searchable)
         : undefined
     const tabbed = useContext(TabRegistrationContext) !== null
+    const searchPane = useContext(NavigationPaneContext)
     const searchPlacement = searchable
       ? resolveSearchPlacement(searchable.placement, {
+          idiom: readDeviceIdiom(),
+          pane: searchPane,
           compact: chrome.horizontalSizeClass === 'compact',
           bottomBarItems: chrome.hasBottomBar === true,
           searchToolbarItem: chrome.searchToolbarItem !== undefined,

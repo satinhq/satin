@@ -5,12 +5,13 @@ import { controlTintStyle, useControlStyle } from '../public/controlStyle.tsx'
 import { ControlRow } from './ControlRow.tsx'
 import { ActivityIndicatorSegments } from './ActivityIndicatorSegments.tsx'
 
-/** `ProgressViewStyle`: `automatic` is linear with a value, circular without. */
+/** How a `ProgressView` draws: `linear`, `circular` or `automatic`, which is linear with a value
+ * and circular without. */
 export type ProgressViewStyle = 'automatic' | 'linear' | 'circular'
 
 /** ProgressView's optional label and progress; without `value` it is indeterminate. */
 export type ProgressViewProps = {
-  /** The iOS style. Automatic preserves the value-dependent default. */
+  /** `automatic` is linear with a value and circular without. */
   progressViewStyle?: ProgressViewStyle
   label?: ReactNode
   /** Omit value for an indeterminate activity indicator. */
@@ -20,8 +21,7 @@ export type ProgressViewProps = {
   'aria-label'?: string
 }
 
-/** `ProgressView`: a spinning activity indicator, or a linear bar for `value` of
- * `total` (default 1). */
+/** A spinning activity indicator, or a linear bar showing `value` out of `total` (1 by default). */
 export function ProgressView({
   label,
   progressViewStyle = 'automatic',

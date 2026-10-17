@@ -26,6 +26,8 @@ Two host settings matter:
 
 To serve the app from a subpath such as `/fixed/` instead of the root, see [Check a deployment before installing](../getting-started.md#check-a-deployment-before-installing).
 
+If your host uses Content Security Policy, add the per-page hashes from `dist/satin-csp.json` to its script and style sources. Publish those headers with each build; the inline launch environment must run before app resources arrive. These hashes are additions to your existing policy, not a complete site-wide policy.
+
 ## 3. Check the deployment
 
 ```sh

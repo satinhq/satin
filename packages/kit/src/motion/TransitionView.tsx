@@ -5,6 +5,7 @@ import { isLayoutTransaction, registerLayoutAnimation } from './layoutTransactio
 import { fadeSettleMs, runFrameTimes, sampleChannel, type SpringChannel } from './springPath.ts'
 import { identityPose, Transition, transitionPose, type TransitionPose } from './transition.ts'
 
+/** Whether the content is visible, the transition to use and the content. */
 export type TransitionViewProps = Readonly<{
   visible: boolean
   transition?: Transition
@@ -37,8 +38,9 @@ function frame(pose: TransitionPose): Keyframe {
   }
 }
 
-/** Keep this boundary mounted; change visible inside withAnimation. Removed content
- * stays mounted and inert until its exit finishes. Initial content does not animate.
+/** Shows or hides its content with a transition when `visible` changes inside `withAnimation`.
+ * Keep the view itself mounted. Hidden content stays mounted and inert until its exit finishes,
+ * and the first render does not animate.
  * @experimental General transitions still require installed-device motion qualification.
  */
 export function TransitionView({

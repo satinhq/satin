@@ -1,4 +1,5 @@
-/** The viewport fitting policy selected before rendering an app. */
+/** How the app fits the screen around the notch and home indicator. `adaptive` picks a fit per
+ * device before the app renders. */
 export type ViewportFitPolicy = 'adaptive' | 'auto' | 'cover' | 'contain'
 export const SATIN_VIEWPORT =
   'width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover'

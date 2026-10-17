@@ -1,7 +1,7 @@
 import { Children, type CSSProperties, type HTMLAttributes, type ReactNode } from 'react'
 import { contentFonts, contentTypography } from './typography.ts'
 
-/** iOS text styles at the measured default Dynamic Type size. */
+/** The system text styles, sized as iOS draws them at the default text size. */
 export type TextStyle =
   | 'largeTitle'
   | 'title'
@@ -14,10 +14,10 @@ export type TextStyle =
   | 'footnote'
   | 'caption'
   | 'caption2'
-/** `Font.Weight`. */
+/** A font weight, from `ultraLight` to `black`. */
 export type FontWeight =
   'ultraLight' | 'thin' | 'light' | 'regular' | 'medium' | 'semibold' | 'bold' | 'heavy' | 'black'
-/** `Alignment`, for `frame` and `ZStack`. */
+/** Where content sits inside a larger frame. Used by `frame` and `ZStack`. */
 export type ContentAlignment =
   | 'center'
   | 'leading'
@@ -28,7 +28,7 @@ export type ContentAlignment =
   | 'topTrailing'
   | 'bottomLeading'
   | 'bottomTrailing'
-/** `frame(width:height:alignment:)` and `frame(minWidth:maxWidth:…)`, in points.
+/** A fixed size or size bounds for a view, in points, and how its content aligns inside.
  * `'infinity'` fills the available space. */
 export interface ContentFrame {
   width?: number
@@ -39,8 +39,8 @@ export interface ContentFrame {
   maxHeight?: number | 'infinity'
   alignment?: ContentAlignment
 }
-/** `padding`: `true` is the default 16 pt on every edge, a number pads every edge, and an
- * object pads chosen edges. */
+/** The `padding` prop. `true` adds the default 16 pt on every edge, a number pads every edge,
+ * and an object pads the edges it names. */
 export type ContentPadding =
   | boolean
   | number
@@ -52,8 +52,8 @@ export type ContentPadding =
       horizontal?: number
       vertical?: number
     }
-/** Shared content properties for the framework components. Plain HTML attributes, `style`
- * included, still apply. */
+/** The padding, frame and background props shared by text and stacks. Plain HTML attributes,
+ * `style` included, still apply. */
 export interface ContentProps extends HTMLAttributes<HTMLElement> {
   padding?: ContentPadding
   frame?: ContentFrame
@@ -150,8 +150,8 @@ export interface TextProps extends ContentProps {
   truncationMode?: 'tail'
 }
 /**
- * `Text`: inline text in a system text style. Nested Text inherits its enclosing style
- * unless explicitly overridden. A `lineLimit` truncates with an ellipsis.
+ * Inline text in a system text style. Nested Text inherits its enclosing style unless it sets
+ * its own. A `lineLimit` truncates with an ellipsis.
  *
  * @example
  * <Text font="headline" lineLimit={1}>{note.title}</Text>
@@ -300,8 +300,8 @@ function Stack({
   )
 }
 /**
- * `VStack`: arranges its children vertically. Give `spacing` explicitly where it matters;
- * wrappers and custom controls do not propagate measured child spacing preferences.
+ * Arranges its children in a column. Set `spacing` where it matters: wrappers and custom
+ * controls do not pass their children's preferred spacing up to the stack.
  *
  * @example
  * <VStack alignment="leading" spacing={4}><Text font="headline">{title}</Text></VStack>
@@ -309,8 +309,7 @@ function Stack({
 export function VStack(props: VStackProps) {
   return <Stack {...props} axis="vertical" />
 }
-/** `HStack`: arranges its children horizontally. Pair it with `Spacer` to push content to
- * the edges. */
+/** Arranges its children in a row. Add a `Spacer` to push content to the edges. */
 export function HStack(props: HStackProps) {
   return <Stack {...props} axis="horizontal" />
 }
@@ -318,8 +317,8 @@ export function HStack(props: HStackProps) {
 export interface ZStackProps extends ContentProps {
   alignment?: ContentAlignment
 }
-/** `ZStack`: overlays its children in one cell, later children on top, keeping source order
- * for assistive technology. */
+/** Layers its children in one cell, later children on top. Assistive technology reads them in
+ * source order. */
 export function ZStack({
   alignment = 'center',
   padding,
@@ -356,7 +355,7 @@ export function ZStack({
 export interface SpacerProps extends HTMLAttributes<HTMLDivElement> {
   minLength?: number
 }
-/** `Spacer`: takes the free space along its parent stack's axis. */
+/** Takes up the free space along its parent stack's axis. */
 export function Spacer({ minLength, style, ...props }: SpacerProps) {
   return (
     <div
@@ -372,8 +371,8 @@ export function Spacer({ minLength, style, ...props }: SpacerProps) {
     />
   )
 }
-/** `Divider`: a hairline across its parent stack's axis. Decorative, so hidden from
- * assistive technology. */
+/** A hairline across its parent stack's axis. It is decorative, so assistive technology skips
+ * it. */
 export function Divider({ style, ...props }: HTMLAttributes<HTMLDivElement>) {
   return <div {...props} aria-hidden="true" data-satin-content="divider" style={style} />
 }
@@ -381,20 +380,22 @@ export function Divider({ style, ...props }: HTMLAttributes<HTMLDivElement>) {
 export type LazyVStackProps = VStackProps
 /** LazyHStack's layout props. Every child mounts eagerly; use List for long data. */
 export type LazyHStackProps = HStackProps
-/** Vertical stack with eager mounting and retained child state. No viewport virtualization. */
+/** Lays out its children like `VStack`. Every child mounts at once and keeps its state, so use
+ * `List` for long data. */
 export function LazyVStack(props: LazyVStackProps) {
   return <VStack {...props} data-satin-lazy-stack="vertical" />
 }
-/** Horizontal stack with eager mounting and retained child state. No viewport virtualization. */
+/** Lays out its children like `HStack`. Every child mounts at once and keeps its state. */
 export function LazyHStack(props: LazyHStackProps) {
   return <HStack {...props} data-satin-lazy-stack="horizontal" />
 }
-/** Track spacing follows this track; alignment places content within each cell. */
+/** Options every grid track takes. `spacing` is the gap after this track; `alignment` places
+ * content within each cell. */
 export interface GridItemOptions {
   spacing?: number
   alignment?: ContentAlignment
 }
-/** A fixed track's dimension in points. */
+/** A fixed track's size in points. */
 export interface FixedGridItemOptions extends GridItemOptions {
   size: number
 }
@@ -403,14 +404,15 @@ export interface FlexibleGridItemOptions extends GridItemOptions {
   minimum?: number
   maximum?: number
 }
-/** Bounds for repeated adaptive tracks. Only one adaptive descriptor is supported. */
+/** Bounds for an adaptive track, which repeats to fit as many columns or rows as the space
+ * allows. A grid with an adaptive track can have no other track. */
 export interface AdaptiveGridItemOptions extends GridItemOptions {
   minimum: number
   maximum?: number
 }
 const gridItemBrand: unique symbol = Symbol('satin.gridItem')
 const gridItems = new WeakSet<object>()
-/** A frozen validated grid track, constructed through GridItem. */
+/** A validated grid track. Make one with `GridItem.fixed`, `.flexible` or `.adaptive`. */
 export type GridItemValue = Readonly<
   { [gridItemBrand]: true } & GridItemOptions &
     (
@@ -460,7 +462,8 @@ function boundedGridItem(
   gridItems.add(item)
   return item
 }
-/** Validated grid tracks. The numeric fixed constructor remains compatible with older apps. */
+/** Makes grid tracks for `LazyVGrid` and `LazyHGrid`: `fixed`, `flexible` or `adaptive`. Each
+ * call validates its options and throws a `RangeError` for bad bounds or spacing. */
 export const GridItem = Object.freeze({
   fixed(options: number | FixedGridItemOptions): GridItemValue {
     const { size, spacing, alignment } = typeof options === 'number' ? { size: options } : options
@@ -508,13 +511,13 @@ function gridTracks(items: readonly GridItemValue[]) {
     .join(' ')
   return { tracks, gap: unequal ? 0 : gap, unequal, adaptive: items[0]!.kind === 'adaptive' }
 }
-/** Columns define column spacing; spacing here is the distance between rows. */
+/** The grid's columns and the spacing between rows. Each column sets the gap after itself. */
 export interface LazyVGridProps extends ContentProps {
   columns: readonly GridItemValue[]
   alignment?: VStackProps['alignment']
   spacing?: number
 }
-/** Rows define row spacing; spacing here is the distance between columns. */
+/** The grid's rows and the spacing between columns. Each row sets the gap after itself. */
 export interface LazyHGridProps extends ContentProps {
   rows: readonly GridItemValue[]
   alignment?: 'top' | 'center' | 'bottom'
@@ -596,11 +599,13 @@ function LazyGrid({
     content
   )
 }
-/** Columns growing vertically. Renders every child eagerly; use List for long data. */
+/** A grid with fixed columns that grows downward. Every child renders at once; use `List` for
+ * long data. */
 export function LazyVGrid({ columns, ...props }: LazyVGridProps) {
   return <LazyGrid {...props} axis="vertical" items={columns} />
 }
-/** Rows growing horizontally. Renders every child eagerly; use List for long data. */
+/** A grid with fixed rows that grows sideways. Every child renders at once; use `List` for long
+ * data. */
 export function LazyHGrid({ rows, ...props }: LazyHGridProps) {
   return <LazyGrid {...props} axis="horizontal" items={rows} />
 }

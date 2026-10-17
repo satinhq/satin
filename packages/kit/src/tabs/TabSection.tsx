@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 
-/** Groups destinations in the adaptable sidebar without creating another navigator. */
+/** A sidebar group's title, optional id and placement, and its `Tab` children. */
 export type TabSectionProps = Readonly<{
   title: string
   /** Stable section identity when titles change or two sections have the same title. */
@@ -10,7 +10,8 @@ export type TabSectionProps = Readonly<{
   children: ReactNode
 }>
 
-/** A collapsible sidebar group. TabView consumes this declaration. */
+/** Groups `Tab`s under a collapsible header in the `TabView` sidebar. It adds no navigator of its
+ * own. */
 export function TabSection({ children }: TabSectionProps) {
   return children
 }

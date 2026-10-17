@@ -41,6 +41,8 @@ A phone needs an HTTPS address. Plain HTTP to your computer's network address is
 - It has its own icon and launch screen, taken from `src/app.ts`.
 - Opened in a Safari tab, a release build shows its install page instead of the app.
 
+The launch cover and progress ring are embedded in the page and isolated from app styles. First installation can show download progress; an applied update shows confirmation for at least 800 ms. Ordinary launches and resumes stay silent. If launch resources fail, the same independent surface offers Retry.
+
 ## Good to know
 
 - Changing the app's `id` in `src/app.ts` creates a different installed app. Keep it stable once people have installed it.

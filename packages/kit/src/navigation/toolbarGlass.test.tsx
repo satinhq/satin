@@ -1,4 +1,5 @@
 // @vitest-environment happy-dom
+import { frameworkStyleDeclarations } from '../../test/domStyles.ts'
 import { act, useLayoutEffect, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { createRoot } from 'react-dom/client'
@@ -6,7 +7,6 @@ import { expect, it, vi } from 'vitest'
 import { ToolbarGlass } from './ToolbarGlass.tsx'
 import { ScreenToolbar, ToolbarContext, ToolbarConfirmationContext } from '../public/chrome.tsx'
 import { Button } from '../public/controls.tsx'
-import { readFileSync } from 'node:fs'
 import { GlassEffect, ToolbarGroup, GlassButton } from '../glass/GlassEffect.tsx'
 import { MaterialEffectContext } from '../glass/liquidContext.ts'
 import {
@@ -681,7 +681,7 @@ it('binds both first-show receipts for a real menu inside a toolbar pill', async
 it('gives an automatic toolbar label body typography and a full-height capsule member', () => {
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
   const style = document.createElement('style')
-  style.textContent = readFileSync('src/styles.css', 'utf8')
+  style.textContent = frameworkStyleDeclarations()
   document.head.append(style)
   const host = document.createElement('div')
   document.body.append(host)
@@ -723,7 +723,7 @@ it('gives an automatic toolbar label body typography and a full-height capsule m
 it('gives confirmation labels semibold typography in independent full-height capsules', () => {
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
   const style = document.createElement('style')
-  style.textContent = readFileSync('src/styles.css', 'utf8')
+  style.textContent = frameworkStyleDeclarations()
   document.head.append(style)
   const host = document.createElement('div')
   document.body.append(host)

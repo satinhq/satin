@@ -1,12 +1,12 @@
 // @vitest-environment happy-dom
-import { readFileSync } from 'node:fs'
+import { frameworkStyleDeclarations } from '../../test/domStyles.ts'
 import { expect, it } from 'vitest'
 
 // Owner, Oct 9 (Music Library): a header with its own band under the bar's edge read as two
 // stacked bands. Unpinned it draws nothing; pinned, it carries the bar's one material.
 it('pins one header that draws no band of its own', () => {
   const style = document.createElement('style')
-  style.textContent = readFileSync('src/styles.css', 'utf8')
+  style.textContent = frameworkStyleDeclarations()
   const list = document.createElement('div')
   list.dataset.satinList = 'plain'
   list.innerHTML =
@@ -28,7 +28,7 @@ it('pins one header that draws no band of its own', () => {
 
 it('keeps presented search chrome hidden with its retained tab', () => {
   const style = document.createElement('style')
-  style.textContent = readFileSync('src/styles.css', 'utf8')
+  style.textContent = frameworkStyleDeclarations()
   const panel = document.createElement('div')
   panel.setAttribute('data-satin-tab-panel', 'search')
   panel.setAttribute('data-satin-tab-active', 'false')

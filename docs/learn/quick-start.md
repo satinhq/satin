@@ -73,7 +73,6 @@ import {
   Toggle,
   type RouteParameters,
 } from '@satinhq/kit'
-import '@satinhq/kit/styles.css'
 import { app as appInput } from './app'
 
 const bookParams = { title: param.string() }

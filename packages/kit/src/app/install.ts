@@ -1,3 +1,5 @@
+import { installLaunchScreenRuntime } from './launchScreenRuntime.ts'
+import { launchScreenMarkup, prelaunchCSS } from './launchScreen.ts'
 import { resolveDeviceIdiom } from '../layout/deviceIdiom.ts'
 import { checkDeployment, deploymentExpectation } from './deployment.ts'
 import { installPageCheck } from './installCheck.ts'
@@ -54,6 +56,7 @@ const escape = (text: string) =>
   text.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('"', '&quot;')
 /** Preview builds accept device/layout overrides; production never does. */
 export interface InstallPageOptions {
+  readonly cover?: string
   readonly preview?: boolean
   /** The author's bundled install page, set by satinApp(app, { installPage }). */
   readonly customPage?: string
@@ -84,13 +87,14 @@ export function installPage(
           .join('') +
         '</noscript>'
       : ''
-  const startup = `<script src="${app.scope}${stem}-startup.js"></script>${fallback}`
+  const startup = `<script defer src="${app.scope}${stem}-startup.js"></script>${fallback}`
 
   const status = `<meta name="apple-mobile-web-app-capable" content="yes"><meta id="satin-install-status" name="apple-mobile-web-app-status-bar-style" content="default"><meta name="theme-color" content="${app.appearance.background}" media="(prefers-color-scheme: light)"><meta name="theme-color" content="${dark}" media="(prefers-color-scheme: dark)">`
   const title = kind === 'gate' ? 'This app is designed for iPhone and iPad' : app.name
   const body = `<p>${escape(app.description)}</p><a href="${escape(installRouteForBase(app, base))}">Add to Home Screen</a>`
   const head = `<meta charset="utf-8"><meta name="viewport" content="${SATIN_VIEWPORT}"><script>(()=>{const fit=(${resolveViewportFit.toString()})(${JSON.stringify(app.viewportFit ?? 'adaptive')},navigator.userAgent,navigator.platform,navigator.maxTouchPoints,innerWidth,innerHeight,${ADAPTIVE_LAYOUT_POLICY.horizontal.regularMinimum},${ADAPTIVE_LAYOUT_POLICY.vertical.regularMinimum});document.querySelector('meta[name="viewport"]').content=${JSON.stringify(SATIN_VIEWPORT)}.replace('viewport-fit=cover','viewport-fit='+fit)})();</script><title>${escape(title)}</title>${status}${startup}<link rel="manifest" href="${base}${stem}.webmanifest"><script>(()=>{document.querySelector('link[rel="manifest"]').href=${appManifestHrefExpression(JSON.stringify(base + stem))}})();</script><link rel="apple-touch-icon" href="${escape(icon.src)}">`
-  const scripts = `<script id="satin-deployment" type="application/json">${JSON.stringify([deploymentExpectation(app, base)]).replaceAll('<', '\\u003c')}</script>${kind === 'install' ? `<script data-satin-install-check${options.customPage ? ` data-satin-install-entry="${escape(options.customPage)}"` : ''}>(${installPageCheck.toString()})(${JSON.stringify(deploymentExpectation(app, base))},${checkDeployment.toString()},4000${options.customPage ? `,(${installCustomMount.toString()}).bind(null,${JSON.stringify(options.customPage)})` : ''}).catch(error=>{console.error("[Satin deployment]",error);const status=document.getElementById("satin-install-check");status.textContent="This app is misconfigured: configuration check failed. Reload and check the console.";status.setAttribute("role","alert");status.dataset.error="true";status.hidden=false;document.getElementById("satin-install-guide").hidden=true})</script>` : ''}`
+  const environment = `<script id="satin-prelaunch-install">(${installLaunchScreenRuntime.toString()})(${JSON.stringify({ markup: options.cover ?? launchScreenMarkup({ ...app, launchScreen: { icon: 'data:,' } }), css: prelaunchCSS, scope: app.scope, background: app.appearance.background, darkBackground: dark, darkInk: app.appearance.darkLaunch === 'match-light' ? '#1c1c1e' : '#fff', cover: false }).replaceAll('<', '\\u003c')});</script>`
+  const scripts = `${kind === 'install' ? environment : ''}<script id="satin-deployment" type="application/json">${JSON.stringify([deploymentExpectation(app, base)]).replaceAll('<', '\\u003c')}</script>${kind === 'install' ? `<script data-satin-install-check${options.customPage ? ` data-satin-install-entry="${escape(options.customPage)}"` : ''}>(${installPageCheck.toString()})(${JSON.stringify(deploymentExpectation(app, base))},${checkDeployment.toString()},4000${options.customPage ? `,(${installCustomMount.toString()}).bind(null,${JSON.stringify(options.customPage)})` : ''}).catch(error=>{console.error("[Satin deployment]",error);window.__SATIN_PRELAUNCH__.error("Configuration check failed. Reload and check the console.","This app is misconfigured");document.getElementById("satin-install-guide").hidden=true})</script>` : ''}`
   if (options.customPage && kind === 'install') {
     return customInstallPage({
       head,

@@ -92,8 +92,43 @@ test('reference is keyed by exports and keeps behavior and limits without leakin
   assert.match(reference, /\| Satin export \| Behavior \| Limits \| Also known as \|/)
   assert.match(
     reference,
-    /\| \[`Sheet`\]\(\.\.\/sheet.d.ts\) \| Present content above the current screen\. \| Cold launch closes it\. \| sheet; modal presentation \|/,
+    /\| \[`Sheet`\]\(\.\.\/sheet.d.ts\) \| Present content above the current screen\. \| Cold launch closes it\. \| sheet; modal presentation; bottom sheet \|/,
   )
-  assert.match(reference, /Defines the props accepted by `Sheet`/)
+  assert.match(
+    reference,
+    /\| \[`SheetProps`\]\(\.\.\/sheet.d.ts\) \| Props for `Sheet`\. \|  \|  \|/,
+  )
+  assert.doesNotMatch(reference, /Defines the|Compile-time contract only/)
   assert.doesNotMatch(reference, /old presentation comparison|Mapped concepts|Native equivalent/)
+})
+
+test('summaries come from the JSDoc nearest each declaration, including const exports', async () => {
+  await mkdir(scratch, { recursive: true })
+  const root = await mkdtemp(resolve(scratch, 'reference-docs-'))
+  try {
+    await mkdir(resolve(root, 'dist'))
+    await writeFile(
+      resolve(root, 'package.json'),
+      JSON.stringify({ name: '@satinhq/kit', exports: { '.': { types: './dist/index.d.ts' } } }),
+    )
+    await writeFile(
+      resolve(root, 'dist/index.d.ts'),
+      [
+        '/** A file note, not an export description. */',
+        '',
+        '/** Opens a sheet. */',
+        'export declare function Sheet(): unknown;',
+        '/** Draws a button. */',
+        'export declare const Button: () => unknown;',
+        'export declare const Bare: unknown;',
+      ].join('\n'),
+    )
+    const { inventory } = await referenceInventory(root)
+    const summary = name => inventory.find(entry => entry.name === name)?.summary
+    assert.equal(summary('Sheet'), 'Opens a sheet.')
+    assert.equal(summary('Button'), 'Draws a button.')
+    assert.equal(summary('Bare'), undefined)
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
 })

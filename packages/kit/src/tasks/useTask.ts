@@ -6,15 +6,16 @@ import { TabActivityContext } from '../tabs/context.ts'
 export type TaskCommit = (update: () => void) => boolean
 /** The work `useTask` runs: pass `signal` to fetches and publish state through `commit`. */
 export type TaskAction = (signal: AbortSignal, commit: TaskCommit) => void | Promise<void>
-/** `task(id:)`: a change of `id` cancels the current run and starts a new one. */
+/** Options for `useTask`. A change of `id` cancels the current run and starts a new one. */
 export type TaskOptions = Readonly<{ id?: unknown }>
 /** Cancels the current run and starts the task again; resolves when that run ends. */
 export type TaskRunner = () => Promise<void>
 
 /**
- * A task tied to this view’s lifetime. Pass signal to fetch and publish results through
- * commit. Cancellation is cooperative; arbitrary setters outside commit cannot
- * be intercepted. The returned runner cancels and replaces the current run.
+ * Runs async work while its screen is showing. It cancels the run when the screen is covered,
+ * its tab is hidden or the component unmounts, and starts again when it shows. Pass `signal` to
+ * `fetch` and publish results through `commit`. An error the task throws reaches the nearest
+ * error boundary. The returned runner cancels and replaces the current run.
  */
 export function useTask(action: TaskAction, { id }: TaskOptions = {}): TaskRunner {
   const screen = useContext(ScreenContext)

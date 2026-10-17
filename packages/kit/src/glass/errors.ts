@@ -1,6 +1,7 @@
 import { automaticGlassFallbackAllowed, strictGlassRequested } from './failurePolicy.ts'
 import { recordGraphicsEvent } from '../graphicsProbe.ts'
-/** Serializable across the renderer worker boundary. Release failures may select the fallback material. */
+/** Why the glass renderer failed, such as `gpu-unavailable` or `device-lost`. In a release build a
+ * failure can switch glass to the fallback material. */
 export type GlassErrorCode =
   | 'gpu-unavailable'
   | 'adapter-unavailable'
@@ -14,6 +15,7 @@ export type GlassErrorCode =
   | 'readiness-timeout'
   | 'presentation'
   | 'unsupported-configuration'
+/** One glass renderer failure: its code, message, the stage it happened in and when. */
 export type GlassError = Readonly<{
   code: GlassErrorCode
   message: string

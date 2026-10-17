@@ -5,7 +5,8 @@ import {
   Sheet as EngineSheet,
 } from '../presentation/Presentation.tsx'
 import { ModalPresentationContext } from './presentationContext.ts'
-/** Sheet's presentation binding, title, detents and drag behaviour. */
+/** A sheet's presentation binding, title, detents and drag behaviour. Supplying `selection`
+ * requires `onSelectionChange`. */
 export type SheetProps = {
   isPresented: boolean
   onPresentedChange(presented: boolean): void
@@ -21,9 +22,9 @@ export type SheetProps = {
   | { selection: PresentationDetent; onSelectionChange(detent: PresentationDetent): void }
 )
 /**
- * `sheet(isPresented:)`: a card over the current screen, with optional detents. It can
- * host its own `NavigationStack modal`. Keep `isPresented` in plain React state: presentations
- * start closed after a relaunch.
+ * A card that slides up over the current screen and can rest at several heights. It can host
+ * its own `NavigationStack modal`. Keep `isPresented` in plain React state: presentations start
+ * closed after a relaunch.
  *
  * @example
  * <Sheet isPresented={adding} onPresentedChange={setAdding} title="New Note">...</Sheet>
@@ -37,7 +38,7 @@ export function Sheet(props: SheetProps) {
     </ModalPresentationContext>
   )
 }
-/** FullScreenCover's presentation binding and accessible title. */
+/** A full-screen cover's presentation binding and accessible title. */
 export type FullScreenCoverProps = {
   isPresented: boolean
   onPresentedChange(presented: boolean): void
@@ -45,8 +46,8 @@ export type FullScreenCoverProps = {
   onDismiss?(): void
   children: ReactNode
 }
-/** `fullScreenCover`: an opaque presentation over the whole screen, closed through its
- * binding or `useDismiss()`. */
+/** An opaque presentation that slides up over the whole screen. It has no interactive dismissal;
+ * close it through its binding or `useDismiss()`. */
 export function FullScreenCover(props: FullScreenCoverProps) {
   return (
     <ModalPresentationContext value={true}>

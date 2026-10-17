@@ -1,8 +1,9 @@
 /// <reference lib="dom" />
-/** `preferredColorScheme`: a whole-scene appearance override, or system appearance. */
+/** An appearance override for the whole app: `light`, `dark`, or `system` (or null) to follow the
+ * system. */
 export type PreferredColorScheme = 'light' | 'dark' | 'system' | null
 export type AppearanceSnapshot = Readonly<{ dark: boolean; pending: boolean }>
-/** A diagnostic appearance event and its observed state. */
+/** One entry in the appearance diagnostics log: what happened and the appearance seen then. */
 export type AppearanceEvent = Readonly<{
   at: number
   event: string

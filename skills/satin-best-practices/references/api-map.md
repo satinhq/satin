@@ -5,7 +5,7 @@
 | Import | Use it for | Never |
 | --- | --- | --- |
 | `satin` | Components, hooks and app definition. Mount once with `runApp`. | Mount a second root or call `createRoot`. |
-| `@satinhq/kit/styles.css` | Import once in the app entry. | Add a global reset or restyle control internals. |
+| Framework styles | Included by `satinApp()` before app CSS. | Add a global reset or restyle control internals. |
 | `@satinhq/kit/vite` | `satinApp` in `vite.config.ts`, with the same `defineApp` value the runtime uses. It generates the manifest, install page and service worker. | Register another worker or hand-write the document head. |
 | `@satinhq/kit/install` | A custom install page: `useInstallContext`, `InstallSteps`, `InstallTip`, `copyInstallLink`. | Use it inside the running app; it throws outside the install page. |
 | `@satinhq/kit/server` | Node-only `serveStaticFile` for static files and byte ranges. | Bundle it into the browser, or treat it as a production server (no auth, TLS or cache policy). |

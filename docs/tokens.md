@@ -1,6 +1,6 @@
 # Geometry and appearance tokens
 
-Load `@satinhq/kit/styles.css` once. Satin supplies these properties inside its mounted root and may override geometry in adaptive pane descendants. Consume the nearest value; do not copy root measurements into a sidebar or detail pane. Unknown custom-property names do not produce a TypeScript error and can leave a CSS declaration invalid.
+`satinApp()` includes framework styles automatically. Satin supplies these properties inside its mounted root and may override geometry in adaptive pane descendants. Consume the nearest value; do not copy root measurements into a sidebar or detail pane. Unknown custom-property names do not produce a TypeScript error and can leave a CSS declaration invalid.
 
 | Property | Value | Use |
 | --- | --- | --- |

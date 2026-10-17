@@ -1,3 +1,4 @@
+import { capturePrelaunch, prelaunchDOM } from './prelaunch.test-helper.ts'
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { defineSatinApp } from './definition.ts'
@@ -36,8 +37,8 @@ const root = document.documentElement
 
 /** Puts the page into the document and runs its inline scripts in order. */
 function load(page: string) {
-  // Inline classic scripts, bare or with only data- attributes (the deployment check's).
-  const inline = /<script(?:\s+data-[\w-]+(?:="[^"]*")?)*>([\s\S]*?)<\/script>/g
+  // Execute classic scripts including the isolated environment, excluding metadata.
+  const inline = /<script(?![^>]*\b(?:type|src)=)[^>]*>([\s\S]*?)<\/script>/g
   const scripts = [...page.matchAll(inline)].map(match => match[1]!)
   const withoutScripts = page.replace(inline, '')
   document.head.innerHTML = /<head>([\s\S]*?)<\/head>/.exec(withoutScripts)![1]!
@@ -47,6 +48,7 @@ function load(page: string) {
 }
 
 beforeEach(() => {
+  capturePrelaunch()
   vi.stubGlobal('location', {
     origin: 'https://reps.example',
     href: 'https://reps.example/install',
@@ -66,13 +68,12 @@ afterEach(() => {
 
 it('runs the minified deployment check with the behaviour of the original', async () => {
   const scripts = load(installPage(app, 'install'))
-  expect(scripts).toHaveLength(4)
+  expect(scripts).toHaveLength(5)
   // Minified: the check's parameter names are gone, its words are not.
-  expect(scripts[2]).not.toContain('requestTimeoutMs')
-  expect(scripts[2]).toContain('This app is misconfigured')
-  const status = document.getElementById('satin-install-check')!
-  await vi.waitFor(() => expect(status.dataset.error).toBe('true'))
-  const minified = status.querySelector('.install-error-content')!.innerHTML
+  expect(scripts[3]).not.toContain('requestTimeoutMs')
+  expect(scripts[3]).toContain('This app is misconfigured')
+  await vi.waitFor(() => expect(prelaunchDOM.getElementById('satin-launch-error')).not.toBeNull())
+  const minified = prelaunchDOM.getElementById('satin-launch-error')!.innerHTML
   // The test document has no real origin, so the manifest link cannot match the build.
   expect(minified).toContain('This app is misconfigured')
   expect(minified).toContain('Manifest link')
@@ -82,7 +83,7 @@ it('runs the minified deployment check with the behaviour of the original', asyn
   document.body.innerHTML =
     '<section id="satin-install-check" hidden></section><section id="satin-install-guide"></section>'
   await installPageCheck(deploymentExpectation(app, '/'), checkDeployment)
-  const original = document.querySelector('#satin-install-check .install-error-content')!
+  const original = prelaunchDOM.getElementById('satin-launch-error')!
   expect(minified).toBe(original.innerHTML)
 })
 

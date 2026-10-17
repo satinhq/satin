@@ -8,7 +8,7 @@ export type Animation = Readonly<{ [brand]: true }>
 // Physics stay internal so yearly native remeasurement does not change the app contract.
 type SpringAnimation = Animation & Readonly<{ omega: number; zeta: number }>
 
-/** Options for a spring defined by duration and bounce. */
+/** A spring's duration in milliseconds and its bounce, for `Animation.spring`. */
 export type SpringOptions = Readonly<{
   /** The perceptual duration in milliseconds. Defaults to 500. */
   durationMs?: number

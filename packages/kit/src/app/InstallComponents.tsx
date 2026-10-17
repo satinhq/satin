@@ -6,13 +6,12 @@ import { TIP_GLASS } from './installExperienceHome.ts'
 import { readInstallContext, type InstallContext } from './installContext.ts'
 import { classifySafariBar, tipPath, type SafariBar } from './installTipPath.ts'
 
-/**
- * Optional building blocks for a custom install page (public through `@satinhq/kit/install`): the
- * context hook, the steps list and the tip, with the default page's words and look. Styles
- * are scoped to `satin-` classes; `--satin-install-tint` overrides the app's tint.
- */
+// Optional building blocks for a custom install page (public through `@satinhq/kit/install`): the
+// context hook, the steps list and the tip, with the default page's words and look. Styles
+// are scoped to `satin-` classes; `--satin-install-tint` overrides the app's tint.
 
-/** The install context, read once on the page (it does not change while the page is open). */
+/** Returns the install context, read once when the page opens. It throws outside the install
+ * page. */
 export function useInstallContext(): InstallContext {
   const [context] = useState(readInstallContext)
   return context
@@ -65,7 +64,8 @@ function useAppTint(context: InstallContext) {
   }, [context.app.tint])
 }
 
-/** The three steps, in the words of Satin's page, for this device, browser and Safari layout. */
+/** The three install steps for this device, browser and Safari layout, worded as on Satin's own
+ * install page. */
 export function InstallSteps() {
   const context = useInstallContext()
   const bar = useSafariBar(context)

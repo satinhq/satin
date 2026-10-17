@@ -1,7 +1,7 @@
 import { useCallback, useLayoutEffect, useRef, type HTMLAttributes } from 'react'
 import { boundZoom, pinchZoom, type ZoomPoint, type ZoomTransform } from './geometry.ts'
 
-/** Zoomable's maximum scale and scale callback; Satin owns its pointer handlers. */
+/** The maximum zoom (4 by default) and a scale callback. Satin owns the pointer handlers. */
 export interface ZoomableProps extends Omit<
   HTMLAttributes<HTMLDivElement>,
   'onPointerDown' | 'onPointerMove' | 'onPointerUp' | 'onPointerCancel' | 'onLostPointerCapture'
@@ -10,8 +10,8 @@ export interface ZoomableProps extends Omit<
   maxScale?: number
   onScaleChange?: (scale: number) => void
 }
-/** A bounded image/map viewport. Pinch and pan belong only to this content role.
- * Keyboard + / - zoom about the center; 0 resets. Supply an accessible label. */
+/** A region the user can pinch to zoom and pan, such as a photo or a map. The + and - keys zoom
+ * about the centre and 0 resets. Give it an accessible label. */
 export function Zoomable({
   children,
   maxScale = 4,

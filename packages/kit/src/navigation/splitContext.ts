@@ -11,7 +11,8 @@ export type SplitSelection = Readonly<{
 
 export const SplitContext = createContext<SplitSelection | undefined>(undefined)
 
-/** Entry identity owns navigation/scroll; identity is the registry's semantic row key. */
+/** Returns the split view's mode and the entry shown in its detail column. It throws outside a
+ * split view. */
 export function useSplitSelection(): SplitSelection {
   const selection = useContext(SplitContext)
   if (!selection) throw new Error('useSplitSelection must be called inside NavigatorHost.')

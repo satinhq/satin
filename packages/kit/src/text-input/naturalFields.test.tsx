@@ -1,4 +1,5 @@
 // @vitest-environment happy-dom
+import { frameworkStyleDeclarations } from '../../test/domStyles.ts'
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, expect, it, vi } from 'vitest'
@@ -7,11 +8,9 @@ import { GlassFieldContext } from '../public/fieldContext.ts'
 import { Row, StepperControl } from '../list-form/ListForm.tsx'
 import { RowLabelBody } from '../list-form/RowLabel.tsx'
 import { ListContext } from '../list-form/listContext.ts'
-import { readFileSync } from 'node:fs'
-import { URL as NodeURL } from 'node:url'
 
 let root: Root | undefined
-const styles = readFileSync(new NodeURL('../styles.css', import.meta.url), 'utf8')
+const styles = frameworkStyleDeclarations()
 function mount(content: React.ReactNode) {
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
   const style = document.createElement('style')

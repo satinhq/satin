@@ -19,17 +19,16 @@ export const BottomInsetContext = createContext<{
   consumed: boolean
   geometry?: ReturnType<typeof createBottomInsetGeometry>
 }>({ consumed: false })
-/** `VerticalEdge`/`HorizontalEdge`: `leading` and `trailing` follow the layout direction. */
+/** The edge a `SafeAreaInset` accessory sits on. `leading` and `trailing` follow the layout
+ * direction. */
 export type SafeAreaInsetEdge = 'top' | 'bottom' | 'leading' | 'trailing'
 /** The edge, the accessory (`content`) and its spacing; `children` is the content it insets. */
 export type SafeAreaInsetProps = Omit<HTMLAttributes<HTMLDivElement>, 'content'> &
   Readonly<{
     edge: SafeAreaInsetEdge
     content: ReactNode
-    /*
-     * `safeAreaInset(edge:spacing:)`: room between the content and the inset. Defaults to
-     * the system spacing, 8 pt (iOS 27 native reference: the last line sits 8 pt higher than with `spacing: 0`).
-     */
+    /** Room between the content and the accessory, in points. Defaults to the system spacing,
+     * 8 pt. */
     spacing?: number
   }>
 
@@ -38,13 +37,14 @@ const SYSTEM_INSET_SPACING_PX = 8
 const ACCESSORY_INSET_SCOPE = { consumed: true }
 
 /**
- * `safeAreaInset(edge:spacing:content:)`. The accessory takes room from the content's safe
- * area on its edge; a scroll view inside still spans the whole frame and scrolls under it.
+ * Pins an accessory, such as a composer or a filter bar, to one edge of its content. The
+ * accessory takes room from the content's safe area on its edge; a scroll view inside still
+ * spans the whole frame and scrolls under it.
  *
- * Bottom: content can scroll under the accessory; its terminal anchor clears it.
- * The accessory's height reaches the content's scroll inset in the same frame it changes (CSS
- * `--satin-inset-accessory-height`, written by its resize observer), so a composer that grows by
- * a line keeps the newest message above it with no frame between.
+ * At the bottom, content scrolls under the accessory and its last item stays clear of it. When
+ * the accessory resizes, the scroll inset changes in the same frame (through
+ * `--satin-inset-accessory-height`), so a composer that grows by a line keeps the newest message
+ * in view.
  */
 export function SafeAreaInset({
   edge,

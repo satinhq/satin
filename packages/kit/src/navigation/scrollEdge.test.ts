@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { readFileSync } from 'node:fs'
+import { frameworkStyleDeclarations } from '../../test/domStyles.ts'
 import { describe, expect, it } from 'vitest'
 import {
   SCROLL_EDGE_RAMP_PX,
@@ -9,7 +9,7 @@ import {
   searchHeaderEdge,
 } from './scrollEdge.ts'
 
-const css = readFileSync('src/styles.css', 'utf8')
+const css = frameworkStyleDeclarations()
 
 describe('scroll edge', () => {
   it('is off while nothing has scrolled under it', () => {

@@ -74,7 +74,7 @@ function selectedManifest(html: string, navigator: Record<string, unknown>, runt
     innerWidth: 1194,
     innerHeight: 802,
     performance: { mark() {}, now: () => 0 },
-    window: { addEventListener() {} },
+    window: { addEventListener() {}, __SATIN_PRELAUNCH__: { version: 1, appearance() {} } },
     sessionStorage: { getItem: () => null, setItem() {}, removeItem() {} },
     setTimeout: () => 1,
     clearTimeout() {},
@@ -204,7 +204,7 @@ describe('definition build integration', () => {
         innerWidth: 440,
         innerHeight: 894,
         performance: { mark() {}, now: () => 0 },
-        window: { addEventListener() {} },
+        window: { addEventListener() {}, __SATIN_PRELAUNCH__: { version: 1, appearance() {} } },
         setTimeout,
         clearTimeout,
         setInterval: () => 1,
@@ -331,7 +331,7 @@ describe('definition build integration', () => {
         return callbacks.length
       },
       cancelAnimationFrame() {},
-      window: { addEventListener() {} },
+      window: { addEventListener() {}, __SATIN_PRELAUNCH__: { version: 1, appearance() {} } },
       setTimeout: (callback: () => void) => {
         timeouts.push(callback)
         return timeouts.length
@@ -348,15 +348,8 @@ describe('definition build integration', () => {
       getComputedStyle: () => ({ getPropertyValue: () => (media.matches ? 'dark' : 'light') }),
     })
     expect(document.documentElement.style.backgroundColor).toBe('#abcdef')
-    expect(
-      appended.find(element => element.textContent?.includes('--satin-launch-background'))
-        ?.textContent,
-    ).toContain(
-      ':root{--satin-launch-background:#abcdef;--satin-launch-ink:#1c1c1e}@media(prefers-color-scheme:dark){:root:not([data-satin-appearance]){--satin-launch-background:#123456;--satin-launch-ink:#ffffff}}',
-    )
-    expect(
-      appended.some(node => node.textContent?.includes('@media(prefers-color-scheme:dark)')),
-    ).toBe(true)
+    expect(head).toContain('--satin-launch-background:#abcdef')
+    expect(head).toContain('@media(prefers-color-scheme:dark)')
     expect(document.documentElement.dataset.satinAppearanceSession).toBe('false')
     media.matches = true
     change()
@@ -464,7 +457,8 @@ it('emits an isolated app scope, public install flow and a managed WebClip', asy
   expect(install).not.toContain('location.replace')
   expect(install).toContain('data-install-design="home-screen"')
   expect(install.match(/<ol class="ix-steps" role="list">/g)).toHaveLength(2)
-  expect(install).not.toContain('data:image/png;base64,')
+  expect(install).toContain('data:image/png;base64,')
+  expect(install).toContain('satin-prelaunch-install')
   for (const page of [landing, install]) {
     expect(page).toContain('name="apple-mobile-web-app-capable" content="yes"')
     expect(page).toContain('name="apple-mobile-web-app-status-bar-style" content="default"')

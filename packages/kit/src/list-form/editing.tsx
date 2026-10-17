@@ -1,7 +1,7 @@
 import { createContext, Fragment, useContext, useMemo, useState, type ReactNode } from 'react'
 import type { RowActionsProps } from '../actions/types.ts'
 
-/** `EditMode`: whether a screen's lists show their editing controls. */
+/** Whether a screen's lists show their editing controls: `active` or `inactive`. */
 export type EditMode = 'inactive' | 'active'
 
 /** A row's identity in `List` selection: the `ForEach` id. */
@@ -23,8 +23,8 @@ export function EditModeScope({ children }: { children: ReactNode }) {
 }
 
 /**
- * `@Environment(\.editMode)`: this screen's edit mode and a setter. `EditButton` toggles
- * the same value, so a toolbar or bottom bar can follow it.
+ * Returns this screen's edit mode and a setter. `EditButton` toggles the same value, so a
+ * toolbar or bottom bar can follow it.
  *
  * @example
  * const [editMode] = useEditMode()
@@ -64,10 +64,9 @@ export type ForEachProps<T> = {
 export type ForEachEditing = Readonly<Pick<ForEachProps<{ id: ListItemID }>, 'onDelete' | 'onMove'>>
 
 /**
- * `ForEach`: one row per element of `data`, identified by its `id` (or `id` function). In a
+ * Makes one row per element of `data`, identified by its `id` (or an `id` function). In a
  * `List`, `onDelete` adds swipe-to-delete and the editing delete control; `onMove` adds the
- * reorder handle. Both receive offsets into `data`; apply them with `removing` and
- * `moving`.
+ * reorder handle. Both receive offsets into `data`; apply them with `removing` and `moving`.
  *
  * Put `ForEach` directly in a `List` or `Section`: the list reads it to know each row's identity.
  *

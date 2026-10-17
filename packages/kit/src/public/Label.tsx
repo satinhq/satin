@@ -11,7 +11,8 @@ export type LabelProps = {
   labelStyle?: BuiltInLabelStyle | LabelStyle
   style?: CSSProperties
 }
-/** Combines a semantic title and icon. Hidden titles remain available to assistive technology; toolbar labels with icons show the icon alone. */
+/** A title with an icon. In a toolbar a label with an icon shows the icon alone; a hidden title
+ * stays available to assistive technology. */
 export function Label({
   children,
   icon,

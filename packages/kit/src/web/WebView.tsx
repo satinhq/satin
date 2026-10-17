@@ -1,16 +1,20 @@
 import { useEffect, useMemo, useRef, useSyncExternalStore, type CSSProperties } from 'react'
 import { webURL } from './urlPolicy.ts'
 
+/** The embedded page's load state. A cross-origin page reports `unverified`, because its contents
+ * cannot be read. */
 export type WebFrameState =
   | { status: 'idle' | 'loading' }
   | { status: 'loaded'; url: string; title: string }
   | { status: 'unverified'; reason: 'cross-origin-or-denied' }
   | { status: 'unavailable'; reason: 'invalid-url' | 'load-error' }
+/** Whether a `reload` or `stop` request was sent to the frame, or why not. */
 export type WebFrameActionResult =
   | { status: 'dispatched' }
   | { status: 'unavailable'; reason: 'not-mounted' | 'cross-origin-or-denied' }
 
-/** Only same-origin frames expose their current page or accept reload/stop commands. */
+/** Reads a `WebView`'s state and sends it `reload` and `stop`. Only same-origin frames expose
+ * their current page or accept these commands. */
 export interface WebFrameController {
   readonly state: WebFrameState
   reload(): WebFrameActionResult
@@ -64,7 +68,7 @@ function createFrameStore() {
   }
 }
 
-/** Observe a WebView and request the operations its origin permits. */
+/** Makes a controller to pass to a `WebView`, for reading its state and reloading or stopping it. */
 export function useWebFrame(): WebFrameController {
   const store = useMemo(() => {
     const value = createFrameStore()
@@ -75,6 +79,8 @@ export function useWebFrame(): WebFrameController {
   return store.controller
 }
 
+/** The page URL, its accessible title, an optional controller, and what the page may run. Scripts
+ * and forms are off by default. */
 export interface WebViewProps {
   url: string
   /** Accessible name for the embedded page. */
@@ -88,7 +94,8 @@ export interface WebViewProps {
   onStateChange?: (state: WebFrameState) => void
 }
 
-/** A sandboxed embedded page. Framing policy and partitioned storage remain browser-owned. */
+/** Embeds a web page in a sandboxed frame. The browser decides whether the page may be framed, and
+ * the frame's storage is partitioned from the app's. */
 export function WebView({
   url: input,
   title,

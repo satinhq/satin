@@ -1,15 +1,14 @@
 import { MediaPlayerRoot } from '../media/react.tsx'
 import { useDisplayCornerRadius } from '../safe-area/displayCorners.ts'
-import { retryFailedInstallation } from '../app/earlyWorker.ts'
 import { installStatusBand } from '../app/statusBand.ts'
 import { windowControlsBackInset } from '../safe-area/windowChrome.ts'
-import { automaticGlassFallbackAllowed } from '../glass/failurePolicy.ts'
 import { installGlassErrorAlert } from '../glass/errorAlert.ts'
 import { reportGlassError, subscribeGlassErrors, type GlassError } from '../glass/errors.ts'
 import { installKeyboardAdapter } from '../keyboard/adapter.ts'
-import { launchErrorLayer } from '../app/launchScreen.ts'
 import {
   setLaunchScreen,
+  showLaunchFailure,
+  prelaunchController,
   setLaunchProgress,
   showAppliedUpdate,
   completeLaunchProgress,
@@ -32,7 +31,7 @@ import { getBuiltApp, useAppBackground, registerDefinedAppShell } from '../app/r
 import { defineSatinApp, type AppDefinition } from '../app/definition.ts'
 import { ReachabilityProvider, type OfflinePresentationProps } from '../reachability/react.tsx'
 import type { ComponentType } from 'react'
-import { createPortal, flushSync } from 'react-dom'
+import { flushSync } from 'react-dom'
 import { AdaptiveTabsContext } from '../layout/adaptiveTabsContext.ts'
 import { createLayoutClassState, reduceLayoutClass } from '../layout/layoutClass.ts'
 import {
@@ -129,7 +128,7 @@ export type SatinRootProps = PropsWithChildren<
   }
 >
 
-/** A content-role wrapper's children and plain div attributes. */
+/** The wrapped content and plain div attributes. */
 export type SelectableProps = PropsWithChildren<HTMLAttributes<HTMLDivElement>>
 
 type GeometryStyles = CSSProperties & Record<`--satin-${string}`, string>
@@ -235,8 +234,8 @@ export function Chrome({ children, ...props }: SelectableProps) {
   )
 }
 
-/** `textSelection(.enabled)`: restores text selection and system callouts for
- * user-authored content, which app chrome otherwise suppresses. */
+/** Lets the user select and copy the text inside it. App chrome turns text selection off
+ * everywhere else, so wrap user-authored content such as notes or messages. */
 export function Selectable({ children, ...props }: SelectableProps) {
   return (
     <div {...props} data-satin-role="content">
@@ -278,18 +277,15 @@ export function SatinRoot({
   const [launch, setLaunch] = useState<'preparing' | 'ready' | 'failed'>(
     app ? 'preparing' : 'ready',
   )
-  const [preparationError, setPreparationError] = useState('Check your connection and try again.')
   const downloadActivity = useRef(0)
   const downloadedBytes = useRef(0)
-  const [launchAttempt, setLaunchAttempt] = useState(0)
+  const launchAttempt = 0
   const [glassReady, setGlassReady] = useState(false)
   const [bundlePrepared, setBundlePrepared] = useState(import.meta.env.DEV || !app)
-  const [glassError, setGlassError] = useState<GlassError | null>(null)
   const [glassFailed, setGlassFailed] = useState(false)
   useLayoutEffect(() => {
     installGlassErrorAlert()
     return subscribeGlassErrors(error => {
-      if (!automaticGlassFallbackAllowed()) setGlassError(error)
       // A renderer failure owns its visible error alert, never the app's
       // content/launch state. In particular, loss during resume cannot blank it.
       setGlassFailed(true)
@@ -324,8 +320,8 @@ export function SatinRoot({
   // appearance/context recovery must not restore the logo or hide its content.
   const presentationPending = Boolean(app) && launch !== 'ready'
   useLayoutEffect(() => {
-    setLaunchScreen(launch === 'preparing')
-  }, [launch])
+    if (app && launch !== 'failed') setLaunchScreen(launch === 'preparing')
+  }, [app, launch])
   const [preparedAttempt, setPreparedAttempt] = useState<number | null>(null)
   useLayoutEffect(() => {
     performance.mark('satin-first-react-commit')
@@ -362,6 +358,7 @@ export function SatinRoot({
                 return ready
               }),
           prepareLaunchContent(rootRef.current!, contentPreparation.signal),
+          prelaunchController().stylesReady(),
         ])
         if (cancelled || !bundleReady) return
         if (app.updateProfile === 'release' && !import.meta.env.DEV) {
@@ -391,7 +388,7 @@ export function SatinRoot({
       } catch (error) {
         if (!cancelled) {
           performance.mark('satin-launch-preparation-failed')
-          setPreparationError(error instanceof Error ? error.message : String(error))
+          showLaunchFailure(error instanceof Error ? error.message : String(error))
           setLaunch('failed')
           console.error('Satin launch failed', error)
         }
@@ -436,7 +433,7 @@ export function SatinRoot({
       () => {
         const message = 'App preparation stopped making progress. Please try again.'
         performance.mark('satin-launch-preparation-timeout')
-        setPreparationError(message)
+        showLaunchFailure(message)
         setLaunch('failed')
         console.error('Satin launch preparation timed out after 30 seconds of visible idle time.')
       },
@@ -670,61 +667,6 @@ export function SatinRoot({
             </div>
           </AdaptiveTabsContext>
         </div>
-        {launch === 'failed'
-          ? createPortal(
-              <div
-                data-satin-role="chrome"
-                data-satin-launch-error="true"
-                data-satin-glass-error={glassError ? true : undefined}
-                role="alert"
-                style={{ zIndex: launchErrorLayer }}
-              >
-                {!glassError ? (
-                  <img
-                    className="satin-launch-error-icon"
-                    src={
-                      document.querySelector<HTMLImageElement>(
-                        '#satin-launch-screen .satin-launch-icon img',
-                      )?.src ??
-                      app?.launchScreen?.icon ??
-                      app?.icons[0]?.src
-                    }
-                    alt=""
-                  />
-                ) : null}
-                <div className="satin-launch-error-message">
-                  <h1>{glassError ? 'Glass Renderer Failed' : 'Unable to Open App'}</h1>
-                  {glassError ? (
-                    <pre
-                      style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}
-                    >{`${glassError.code} · ${glassError.stage}\n${glassError.message}${glassError.reason ? `\n${glassError.reason}` : ''}`}</pre>
-                  ) : (
-                    <p>{preparationError}</p>
-                  )}
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      if (glassError) {
-                        window.location.reload()
-                        return
-                      }
-                      try {
-                        if (app) await retryFailedInstallation(app.scope)
-                      } catch (error) {
-                        setPreparationError(error instanceof Error ? error.message : String(error))
-                        return
-                      }
-                      setLaunch('preparing')
-                      setLaunchAttempt(value => value + 1)
-                    }}
-                  >
-                    Try Again
-                  </button>
-                </div>
-              </div>,
-              document.body,
-            )
-          : null}
       </MediaPlayerRoot>
     </RuntimeContext>
   )

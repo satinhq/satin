@@ -1,10 +1,10 @@
 // @vitest-environment happy-dom
-import { readFileSync } from 'node:fs'
+import { frameworkStyleDeclarations } from '../../test/domStyles.ts'
 import { expect, it } from 'vitest'
 
 it('reserves the former tab row only when expanding from tabs, not on an expanded launch', () => {
   const style = document.createElement('style')
-  style.textContent = readFileSync('src/styles.css', 'utf8')
+  style.textContent = frameworkStyleDeclarations()
   const root = document.createElement('div')
   root.dataset.satinTabSidebarExpanded = 'true'
   root.style.setProperty('--satin-sidebar-tabReserve', '54px')

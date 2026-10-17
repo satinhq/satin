@@ -30,7 +30,6 @@ import {
   route,
   runApp,
 } from '@satinhq/kit'
-import '@satinhq/kit/styles.css'
 import { app as appInput } from './app'
 
 function Stops() {

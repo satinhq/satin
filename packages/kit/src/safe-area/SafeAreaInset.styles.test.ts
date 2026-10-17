@@ -1,10 +1,10 @@
 // @vitest-environment happy-dom
-import { readFileSync } from 'node:fs'
+import { frameworkStyleDeclarations } from '../../test/domStyles.ts'
 import { expect, it } from 'vitest'
 
 it('stretches the inset content child inside a bounded grid row', () => {
   const style = document.createElement('style')
-  style.textContent = readFileSync('src/styles.css', 'utf8')
+  style.textContent = frameworkStyleDeclarations()
   const content = document.createElement('div')
   content.dataset.satinInsetContent = 'true'
   const scroll = document.createElement('div')
@@ -27,7 +27,7 @@ it('stretches the inset content child inside a bounded grid row', () => {
 it('chains top insets: a primary scroll view takes the accessory under the bar (reference)', () => {
   // iOS 27 native reference inset-top / inset-top-large: the List spans the frame and its inline inset
   // grows by the banner plus spacing; the banner sits below the bar or the large title.
-  const css = readFileSync('src/styles.css', 'utf8')
+  const css = frameworkStyleDeclarations()
   const rule = (selector: string) => {
     const start = css.indexOf(`${selector} {`)
     expect(start, selector).toBeGreaterThan(-1)
@@ -45,7 +45,7 @@ it('chains top insets: a primary scroll view takes the accessory under the bar (
 
 it('keeps compact phone toolbar circles 44 pt tall with the native 24 pt bottom clearance', () => {
   const style = document.createElement('style')
-  style.textContent = readFileSync('src/styles.css', 'utf8')
+  style.textContent = frameworkStyleDeclarations()
   const chrome = document.createElement('div')
   chrome.dataset.satinNavigationChrome = 'true'
   chrome.style.cssText =
@@ -71,7 +71,7 @@ it('keeps compact phone toolbar circles 44 pt tall with the native 24 pt bottom 
 })
 
 it('publishes floating toolbar clearance through the registered scroll inset', () => {
-  const primary = readFileSync('src/styles.css', 'utf8')
+  const primary = frameworkStyleDeclarations()
     .split("[data-satin-primary='true'][data-satin-bottom-bar='true'] {")[1]
     ?.split('}')[0]
   expect(primary).toContain('--satin-bottom-bar-inset: calc(')
@@ -83,7 +83,7 @@ it('publishes floating toolbar clearance through the registered scroll inset', (
 // Catalyst growth trace: inherited geometry restyled 21,310 transcript descendants and
 // blocked the presenter observer for 180–193 ms. Only explicit layout owners need these values.
 it('keeps changing bottom-inset geometry out of transcript descendants', () => {
-  const css = readFileSync('src/styles.css', 'utf8')
+  const css = frameworkStyleDeclarations()
   for (const property of ['inset-accessory-height', 'inset-parent', 'scroll-inset-bottom']) {
     const registration = css.match(new RegExp(`@property --satin-${property} \\{([^}]+)\\}`))?.[1]
     expect(registration).toContain('inherits: false')

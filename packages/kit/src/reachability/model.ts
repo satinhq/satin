@@ -1,11 +1,11 @@
-/** The result of the app server reachability probe. */
+/** Whether the app server answered: `reachable`, `server-unreachable` or `device-offline`. */
 export type ReachabilityStatus = 'device-offline' | 'server-unreachable' | 'reachable'
 /** The server probe result, including an unknown initial state. */
 export type ReachabilityStateStatus = ReachabilityStatus | 'unknown'
 
 /** Whether a destination remains usable without the app server. */
 export type ReachabilityRoutePolicy = 'local-first' | 'requires-server'
-/** The framework connectivity presentation to show for a failed probe. */
+/** How Satin shows a failed probe: a `banner`, a `full-screen` offline view, or `none`. */
 export type ReachabilitySurface = 'banner' | 'full-screen' | 'none'
 
 /** The endpoint and deadlines used to probe the app server. */
@@ -71,7 +71,7 @@ export interface ReachabilityPresentation {
   readonly surface: Exclude<ReachabilitySurface, 'none'>
 }
 
-/** The connectivity state of an app that does not require an app server. */
+/** The reachability state of an app that needs no app server. Its status is always `local`. */
 export interface LocalReachabilityState {
   readonly connectivity: 'local'
   readonly status: 'local'
@@ -89,6 +89,7 @@ export interface ServerReachabilityState {
   readonly status: ReachabilityStateStatus
 }
 
+/** The full reachability state: local for apps without a server, or the server probe state. */
 export type ReachabilityState = LocalReachabilityState | ServerReachabilityState
 
 export interface ReachabilityReduction {

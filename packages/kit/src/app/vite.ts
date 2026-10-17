@@ -1,3 +1,4 @@
+import { inlinePolicySources } from './inlineCSP.ts'
 import { bundledLicenseNotices, renderNotices } from '../acknowledgements/bundledNotices.ts'
 import { serveStaticFile } from '../server.ts'
 import { mediaTypes } from './mediaTypes.ts'
@@ -5,8 +6,7 @@ import { extname } from 'node:path'
 import { imageAssets } from '../image/vite.ts'
 import { generateAppIcons, generateStartupImage } from './icons.ts'
 import { generateWebClipProfile } from './mdm.ts'
-import { launchScreenMarkup } from './launchScreen.ts'
-import { resumeAppliedUpdate } from './launchScreenRuntime.ts'
+import { launchScreenMarkup, prelaunchCSS } from './launchScreen.ts'
 import { startupImages } from './startup.ts'
 import { access, readFile, writeFile, mkdir } from 'node:fs/promises'
 import { installPage, installRouteForBase } from './install.ts'
@@ -20,7 +20,10 @@ import { deploymentExpectation } from './deployment.ts'
 import { gateAppScripts } from './platformScripts.ts'
 import { devMenuBuild } from '../dev-menu/build.ts'
 import { createBuildInfo } from './buildInfoBuild.ts'
+import { frameworkStylesheet, includedStyles } from './styles.ts'
 
+/** Build options for `satinApp`: a custom install page, strict glass, the development menu and a
+ * media probe. */
 export interface SatinAppOptions {
   /** Output-relative bundled probe for remote-only media. Default: first emitted media
    * file. Proves this deployment server only, never the remote source or playback. */
@@ -48,6 +51,8 @@ export function platformBuildWarning(app: AppDefinition, production: boolean) {
   )
 }
 
+/** Generates the app shell and loads framework CSS once, before app styles.
+ * The stylesheet participates in Vite CSS HMR and builds; pre-launch paints independently. */
 export function satinApp(app: AppDefinition, options: SatinAppOptions = {}): Plugin[] {
   return satinAppFixtures([{ app, query: {} }], options)
 }
@@ -79,7 +84,6 @@ export function satinAppFixtures(
   let output = ''
   let publicDirectory = ''
   const covers = new Map<string, string>()
-  const launchIconPreloads = new Set<string>()
   const generatedIcons = new Map<string, Buffer>()
   const startupIcons = new Map<string, Buffer>()
   const files = Object.assign(
@@ -141,7 +145,7 @@ export function satinAppFixtures(
           "import { createElement } from 'react'",
           "import { createRoot } from 'react-dom/client'",
           `import Page from ${page}`,
-          "createRoot(document.getElementById('satin-install-guide')).render(createElement(Page))",
+          "createRoot(document.getElementById('satin-install-guide'), { onUncaughtError: error => window.__SATIN_PRELAUNCH__.error(String(error), 'Install Page Failed') }).render(createElement(Page))",
         ].join('\n')
       },
       writeBundle() {
@@ -265,7 +269,6 @@ export function satinAppFixtures(
           const inlineIcon = `data:${mime};base64,${iconBytes.toString('base64')}`
           // Even inline images enter WebKit's image loader asynchronously. Start
           // it in the head so the body cover's first paint already has its icon.
-          launchIconPreloads.add(`<link rel="preload" as="image" href="${inlineIcon}">`)
           covers.set(
             app.id,
             launchScreenMarkup({
@@ -310,32 +313,10 @@ export function satinAppFixtures(
           const head = /<head\b[^>]*>(?:\s*<meta\s+charset\s*=\s*[^>]+>)?/i
           if (!head.test(html))
             throw new Error('Satin app definition requires an index.html head element.')
-          const coverData = JSON.stringify(
-            fixtures.map(f => ({ query: f.query, html: covers.get(f.app.id) })),
-          ).replaceAll('<', '\\u003c')
-          // Single-target apps get real parser markup, including the inline icon.
-          // Only the lab's query-selected fixtures need document.write selection.
-          const cover = fixtures.length === 1 ? covers.get(fixtures[0]!.app.id) : ''
-          const selectCover =
-            fixtures.length === 1
-              ? ''
-              : `
-            const q = new URLSearchParams(location.search);
-            const f = ${coverData}.find(f => Object.entries(f.query).every(([k,v]) => q.get(k) === v));
-            document.write(f.html);`
-          html = html.replace(
-            /<body\b[^>]*>/i,
-            opening => `${opening}${cover}<script id="satin-launch-cover">(() => {
-              if (window.__SATIN_PLATFORM_BLOCKED__ !== false) return;
-              ${selectCover}
-              (${resumeAppliedUpdate.toString()})(window.__SATIN_DEFINITION__.scope,
-                window.__SATIN_DEFINITION__.updateProfile === 'release' ? ${JSON.stringify(building ? buildInfo?.appBuildId : undefined)} : undefined);
-            })();</script>`,
-          )
           return html.replace(
             head,
             opening =>
-              `${opening}\n${[...launchIconPreloads].join('')}\n${generateAppHead(fixtures, base, production, !building)}`,
+              `${opening}\n${generateAppHead(fixtures, base, production, !building, covers, building ? buildInfo?.appBuildId : undefined)}\n${frameworkStylesheet(base)}`,
           )
         },
       },
@@ -364,7 +345,10 @@ export function satinAppFixtures(
         })
         await writeFile(
           resolve(output, installRouteForBase(app, base).slice(base.length), 'index.html'),
-          installPage(app, 'install', base, { customPage: customInstallUrl }),
+          installPage(app, 'install', base, {
+            customPage: customInstallUrl,
+            cover: covers.get(app.id),
+          }),
         )
         if (app.scope !== base) {
           const html = await readFile(resolve(output, 'index.html'), 'utf8')
@@ -453,7 +437,7 @@ export function satinAppFixtures(
               kind === 'install' && options.installPage
                 ? base + '@id/__x00__' + CUSTOM_INSTALL_ID
                 : undefined
-            let html = installPage(app, kind, base, { customPage })
+            let html = installPage(app, kind, base, { customPage, cover: covers.get(app.id) })
             // In dev the custom page is served through Vite (its client and React's refresh).
             if (customPage) html = await server.transformIndexHtml(path, html)
             res.setHeader('Content-Type', 'text/html')
@@ -490,6 +474,7 @@ export function satinAppFixtures(
         })
       },
     },
+    includedStyles(),
     {
       name: 'satin:platform-script-gate',
       transformIndexHtml: {
@@ -544,6 +529,18 @@ export function satinAppFixtures(
           for (const { app } of fixtures) {
             await validateBuiltDeployment(output, deploymentExpectation(app, base))
           }
+          const policies: Record<string, ReturnType<typeof inlinePolicySources>> = {}
+          for (const path of [
+            fixtures[0]!.app.startRoute,
+            installRouteForBase(fixtures[0]!.app, base) + '/',
+          ]) {
+            const file = resolve(output, path.slice(base.length), 'index.html')
+            policies[path] = inlinePolicySources(await readFile(file, 'utf8'), prelaunchCSS)
+          }
+          await writeFile(
+            resolve(output, 'satin-csp.json'),
+            JSON.stringify({ version: 1, policies }, null, 2),
+          )
           console.info(`Deploy dist/ at ${base}, then run satin check <url>`)
         },
       },

@@ -1,4 +1,5 @@
-/** Appearance-aware UIKit system palette. Explicit CSS colors remain supported. */
+/** The names of the iOS system colours. Each has a light and a dark value. Plain CSS colours work
+ * too. */
 export type SystemColorName =
   | 'blue'
   | 'brown'
@@ -19,7 +20,7 @@ export type SystemColorName =
   | 'teal'
   | 'yellow'
 
-/** A named system color as a CSS color that follows the appearance.
+/** Returns a system colour as a CSS colour that follows light and dark appearance.
  * @example <Button tint={systemColor('orange')} onPress={start}>Start</Button> */
 export function systemColor(name: SystemColorName): string {
   return `var(--satin-system-${name})`
@@ -45,10 +46,12 @@ const semanticColors = {
   tint: '--satin-tint',
 } as const
 
-/** UIKit's semantic colour names (`label`, `secondarySystemBackground`, …). */
+/** The names of the iOS semantic colours for text, fills, backgrounds, separators and tint
+ * (`label`, `secondarySystemBackground`, …). */
 export type SemanticColorName = keyof typeof semanticColors
 
-/** UIKit semantic content colors, inherited by app content and portals. */
+/** Returns a semantic colour, such as `label` or `systemGroupedBackground`, as a CSS colour that
+ * follows light and dark appearance. It also resolves inside portals. */
 export function semanticColor(name: SemanticColorName): string {
   return `var(${semanticColors[name]})`
 }

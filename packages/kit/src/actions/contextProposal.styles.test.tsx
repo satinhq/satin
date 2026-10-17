@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { readFileSync } from 'node:fs'
+import { frameworkStyleDeclarations } from '../../test/domStyles.ts'
 import { afterEach, expect, it, vi } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { ContextMenu } from './RowActions.tsx'
@@ -18,7 +18,7 @@ function mount(fill: boolean) {
     removeEventListener() {},
   }))
   const style = document.createElement('style')
-  style.textContent = readFileSync('src/styles.css', 'utf8').replaceAll('\n', ' ')
+  style.textContent = frameworkStyleDeclarations().replaceAll('\n', ' ')
   document.head.append(style)
   document.body.innerHTML = renderToStaticMarkup(
     <ScrollTargetContext value={() => {}}>

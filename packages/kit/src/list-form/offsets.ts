@@ -26,8 +26,8 @@ export function moving<T>(
 }
 
 /**
- * Swift `remove(atOffsets:)`, returning a new array without the elements at `offsets`. Pass it
- * exactly what `ForEach`'s `onDelete` reports.
+ * Returns a new array without the elements at `offsets`. Pass it exactly what `ForEach`'s
+ * `onDelete` reports.
  *
  * @example
  * <ForEach data={todos} onDelete={offsets => setTodos(todos => removing(todos, offsets))}>

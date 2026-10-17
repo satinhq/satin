@@ -124,6 +124,7 @@ export type GlassPresentationConsumer = Readonly<{
     intrinsicWidth?: boolean
     placement?: 'bottom' | 'top'
     itemFrames?: readonly TabItemFrame[]
+    searchProgress?: number
     items: readonly TabBarItem[]
     selected: string
     onSelect: (id: string) => void
@@ -318,6 +319,8 @@ export function GlassPresentation({ consumer }: { consumer?: GlassPresentationCo
       ? consumer.tabs.itemFrames
       : undefined
   const tabBarPlacement = consumer?.tabs?.placement
+  const searchProgress = tabBarPlacement === 'top' ? (consumer?.tabs?.searchProgress ?? 0) : 0
+  const tabBarOpacity = 1 - searchProgress
   const compactTabs = readDeviceIdiom() === 'phone' && width > height
   const intrinsicTabs = Boolean(consumer?.tabs?.intrinsicWidth) && !compactTabs
   const intrinsicGeometry = useMemo(
@@ -379,8 +382,11 @@ export function GlassPresentation({ consumer }: { consumer?: GlassPresentationCo
   // The measured TabView material occupies the bottom safe-area band; its
   // glyphs remain above the Home indicator inside that material.
   const dockY =
-    insetFrame?.y ??
-    (isDragPage ? dragFrames.capsule.y : height - GLASS_DOCK_BOTTOM_GAP_PX - fallbackDockHeight)
+    (insetFrame?.y ??
+      (isDragPage
+        ? dragFrames.capsule.y
+        : height - GLASS_DOCK_BOTTOM_GAP_PX - fallbackDockHeight)) -
+    64 * searchProgress
   const dockRadius = isDragPage
     ? dragFrames.capsule.height / 2
     : topFrames
@@ -423,6 +429,7 @@ export function GlassPresentation({ consumer }: { consumer?: GlassPresentationCo
     tabBarPillWidth,
     tabBarPillWidths,
     tabBarPlacement,
+    tabBarOpacity,
     tabBarPillHeight,
     tabBarPillCenterY,
     tabBarSelectedIndex: tabBarVisible ? selectedTab : undefined,
@@ -833,12 +840,13 @@ export function GlassPresentation({ consumer }: { consumer?: GlassPresentationCo
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [consumer?.backend])
 
-  useEffect(() => {
+  const synchronizeGeometry = useCallback(() => {
     runtimeRef.current?.updateGeometry({
       tabBarCentres,
       tabBarPillWidth,
       tabBarPillWidths,
       tabBarPlacement,
+      tabBarOpacity,
       tabBarMinimizedOffsetX,
       tabBarPillHeight,
       tabBarPillCenterY,
@@ -863,6 +871,7 @@ export function GlassPresentation({ consumer }: { consumer?: GlassPresentationCo
     tabBarCentres,
     tabBarPillWidths,
     tabBarPlacement,
+    tabBarOpacity,
     tabBarMinimizedOffsetX,
     tabBarPillWidth,
     tabBarPillHeight,
@@ -884,6 +893,13 @@ export function GlassPresentation({ consumer }: { consumer?: GlassPresentationCo
     rightX,
     width,
   ])
+
+  useLayoutEffect(() => {
+    if (readDeviceIdiom() === 'pad') synchronizeGeometry()
+  }, [synchronizeGeometry])
+  useEffect(() => {
+    if (readDeviceIdiom() !== 'pad') synchronizeGeometry()
+  }, [synchronizeGeometry])
 
   useEffect(
     () => runtimeRef.current?.setTabSelection(tabBarVisible ? selectedTab : undefined),
@@ -1170,6 +1186,7 @@ export function GlassPresentation({ consumer }: { consumer?: GlassPresentationCo
                 height: liquidEnvelope.frameHeight,
               }
             : {
+                opacity: tabBarOpacity,
                 borderRadius: dockRadius,
                 left: dockX,
                 top: dockY,
@@ -1177,6 +1194,8 @@ export function GlassPresentation({ consumer }: { consumer?: GlassPresentationCo
                 height: dockHeight,
               }
         }
+        inert={searchProgress > 0 || undefined}
+        aria-hidden={searchProgress > 0 || undefined}
         data-satin-tab-layout={topFrames ? 'top' : compactTabs ? 'compact' : undefined}
         role={liquidMotion !== 'none' ? 'presentation' : tabBarVisible ? 'tablist' : undefined}
         aria-label={

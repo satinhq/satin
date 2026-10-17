@@ -1,5 +1,5 @@
 import { cornerClipPath, roundedCornerPath, type CornerShape } from '../shapes/corners.ts'
-import { takeoverSample } from './swipeSpring.ts'
+import type { FullSwipeContact } from './fullSwipeContact.ts'
 import { swipeEdge, type SwipeActions } from './types.ts'
 
 // iOS 27 matched phone reference, light/dark, 1/2/3 actions, both edges:
@@ -80,8 +80,16 @@ function inlineEntrance(distance: number, buttonWidth: number) {
   return { scale, opacity }
 }
 
+/** A destructive takeover keeps the other actions visible and dimmed. Native tall
+ * Delete row (r3 receipts): More fades from 0.73 at 142pt revealed to 0.30 at 381pt. */
+function destructiveSecondaryOpacity(distance: number) {
+  return clamp(0.73 - ((0.73 - 0.3) / (381 - 142)) * (distance - 142))
+}
+
 /** Spatial fit of native's sequential capsule reveal. Rest interpolates the
- * contact pose into the fully revealed spring target; it is never a DOM writer. */
+ * contact pose into the fully revealed spring target; it is never a DOM writer.
+ * A destructive takeover packs the other actions against the row and the primary
+ * fills the rest (native: primary = revealed - 80 on a tall two-action row). */
 export function swipeActionPose(
   position: number,
   index: number,
@@ -91,6 +99,7 @@ export function swipeActionPose(
   buttonWidth = 60,
   inline = false,
   allowsFullSwipe = false,
+  destructive = false,
 ) {
   const distance = Math.abs(position)
   const open = swipeOpenWidth(count, buttonWidth)
@@ -103,17 +112,19 @@ export function swipeActionPose(
   const entrance = inline ? inlineEntrance(localDistance + revealLead, buttonWidth) : undefined
   const contactScale = entrance?.scale ?? revealScale(localDistance)
   const reveal = contactScale + (clamp(distance / open) - contactScale) * rest
-  const spread = (((index + 0.5) * excess) / (count + 0.5)) * (1 - takeover)
+  const packed = destructive && index > 0 ? takeover * excess : 0
+  const spread = (((index + 0.5) * excess) / (count + 0.5)) * (1 - takeover) + packed
+  const opacity =
+    (entrance?.opacity ?? contactScale) + (1 - (entrance?.opacity ?? contactScale)) * rest
+  const takenOver = destructive ? destructiveSecondaryOpacity(distance) : 0
   return {
     scale: reveal,
     spread,
-    opacity:
-      ((entrance?.opacity ?? contactScale) + (1 - (entrance?.opacity ?? contactScale)) * rest) *
-      (index === 0 ? 1 : 1 - takeover),
+    opacity: index === 0 ? opacity : opacity * (1 - takeover) + takenOver * takeover,
     growth:
       index === 0
         ? (inline && allowsFullSwipe ? excess * (1 - takeover) : 0) +
-          takeover * Math.max(0, distance - buttonWidth - 20)
+          takeover * (destructive ? excess : Math.max(0, distance - buttonWidth - 20))
         : 0,
   }
 }
@@ -138,6 +149,7 @@ export function swipeActionTracks(
   const inline =
     primary.closest<HTMLElement>('[data-satin-row-actions]')?.dataset.satinSwipeLabelLayout ===
     'inline'
+  const destructive = primary.dataset.satinSwipeRole === 'destructive'
   return buttons.flatMap((button, index) => {
     const buttonWidth = Number.parseFloat(getComputedStyle(button).width) || 60
     const middleWidth = Math.max(1, buttonWidth - capsuleHeight(primary))
@@ -165,6 +177,7 @@ export function swipeActionTracks(
         buttonWidth,
         inline,
         allowsFullSwipe,
+        destructive,
       )
     }
     return [
@@ -281,8 +294,14 @@ export function presentedTakeover(primary: HTMLElement, position: number) {
   const inline =
     primary.closest<HTMLElement>('[data-satin-row-actions]')?.dataset.satinSwipeLabelLayout ===
     'inline'
-  const ordinary = inline ? Math.max(0, Math.abs(position) - swipeOpenWidth(count, buttonWidth)) : 0
-  const expanded = Math.max(0, Math.abs(position) - buttonWidth - 20)
+  const excess = Math.max(0, Math.abs(position) - swipeOpenWidth(count, buttonWidth))
+  const ordinary = inline ? excess : 0
+  // A destructive takeover grows only into the excess; inline rows grow that much
+  // before takeover too, so their caught takeover reads as none.
+  const expanded =
+    primary.dataset.satinSwipeRole === 'destructive'
+      ? excess
+      : Math.max(0, Math.abs(position) - buttonWidth - 20)
   if (expanded <= ordinary) return 0
   const matrix = new DOMMatrixReadOnly(getComputedStyle(middle).transform)
   const growth = (matrix.a - 1) * Math.max(1, buttonWidth - capsuleHeight(primary))
@@ -295,7 +314,8 @@ export function createRowScrub(
   content: HTMLElement,
   initial: number,
   width: number,
-  configuration?: SwipeActions,
+  configuration: SwipeActions | undefined,
+  contact: FullSwipeContact,
 ) {
   if (!width || source.scrollWidth <= source.clientWidth) return undefined
   const widths = swipeWidths(host)
@@ -313,44 +333,16 @@ export function createRowScrub(
     if (primary) {
       const edge = swipeEdge(configuration, side)
       const actions = swipeActionTracks(primary, edge.actions.length, width, edge.allowsFullSwipe)
-      const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
-      const caught = initial ? presentedTakeover(primary, initial) : 0
-      const state = { from: caught, target: caught, velocity: 0, started: performance.now() }
-      const threshold = fullSwipeThreshold(
-        width,
-        edge.actions.length,
-        side,
-        widths[side],
-        host.dataset.satinSwipeLabelLayout === 'inline',
-      )
       const openWidth = swipeOpenWidth(edge.actions.length, widths[side])
-      let previousRaw = Number.NaN
+      let previousPosition = Number.NaN
       let previousTakeover = Number.NaN
       const update = (now: number, raw: number, position: number) => {
-        const sample = takeoverSample(
-          state.from,
-          state.target,
-          state.velocity,
-          (now - state.started) / 1000,
-        )
-        const target = edge.allowsFullSwipe && raw * sign >= threshold ? 1 : 0
-        if (target !== state.target) {
-          state.from = sample.position
-          state.velocity = sample.velocity
-          state.target = target
-          state.started = now
-        }
-        // Both spring states advance across reversals, but the hidden tray has
+        // Both takeover springs advance across reversals, but the hidden tray has
         // no pixels to update. Read the scroll source before either tray writes.
+        const takeover = contact.takeover(side, raw, now)
         if (position * sign <= 0) return
-        const takeover =
-          edge.actions.length === 1 && edge.allowsFullSwipe
-            ? 1
-            : reducedMotion
-              ? target
-              : Math.max(0, Math.min(1, sample.position))
-        if (raw === previousRaw && takeover === previousTakeover) return
-        previousRaw = raw
+        if (position === previousPosition && takeover === previousTakeover) return
+        previousPosition = position
         previousTakeover = takeover
         const rest = initial ? clamp(1 - Math.abs(raw - initialRaw) / openWidth) : 0
         for (const action of actions) {
@@ -368,10 +360,14 @@ export function createRowScrub(
   // WebKit owns touch arbitration and the scroll offset. Sample it once per
   // frame and present the row, trays, and fitted takeover together. Mixing a
   // compositor row with main-thread pills exposes every delayed main-thread frame.
+  // The contact maps the raw offset, so a takeover's anchor moves row and pills alike.
   let actionFrame = 0
-  const flush = (now = performance.now()) => {
-    const raw = initialRaw + origin - source.scrollLeft
-    const position = rowSwipePosition(raw, width, configuration, widths)
+  const rawPosition = () => initialRaw + origin - source.scrollLeft
+  /** Present the current scroll sample. A release passes `evaluate: false`: lifting
+   * the finger cannot start a takeover that no frame has shown. */
+  const flush = (now = performance.now(), evaluate = true) => {
+    const raw = rawPosition()
+    const position = contact.present(raw, now, evaluate)
     Object.assign(content.style, contentFrame(position, initial ? 1 : 0))
     for (const update of actionUpdates) update(now, raw, position)
     return { raw, position }
@@ -383,9 +379,8 @@ export function createRowScrub(
   paintActions(performance.now())
   return {
     flush,
-    rawPosition: () => initialRaw + origin - source.scrollLeft,
-    position: () =>
-      rowSwipePosition(initialRaw + origin - source.scrollLeft, width, configuration, widths),
+    rawPosition,
+    position: () => contact.present(rawPosition(), performance.now(), false),
     cancel: () => {
       cancelAnimationFrame(actionFrame)
       // Outside contact, the settled side's visibility belongs to the row CSS.

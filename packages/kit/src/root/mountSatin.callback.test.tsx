@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 import { useLayoutEffect } from 'react'
 import { afterEach, expect, it, vi } from 'vitest'
+import { setupPrelaunch, prelaunchDOM } from '../app/prelaunch.test-helper.ts'
 import { mountSatin } from './mountSatin.ts'
 
 afterEach(() => {
@@ -10,6 +11,7 @@ afterEach(() => {
 })
 
 it('shows the startup failure before delivering the original error to the consumer callback exactly once', () => {
+  setupPrelaunch()
   const failure = new Error('Consumer screen failed')
   const reported = vi.fn()
   vi.stubGlobal('reportError', reported)
@@ -22,7 +24,7 @@ it('shows the startup failure before delivering the original error to the consum
   const callback = vi.fn((error: unknown, info: { componentStack?: string | null }) => {
     expect(error).toBe(failure)
     expect(info.componentStack).toContain('BrokenScreen')
-    expect(document.querySelector('[data-satin-app-failure]')?.textContent).toContain(
+    expect(prelaunchDOM.querySelector('#satin-launch-error')?.textContent).toContain(
       failure.message,
     )
   })
@@ -32,6 +34,6 @@ it('shows the startup failure before delivering the original error to the consum
   expect(callback).toHaveBeenCalledOnce()
   expect(reported).not.toHaveBeenCalled()
   expect(container.childElementCount).toBe(0)
-  expect(document.querySelector('[data-satin-app-failure]')?.getAttribute('role')).toBe('alert')
+  expect(prelaunchDOM.querySelector('#satin-launch-error')?.getAttribute('role')).toBe('alert')
   root.unmount()
 })

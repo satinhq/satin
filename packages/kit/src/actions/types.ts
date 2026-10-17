@@ -2,7 +2,8 @@ import type { ReactNode } from 'react'
 import type { SymbolName } from '../symbols/Symbol.tsx'
 import type { CornerShape } from '../shapes/corners.ts'
 
-/** Shared by menus, context menus and row swipe actions. */
+/** An entry in a menu, context menu or swipe action list: a command, a titled section of
+ * entries, or a submenu. */
 export type Action =
   | ActionItem
   | Readonly<{ section: readonly Action[]; label?: string }>
@@ -14,7 +15,8 @@ export type Action =
       disabled?: boolean
       submenu: readonly Action[]
     }>
-/** A leaf command shared by menus, swipe actions, alerts and confirmation dialogs. */
+/** A single command with an id, a label, an optional symbol and role, and an `onPress` handler.
+ * Menus, swipe actions, alerts and confirmation dialogs all use it. */
 export type ActionItem = Readonly<{
   id: string
   label: string
@@ -28,7 +30,8 @@ export type ActionItem = Readonly<{
   onPress?: (() => void) | (() => Promise<void>)
   tint?: string
 }>
-/** A swipe command may omit its visible title while retaining an accessible name. */
+/** A swipe action command. It may drop its visible label if it has a symbol or icon and an
+ * `accessibilityLabel`. */
 export type SwipeActionItem =
   | ActionItem
   | Readonly<
@@ -37,20 +40,23 @@ export type SwipeActionItem =
         accessibilityLabel: string
       } & ({ symbol: SymbolName } | { icon: ReactNode })
     >
+/** An entry in a row's swipe actions: any menu entry, or a swipe command that shows only a
+ * symbol. */
 export type SwipeAction = Action | SwipeActionItem
-/** `swipeActions`: one or more edge configurations for a row. */
+/** The `swipeActions` prop of a row: actions for one edge, or a list with one entry per edge. */
 export type SwipeActions = SwipeActionsConfiguration | readonly SwipeActionsConfiguration[]
 
-/** Swipe actions on one row edge. Full swipe is enabled unless explicitly disabled. */
+/** The swipe actions on one row edge, `trailing` by default. A full swipe runs the first action
+ * unless `allowsFullSwipe` is false. */
 export type SwipeActionsConfiguration = Readonly<{
   edge?: 'leading' | 'trailing'
-  /** Revealed row face. Omit for the native default; custom shapes are unrestricted. */
+  /** The shape of the revealed row face. Omit it for the system default. */
   shape?: CornerShape
   allowsFullSwipe?: boolean
   actions: readonly SwipeAction[]
 }>
 
-/** `contextMenu`: row commands and an optional preview. */
+/** The `contextMenu` prop of a row: a list of actions, or actions with a custom `preview`. */
 export type ContextMenuConfiguration =
   readonly Action[] | Readonly<{ actions: readonly Action[]; preview?: ReactNode }>
 /** Row swipe actions and context-menu commands. */

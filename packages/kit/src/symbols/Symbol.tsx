@@ -24,12 +24,13 @@ import type {
   SymbolRenderingMode,
 } from './types.ts'
 
-/** A symbol name in SF Symbols style (`'plus'`, `'trash.fill'`). The bundled names autocomplete;
- * any string is accepted for glyphs added through `SymbolProvider`. */
+/** A symbol name, such as `'plus'` or `'trash.fill'`. The bundled names autocomplete; any string
+ * is accepted for glyphs added through `SymbolProvider`. */
 export type SymbolName = CoreSymbolName | (string & {})
 const SourceContext = createContext<SymbolSource>(coreSymbols)
 export const SymbolSelectionContext = createContext(false)
-/** Extend or override glyphs locally. Paths must be original or redistributable with provenance. */
+/** Adds or replaces symbol glyphs for everything inside it. Paths must be original, or
+ * redistributable with their provenance recorded. */
 export function SymbolProvider({
   glyphs,
   children,
@@ -64,8 +65,9 @@ export type SymbolImageProps = Omit<SVGProps<SVGSVGElement>, 'name' | 'children'
   glyph?: SymbolGlyph
 }
 /**
- * `Image(systemName:)`: a vector symbol that sizes with the surrounding font and takes its
- * colour. A `.fill` variant is chosen automatically where the context selects it (a selected tab).
+ * Draws a named vector symbol that sizes with the surrounding font and takes its colour. A
+ * `.fill` variant is chosen automatically where the context calls for it, such as a selected
+ * tab.
  *
  * @example
  * <SymbolImage name="star.fill" />

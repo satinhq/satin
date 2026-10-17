@@ -12,6 +12,14 @@ export async function installPageCheck(
   // Called once the check passes; a custom install page loads the author's code here.
   onPass?: () => void,
 ) {
+  const environment = (
+    window as Window & {
+      __SATIN_PRELAUNCH__?: {
+        error(reason: string, title?: string, retry?: () => void, detail?: string): void
+        recover(): void
+      }
+    }
+  ).__SATIN_PRELAUNCH__!
   const guide = document.getElementById('satin-install-guide')!
   const status = document.getElementById('satin-install-check')!
   const standalone =
@@ -63,101 +71,50 @@ export async function installPageCheck(
     status.hidden = true
     status.style.display = 'none'
     guide.hidden = false
+    environment.recover()
     onPass?.()
     return
   }
   guide.hidden = true
-  status.hidden = false
-  status.style.removeProperty('display')
-  status.replaceChildren()
-  status.setAttribute('role', 'alert')
-  status.dataset.error = 'true'
-  const style = document.createElement('style')
-  style.textContent = `
-    #satin-install-check[data-error] {
-      position: fixed;
-      inset: 0;
-      z-index: 20002;
-      display: grid;
-      place-items: center;
-      overflow: auto;
-      padding: 32px;
-      box-sizing: border-box;
-      background: #f2f2f7;
-      color: #1c1c1e;
-      color-scheme: light dark;
-      font: 17px/1.45 -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-      text-align: center;
-    }
-    #satin-install-check button { font: inherit; border: 0; background: transparent; color: #007aff; min-height: 44px; cursor: pointer; }
-    #satin-install-check .install-error-content { width: min(100%, 560px); }
-    #satin-install-check h2 { font-size: 24px; margin: 0 0 12px; }
-    #satin-install-check p { opacity: 1; margin: 12px 0; }
-    #satin-install-check .install-error-detail {
-      font-size: 13px;
-      color: #6c6c70;
-      overflow-wrap: anywhere;
-    }
-    #satin-install-check ul { list-style: none; padding: 0; margin: 24px 0 0; }
-    #satin-install-check li { margin: 8px 0; font-size: 13px; overflow-wrap: anywhere; }
-    @media (prefers-color-scheme: dark) {
-      #satin-install-check[data-error] { background: #000; color: #fff; }
-      #satin-install-check .install-error-detail { color: #aeaeb2; }
-    }
-  `
-  document.head.append(style)
-  const content = document.createElement('div')
-  content.className = 'install-error-content'
-  const title = document.createElement('h2')
+  status.hidden = true
   const unverified =
     !wrongBase && failures.length > 0 && failures.every(failure => failure.transient)
-  title.textContent = standalone
+  for (const failure of failures)
+    console.error('[Satin deployment]', failure.reason, failure.url, failure.fix)
+  const title = standalone
     ? 'Wrong Home Screen icon'
     : unverified
       ? "Can't reach the app right now"
       : 'This app is misconfigured'
-  const explanation = document.createElement('p')
-  const action = document.createElement('p')
-  content.append(title, explanation, action)
-  status.append(content)
-  for (const failure of failures) {
-    console.error('[Satin deployment]', failure.reason, failure.url, failure.fix)
-  }
-  if (standalone) {
-    explanation.textContent = 'This icon opens the install page instead of the app.'
-    action.textContent = 'Delete this icon, then reinstall from Safari.'
-    const detail = document.createElement('p')
-    detail.className = 'install-error-detail'
-    detail.textContent = location.href
-    content.append(detail)
-    return
-  }
-  if (unverified) {
-    explanation.textContent = 'Check your connection and try again.'
-    action.remove()
-    const retry = document.createElement('button')
-    retry.textContent = 'Retry'
-    retry.addEventListener('click', () => {
-      retry.disabled = true
-      void installPageCheck(expected, check, 30_000, onPass)
-    })
-    content.append(retry)
-    return
-  }
-  explanation.textContent = wrongBase
-    ? `Built for ${expected.base} but served at ${servedBase}.`
-    : 'Required app files are missing or do not match this build.'
-  action.textContent = wrongBase
-    ? `Serve this build at ${expected.base}, or rebuild with Vite base ${servedBase}.`
-    : failures[0]!.fix
-  const checks = document.createElement('ul')
-  checks.setAttribute('aria-label', 'Failed checks')
-  for (const failure of failures) {
-    const row = document.createElement('li')
-    const url = new URL(failure.url, location.href)
-    const address = url.origin === location.origin ? url.pathname + url.search : url.href
-    row.textContent = `${failure.check ?? 'Configuration'} → ${address} → ${failure.status ?? failure.reason}`
-    checks.append(row)
-  }
-  content.append(checks)
+  const reason = standalone
+    ? 'This icon opens the install page instead of the app. Reinstall from Safari.'
+    : unverified
+      ? 'Check your connection and try again.'
+      : wrongBase
+        ? `Built for ${expected.base} but served at ${servedBase}. Serve this build at ${expected.base}, or rebuild with Vite base ${servedBase}.`
+        : 'Required app files are missing or do not match this build. ' + failures[0]!.fix
+  const detail = standalone
+    ? location.href
+    : unverified
+      ? undefined
+      : failures
+          .map(failure => {
+            const url = new URL(failure.url, location.href)
+            const address = url.origin === location.origin ? url.pathname + url.search : url.href
+            return `${failure.check ?? 'Configuration'} → ${address} → ${failure.status ?? failure.reason}`
+          })
+          .join('\n')
+  let retrying = false
+  environment.error(
+    reason,
+    title,
+    () => {
+      if (retrying) return
+      retrying = true
+      void installPageCheck(expected, check, 30_000, onPass).finally(() => {
+        retrying = false
+      })
+    },
+    detail,
+  )
 }

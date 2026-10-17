@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { readFileSync } from 'node:fs'
+import { frameworkStyleDeclarations } from '../../test/domStyles.ts'
 import { expect, it, vi } from 'vitest'
 import { act, createElement } from 'react'
 import { createRoot } from 'react-dom/client'
@@ -7,7 +7,7 @@ import { Row } from '../list-form/ListForm.tsx'
 
 it('rounds every lifted row independently of its resting section corners', () => {
   const style = document.createElement('style')
-  style.textContent = readFileSync('src/styles.css', 'utf8')
+  style.textContent = frameworkStyleDeclarations()
   const section = document.createElement('div')
   section.style.setProperty('--satin-settings-group-radius', '25px')
   section.innerHTML = Array.from(
@@ -32,7 +32,7 @@ it('rounds every lifted row independently of its resting section corners', () =>
 })
 
 it('gives the opaque moving background its section corner shape', () => {
-  const css = readFileSync('src/styles.css', 'utf8')
+  const css = frameworkStyleDeclarations()
   expect(css.match(/\[data-satin-row-action-content\]\s*\{([^}]+)\}/)?.[1]).toContain(
     'border-radius: inherit',
   )
@@ -54,7 +54,7 @@ it('keeps section corners throughout a quick tap and lifts only after a recogniz
   )
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
   const style = document.createElement('style')
-  style.textContent = readFileSync('src/styles.css', 'utf8')
+  style.textContent = frameworkStyleDeclarations()
   const host = document.createElement('div')
   host.style.setProperty('--satin-settings-group-radius', '25px')
   document.head.append(style)

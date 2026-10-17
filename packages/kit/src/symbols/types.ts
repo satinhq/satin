@@ -1,5 +1,6 @@
 import type { FontWeight } from '../content/content.tsx'
-/** Filled paths on Framework7's 56-unit grid. No font, HTML or external resource. */
+/** A symbol's artwork: filled SVG paths on a 56-unit grid, with optional layers for hierarchical
+ * and palette rendering, and its provenance. No font, HTML or external resource. */
 export type SymbolGlyph = Readonly<{
   paths: readonly Readonly<{
     d: string
@@ -27,9 +28,10 @@ export type SymbolGlyph = Readonly<{
 }>
 /** Glyphs by symbol name, for `SymbolProvider`. */
 export type SymbolSource = Readonly<Record<string, SymbolGlyph>>
-/** `Font.Weight` as applied to a symbol. */
+/** The weight a symbol is drawn at. It uses the same names as font weights. */
 export type SymbolWeight = FontWeight
-/** `Image.Scale`. */
+/** A symbol's size relative to the text around it: `small`, `medium` or `large`. */
 export type SymbolScale = 'small' | 'medium' | 'large'
-/** `SymbolRenderingMode`. */
+/** How a symbol's layers are coloured: `monochrome` in one colour, `hierarchical` in shades of
+ * one colour, or `palette` with a colour per layer. */
 export type SymbolRenderingMode = 'monochrome' | 'hierarchical' | 'palette'

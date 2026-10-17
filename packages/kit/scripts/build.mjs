@@ -90,6 +90,7 @@ for (const guide of [
   'app-recipes.md',
   'data.md',
   'tokens.md',
+  'tailwind.md',
   'networking.md',
   'content.md',
   'controls.md',

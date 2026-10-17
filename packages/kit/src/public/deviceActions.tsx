@@ -84,7 +84,7 @@ function DeviceAction<Result>({
   )
 }
 
-/** Prepared text, URL or files to hand to the operating system's share sheet. */
+/** The text, URL or files to share, the button content and the completion and error callbacks. */
 export type ShareLinkProps = {
   item: ShareData
   children?: ReactNode
@@ -95,7 +95,8 @@ export type ShareLinkProps = {
   onError(error: Error): void
 }
 
-/** Opens the system share sheet during the press. Prepare file bytes before rendering. */
+/** A button that opens the system share sheet. Prepare file bytes before rendering, because the
+ * sheet must open during the press. */
 export function ShareLink({
   item,
   children = 'Share',
@@ -130,7 +131,7 @@ export function ShareLink({
   )
 }
 
-/** A user-initiated plain-text paste, subject to WebKit's permission UI. */
+/** The button content and the callbacks that receive the pasted text or the error. */
 export type PasteButtonProps = {
   children?: ReactNode
   disabled?: boolean
@@ -139,7 +140,8 @@ export type PasteButtonProps = {
   onError(error: Error): void
 }
 
-/** Reads text only when pressed; it never probes clipboard contents while rendering. */
+/** A button that pastes plain text from the clipboard when pressed. It never reads the clipboard
+ * before the press. The browser may ask the user to confirm. */
 export function PasteButton({ children = 'Paste', disabled, onPaste, onError }: PasteButtonProps) {
   return (
     <DeviceAction

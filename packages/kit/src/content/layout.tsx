@@ -10,25 +10,30 @@ import {
 } from 'react'
 import { TabActivityContext } from '../tabs/context.ts'
 
+/** A width and height in points. */
 export interface GeometrySize {
   width: number
   height: number
 }
+/** A rectangle in points: origin `x` and `y` plus a size. */
 export interface GeometryFrame extends GeometrySize {
   x: number
   y: number
 }
+/** What a `GeometryReader` passes to its children: its size and a way to read its frame. */
 export interface GeometryProxy {
   /** The reader's allocated CSS space, in points on the target runtime. */
   size: GeometrySize
   /** Global means layout-viewport coordinates. Pass an element for a named local space. */
   frame(inSpace: 'local' | 'global' | HTMLElement): GeometryFrame
 }
+/** A `GeometryReader`'s render function, plus plain div attributes. */
 export interface GeometryReaderProps extends Omit<HTMLAttributes<HTMLDivElement>, 'children'> {
   children(proxy: GeometryProxy): ReactNode
 }
 
-/** A greedy layout container. Give a reader in a scroll view a definite height. */
+/** Fills the space it is offered and calls its children with that size. Its content renders
+ * once the first measurement is in. */
 export function GeometryReader({ children, style, ...props }: GeometryReaderProps) {
   const host = useRef<HTMLDivElement>(null)
   const active = useContext(TabActivityContext)
@@ -83,7 +88,9 @@ export function GeometryReader({ children, style, ...props }: GeometryReaderProp
   )
 }
 
+/** The axes a `ViewThatFits` candidate must fit along. */
 export type ViewThatFitsAxis = 'horizontal' | 'vertical' | 'both'
+/** The axes to check, `both` by default, plus plain div attributes. */
 export interface ViewThatFitsProps extends HTMLAttributes<HTMLDivElement> {
   in?: ViewThatFitsAxis
 }
@@ -101,7 +108,8 @@ function idealSize(element: HTMLElement, axis: ViewThatFitsAxis): GeometrySize {
   return { width: bounds.width, height: bounds.height }
 }
 
-/** Select the first ideal size that fits, or the last candidate when none does. */
+/** Shows the first child whose natural size fits the space, or the last child when none fits.
+ * It measures again when the space or a child resizes. */
 export function ViewThatFits({ in: axis = 'both', children, style, ...props }: ViewThatFitsProps) {
   const host = useRef<HTMLDivElement>(null)
   const parentActive = useContext(TabActivityContext)

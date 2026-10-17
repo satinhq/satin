@@ -57,7 +57,8 @@ export function readDisplayCornerMetrics(): DisplayCornerMetrics {
   })
 }
 
-/** Updates after rotation, window moves and DPR changes announced by a resize. */
+/** The corner radius of the device screen in points, or 0 when the model is unknown. It updates
+ * after rotation, window moves and pixel-ratio changes that fire a resize. */
 export function useDisplayCornerRadius(): number {
   const [radius, setRadius] = useState(() => readDisplayCornerMetrics().radius)
   useLayoutEffect(() => {
@@ -73,7 +74,8 @@ export function useDisplayCornerRadius(): number {
   return radius
 }
 
-/** Radius for a shape inset equally from a rounded container. Insets consume, never invert, corners. */
+/** The corner radius for a shape inset evenly inside a rounded container, so the two corners stay
+ * concentric. The result never goes below 0; a negative or non-finite argument throws. */
 export function concentricRadius(containerRadius: number, inset: number): number {
   if (
     !Number.isFinite(containerRadius) ||

@@ -5,13 +5,15 @@ import { createRouteCodec } from '../navigation/routeCodec.ts'
 import { resolveRoutes } from '../public/routeRegistry.ts'
 import { webURL } from './urlPolicy.ts'
 
-/** A preference for the browser-owned presentation, not a Safari launch guarantee. */
+/** How to open a web page. `prefersInApp` is a preference; the browser decides how the page is
+ * presented. */
 export interface OpenURLOptions {
   /** Defaults to true. A strict external-browser request is unavailable on this runtime. */
   prefersInApp?: boolean
 }
 
-/** Dispatched means WebKit accepted the action; it does not mean the page loaded. */
+/** What happened to an open request: `handled` in the app, `dispatched` to the browser, or
+ * `unavailable` with a reason. `dispatched` does not mean the page loaded. */
 export type OpenURLResult =
   | { status: 'handled'; destination: 'app' }
   | { status: 'dispatched'; destination: 'web' }
@@ -25,6 +27,7 @@ export type OpenURLResult =
         | 'popup-blocked'
     }
 
+/** The function `useOpenURL` returns. It opens a URL and reports the result at once. */
 export type OpenURLAction = (url: string, options?: OpenURLOptions) => OpenURLResult
 
 /** Internal factory keeps the same policy in component and imperative actions. */
@@ -53,7 +56,8 @@ export function createOpenURLAction(options: {
   }
 }
 
-/** Open a web URL from an action. Registered app URLs stay in the current document. */
+/** Returns a function that opens a URL from an action. App URLs that match a registered route
+ * navigate inside the app; other URLs go to the browser. */
 export function useOpenURL(): OpenURLAction {
   const runtime = useAppContext()
   return useMemo(
@@ -98,6 +102,7 @@ export function useOpenURL(): OpenURLAction {
   )
 }
 
+/** The link's destination URL, its content and an optional result callback. */
 export interface LinkProps extends OpenURLOptions {
   destination: string
   children: ReactNode
@@ -108,7 +113,8 @@ export interface LinkProps extends OpenURLOptions {
   onResult?: (result: OpenURLResult) => void
 }
 
-/** An accessible URL action with the framework's press and scroll-cancellation policy. */
+/** Opens a URL when pressed, like `useOpenURL`. A press that turns into a scroll does not open
+ * it. */
 export function Link({ destination, prefersInApp, onResult, children, ...props }: LinkProps) {
   const openURL = useOpenURL()
   return (

@@ -1,3 +1,4 @@
+import { setupPrelaunch, prelaunchDOM } from '../app/prelaunch.test-helper.ts'
 // @vitest-environment happy-dom
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
@@ -28,8 +29,8 @@ const app = defineApp({
 it('paints actual first-install byte progress for a release app before preparation completes', async () => {
   vi.stubEnv('DEV', false)
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
-  document.body.innerHTML =
-    '<div id="satin-launch-screen"><svg id="satin-launch-progress" hidden><circle stroke-dashoffset="100" /></svg></div><div id="mount"></div>'
+  document.body.innerHTML = '<div id="mount"></div>'
+  setupPrelaunch()
   const { SatinRoot } = await import('./SatinRoot.tsx')
   const root = createRoot(document.getElementById('mount')!)
   try {
@@ -42,7 +43,7 @@ it('paints actual first-install byte progress for a release app before preparati
     })
     expect(state.progress).toBeTypeOf('function')
     act(() => state.progress!({ loaded: 25, total: 100 }))
-    expect(document.getElementById('satin-launch-progress')!.hasAttribute('hidden')).toBe(false)
+    expect(prelaunchDOM.getElementById('satin-launch-progress')!.hasAttribute('hidden')).toBe(false)
   } finally {
     await act(async () => root.unmount())
     vi.unstubAllEnvs()

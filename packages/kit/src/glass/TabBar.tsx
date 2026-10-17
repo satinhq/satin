@@ -1,3 +1,5 @@
+import { PadSearchBarMotion } from '../search/padSearchBarMotion.ts'
+import { PadSearchPresentationContext } from '../search/PadSearchPresentationContext.tsx'
 import { useControlStyle } from '../public/controlStyle.tsx'
 import { orderedTabItems, TopTabLabel } from '../tabs/presentation.tsx'
 import { handleTabKeyDown } from '../tabs/keyboard.ts'
@@ -73,6 +75,8 @@ export function TabBar({
   variant = 'regular',
   ...props
 }: TabBarProps) {
+  const searchPresentation = useContext(PadSearchPresentationContext)
+  const searchProgress = searchPresentation?.owner === selected ? 1 : 0
   const { tint } = useControlStyle()
   const liquid = useContext(MaterialEffectContext)
   const layoutClass = useLayoutClass()
@@ -93,6 +97,17 @@ export function TabBar({
   const { chromeLayer, registerRegion } = useGlassMaterialContext()
   const regionId = useId()
   const elementRef = useRef<HTMLElement>(null)
+  const padBarMotion = useRef<PadSearchBarMotion | null>(null)
+  const previousSearchProgress = useRef(searchProgress)
+  useLayoutEffect(() => {
+    if (!sidebar || liquidTop || previousSearchProgress.current === searchProgress) return
+    previousSearchProgress.current = searchProgress
+    const element = elementRef.current
+    if (!element) return
+    padBarMotion.current ??= new PadSearchBarMotion()
+    padBarMotion.current.start(element, searchProgress, undefined)
+  }, [sidebar, liquidTop, searchProgress])
+  useLayoutEffect(() => () => padBarMotion.current?.dispose(), [])
   const hasAccessory = useContext(TabBarAccessoryContext)
   const compact =
     readDeviceIdiom() === 'phone' && metrics.layoutViewport.width > metrics.layoutViewport.height
@@ -148,6 +163,7 @@ export function TabBar({
       tint,
       insetHost: elementRef.current ?? undefined,
       placement: 'top',
+      searchProgress,
       itemFrames,
     })
     return () => liquid?.registerTabs(regionId, undefined)
@@ -162,6 +178,7 @@ export function TabBar({
     tint,
     liquidTop,
     itemFrames,
+    searchProgress,
   ])
 
   useLayoutEffect(() => {
@@ -273,6 +290,9 @@ export function TabBar({
   const tabBarStyle: TabBarStyle = {
     ...style,
     ...(sidebar ? sidebarCssTokens : {}),
+    ...(sidebar && searchProgress
+      ? { translate: `0 ${-64 * searchProgress}px`, opacity: 1 - searchProgress }
+      : {}),
     '--satin-tab-tint': tint,
     '--satin-tab-count': items.length,
     '--satin-tab-selection-offset': `${selectedIndex * 100}%`,
@@ -284,6 +304,8 @@ export function TabBar({
       {...props}
       ref={elementRef}
       role="tablist"
+      inert={props.inert || (sidebar && searchProgress > 0) || undefined}
+      aria-hidden={props['aria-hidden'] || (sidebar && searchProgress > 0) || undefined}
       onKeyDown={handleTabKeyDown}
       aria-label={props['aria-label'] ?? 'App tabs'}
       className={className}

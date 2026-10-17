@@ -1,11 +1,11 @@
 // @vitest-environment happy-dom
-import { readFileSync } from 'node:fs'
+import { frameworkStyleDeclarations } from '../../test/domStyles.ts'
 import { expect, it } from 'vitest'
 
 it('reserves the first headerless section gap through an opaque component in an inline List', () => {
   // Happy DOM cannot parse these complete selector groups as CSS rules, but its selector
   // matcher supports them. WebKit captures separately verify the painted margin.
-  const css = readFileSync('src/styles.css', 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
+  const css = frameworkStyleDeclarations().replace(/\/\*[\s\S]*?\*\//g, '')
   const gapSelectors = [...css.matchAll(/([^{}]+)\{\s*margin-top:\s*35px;\s*\}/g)]
     .flatMap(match => match[1]!.split(/,(?![^()]*\))/))
     .map(selector =>
@@ -32,7 +32,7 @@ it('reserves the first headerless section gap through an opaque component in an 
 
 it('keeps the modal viewport fixed while long alert content retains an isolated scrollport', () => {
   const style = document.createElement('style')
-  style.textContent = readFileSync('src/styles.css', 'utf8')
+  style.textContent = frameworkStyleDeclarations()
   const dialog = document.createElement('dialog')
   dialog.className = 'satin-presentation'
   dialog.dataset.satinPresentation = 'alert'

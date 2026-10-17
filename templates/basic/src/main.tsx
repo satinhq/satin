@@ -23,7 +23,6 @@ import {
   useRecord,
   useSceneStorage,
 } from '@satinhq/kit'
-import '@satinhq/kit/styles.css'
 import { app as appInput } from './app'
 import { db } from './data'
 import './styles.css'

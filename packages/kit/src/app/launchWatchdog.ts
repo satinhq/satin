@@ -15,68 +15,46 @@ export function installLaunchWatchdog(budgetMs: number) {
       .filter(mark => mark.name.startsWith('satin-'))
     const stage = marks.at(-1)?.name ?? 'satin-document-head'
     console.error('[Satin launch]', reason, 'Last stage:', stage, recordedError)
-    const screen = document.createElement('section')
-    screen.id = 'satin-launch-error'
-    screen.setAttribute('role', 'alert')
-    screen.style.cssText =
-      'position:fixed;inset:0;z-index:20002;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;box-sizing:border-box;background:var(--satin-launch-background,#f2f2f7);color:var(--satin-launch-ink,#1c1c1e);font:17px/1.45 system-ui;text-align:center;pointer-events:auto'
-    const title = document.createElement('h1')
-    title.textContent = 'Unable to Open App'
-    title.style.cssText = 'font-size:24px;margin:0 0 12px'
-    const message = document.createElement('p')
-    message.textContent = reason
-    message.style.maxWidth = '420px'
-    const reached = document.createElement('p')
-    reached.textContent = 'Last stage: ' + stage
-    reached.style.cssText = 'font-size:13px;opacity:.65;overflow-wrap:anywhere'
-    const retry = document.createElement('button')
-    retry.textContent = 'Retry'
-    retry.style.cssText =
-      'font:600 17px system-ui;color:#007aff;background:transparent;border:0;padding:16px 32px;min-height:44px'
-    retry.onclick = () => {
-      const definition = (window as typeof window & { __SATIN_DEFINITION__?: { scope: string } })
-        .__SATIN_DEFINITION__
-      try {
-        sessionStorage.setItem('satin-install-reset:' + (definition?.scope ?? '/'), '1')
-      } catch {
-        // A reload can still join the worker after its own deadline.
-      }
-      location.reload()
-    }
-    screen.append(title, message, reached, retry)
-    // A stalled document can reach this deadline before its body arrives. Paint
-    // the failure from the existing document root instead of waiting on parsing.
-    ;(document.body ?? document.documentElement).append(screen)
-    if (!document.body) {
-      document.addEventListener(
-        'DOMContentLoaded',
-        () => {
-          if (screen.isConnected) document.body?.append(screen)
-        },
-        { once: true },
-      )
-    }
-    const cover = document.getElementById('satin-launch-screen')
     const controller = (
       window as Window & {
-        __SATIN_LAUNCH_SCREEN__?: { fail(onRetired: () => void): void; restore(): void }
+        __SATIN_PRELAUNCH__?: {
+          error(reason: string, title?: string, retry?: () => void, detail?: string): void
+        }
       }
-    ).__SATIN_LAUNCH_SCREEN__
-    const ring = document.getElementById('satin-launch-progress')
-    if (cover && ring && !ring.hasAttribute('hidden') && controller) {
-      // Put the failure underneath the cover until its visible arc completes.
-      screen.style.zIndex = '19999'
-      controller.fail(() => {
-        if (failed) screen.style.zIndex = '20002'
-      })
-    } else if (cover) cover.hidden = true
+    ).__SATIN_PRELAUNCH__
+    controller?.error(reason, 'Unable to Open App', undefined, 'Last stage: ' + stage)
     performance.mark('satin-launch-failed')
   }
-  window.addEventListener('error', event => {
-    recordedError = event.message || 'Application script failed to load.'
-  })
+  window.addEventListener(
+    'error',
+    event => {
+      const target = event.target
+      if (target instanceof HTMLLinkElement && target.rel === 'stylesheet') {
+        target.dataset.satinStyleError = 'true'
+        showFailure('The app stylesheet failed to load. Please retry.')
+      } else if (target instanceof HTMLScriptElement) {
+        showFailure('The application script failed to load. Please retry.')
+      } else if (event instanceof ErrorEvent) {
+        recordedError = event.message || 'Application script failed to load.'
+        showFailure('Launch failed. ' + recordedError.split('\n')[0]!.slice(0, 160))
+      }
+    },
+    true,
+  )
+  document.addEventListener(
+    'load',
+    event => {
+      const link = event.target
+      if (link instanceof HTMLLinkElement && link.hasAttribute('data-satin-style')) {
+        link.media = link.getAttribute('data-satin-style') || 'all'
+        link.dataset.satinStyleReady = 'true'
+      }
+    },
+    true,
+  )
   window.addEventListener('unhandledrejection', event => {
     recordedError = event.reason instanceof Error ? event.reason.message : String(event.reason)
+    showFailure('Launch failed. ' + recordedError.split('\n')[0]!.slice(0, 160))
   })
   window.addEventListener('satin-glass-error', event => {
     const error = (event as CustomEvent<{ code: string; message: string }>).detail
@@ -84,22 +62,12 @@ export function installLaunchWatchdog(budgetMs: number) {
     showFailure('Glass could not start: ' + error.code + '.')
   })
   const recover = () => {
-    const restoreCover = failed
     failed = false
-    document.getElementById('satin-launch-error')?.remove()
-    const cover = document.getElementById('satin-launch-screen')
-    // The runtime owns normal ring settlement and cover retirement. Only undo
-    // the cover hiding performed by this watchdog's own failure screen.
-    if (cover && restoreCover) {
-      const controller = (
-        window as Window & {
-          __SATIN_LAUNCH_SCREEN__?: { restore(): void }
-        }
-      ).__SATIN_LAUNCH_SCREEN__
-      if (controller) controller.restore()
-      else cover.hidden = false
-    }
+    ;(
+      window as Window & { __SATIN_PRELAUNCH__?: { recover(): void } }
+    ).__SATIN_PRELAUNCH__?.recover()
   }
+
   const receiveProgress = (progress: { loaded: number; activity?: number } | null) => {
     if (progress && (progress.loaded > lastBytes || (progress.activity ?? 0) > lastActivity)) {
       lastBytes = progress.loaded
@@ -193,8 +161,8 @@ export function installLaunchWatchdog(budgetMs: number) {
       // Controlled documents are cached launches/updates and keep their existing policy.
       if (!navigator.serviceWorker?.controller && !revealed)
         (
-          window as unknown as { __SATIN_LAUNCH_SCREEN__?: { progress(value: unknown): void } }
-        ).__SATIN_LAUNCH_SCREEN__?.progress(progress)
+          window as unknown as { __SATIN_PRELAUNCH__?: { progress(value: unknown): void } }
+        ).__SATIN_PRELAUNCH__?.progress(progress)
     }
   })
   // A client's worker messages are queued until DOMContentLoaded, and a bootstrap module that

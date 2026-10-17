@@ -1,6 +1,6 @@
 {
   "name": "create-satin",
-  "version": "0.1.0-beta.3",
+  "version": "0.1.0-beta.4",
   "description": "Create a Satin iPhone Home Screen app.",
   "type": "module",
   "license": "MIT",

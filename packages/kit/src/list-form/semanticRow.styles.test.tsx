@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { readFileSync } from 'node:fs'
+import { frameworkStyleDeclarations } from '../../test/domStyles.ts'
 import { afterEach, expect, it } from 'vitest'
 import { createElement, type ReactNode } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
@@ -29,7 +29,7 @@ it.each([
   'blockquote',
 ])('stretches %s row content without changing the width of intrinsic controls', tag => {
   const style = document.createElement('style')
-  style.textContent = readFileSync('src/styles.css', 'utf8').replaceAll('\n', ' ')
+  style.textContent = frameworkStyleDeclarations().replaceAll('\n', ' ')
   document.head.append(style)
   for (const attribute of ['data-satin-section-item', 'data-satin-list-row-options']) {
     const row = document.createElement('div')
@@ -76,7 +76,7 @@ const authoredContent = [
 for (const attribute of ['data-satin-section-item', 'data-satin-list-row-options']) {
   it.each(authoredContent)(`proposes the full width through %s in ${attribute}`, (_, sample) => {
     const style = document.createElement('style')
-    style.textContent = readFileSync('src/styles.css', 'utf8').replaceAll('\n', ' ')
+    style.textContent = frameworkStyleDeclarations().replaceAll('\n', ' ')
     document.head.append(style)
     const row = document.createElement('div')
     row.setAttribute(attribute, 'true')
@@ -90,7 +90,7 @@ for (const attribute of ['data-satin-section-item', 'data-satin-list-row-options
 
 it('lets content decline the proposal and keeps replaced elements intrinsically sized', () => {
   const style = document.createElement('style')
-  style.textContent = readFileSync('src/styles.css', 'utf8').replaceAll('\n', ' ')
+  style.textContent = frameworkStyleDeclarations().replaceAll('\n', ' ')
   document.head.append(style)
   const row = document.createElement('div')
   row.setAttribute('data-satin-list-row-options', 'true')
@@ -108,7 +108,7 @@ it.each(['plain', 'borderless', 'bordered', 'borderedProminent', 'glass'] as con
   'keeps the stock %s Button intrinsic while its label can request fill',
   buttonStyle => {
     const style = document.createElement('style')
-    style.textContent = readFileSync('src/styles.css', 'utf8').replaceAll('\n', ' ')
+    style.textContent = frameworkStyleDeclarations().replaceAll('\n', ' ')
     document.head.append(style)
     const row = document.createElement('div')
     row.setAttribute('data-satin-list-row-options', 'true')
@@ -132,7 +132,7 @@ it.each(['plain', 'borderless', 'bordered', 'borderedProminent', 'glass'] as con
 
 it('fills a composite list row through stacks while preserving the independent leading button', () => {
   const style = document.createElement('style')
-  style.textContent = readFileSync('src/styles.css', 'utf8').replaceAll('\n', ' ')
+  style.textContent = frameworkStyleDeclarations().replaceAll('\n', ' ')
   document.head.append(style)
   document.body.innerHTML = renderToStaticMarkup(
     <ListRow>
@@ -160,7 +160,7 @@ it('fills a composite list row through stacks while preserving the independent l
 
 it('applies explicit composite insets once and keeps a single navigation row unchanged', () => {
   const style = document.createElement('style')
-  style.textContent = readFileSync('src/styles.css', 'utf8').replaceAll('\n', ' ')
+  style.textContent = frameworkStyleDeclarations().replaceAll('\n', ' ')
   document.head.append(style)
   document.body.innerHTML = renderToStaticMarkup(
     <>
@@ -201,7 +201,7 @@ it('applies explicit composite insets once and keeps a single navigation row unc
 // B3's habit row (check Button + NavigationLink) stacked them vertically before.
 it('lays out several direct ListRow children as one HStack row with a filling link', () => {
   const style = document.createElement('style')
-  style.textContent = readFileSync('src/styles.css', 'utf8').replaceAll('\n', ' ')
+  style.textContent = frameworkStyleDeclarations().replaceAll('\n', ' ')
   document.head.append(style)
   document.body.innerHTML = renderToStaticMarkup(
     <ListRow>
@@ -231,7 +231,7 @@ it('lays out several direct ListRow children as one HStack row with a filling li
 
 it('applies explicit insets once to direct children, like the HStack composition', () => {
   const style = document.createElement('style')
-  style.textContent = readFileSync('src/styles.css', 'utf8').replaceAll('\n', ' ')
+  style.textContent = frameworkStyleDeclarations().replaceAll('\n', ' ')
   document.head.append(style)
   document.body.innerHTML = renderToStaticMarkup(
     <ListRow listRowInsets={{ leading: 12, trailing: 16 }}>
@@ -249,7 +249,7 @@ it('applies explicit insets once to direct children, like the HStack composition
 
 it('keeps single-child, presentation-sibling and HStack ListRows on their existing layout', () => {
   const style = document.createElement('style')
-  style.textContent = readFileSync('src/styles.css', 'utf8').replaceAll('\n', ' ')
+  style.textContent = frameworkStyleDeclarations().replaceAll('\n', ' ')
   document.head.append(style)
   document.body.innerHTML = renderToStaticMarkup(
     <>

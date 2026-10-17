@@ -1,11 +1,11 @@
 // @vitest-environment happy-dom
-import { readFileSync } from 'node:fs'
+import { frameworkStyleDeclarations } from '../../test/domStyles.ts'
 import { expect, it } from 'vitest'
 
 // Computed-style model; installed WebKit recordings establish painted glass/shadow clipping.
 it('keeps the back control overflow visible during a transition', () => {
   const stylesheet = document.createElement('style')
-  stylesheet.textContent = readFileSync('src/styles.css', 'utf8')
+  stylesheet.textContent = frameworkStyleDeclarations()
   const host = document.createElement('div')
   host.setAttribute('data-satin-navigator-host', 'true')
   host.setAttribute('data-satin-transition-active', 'true')

@@ -42,6 +42,8 @@ export interface ImageProps extends Omit<
 
 const transparent = emptyImageSource
 
+/** The loading state an `AsyncImage` reports: `empty` while loading, then `success` with the
+ * image element or `failure` with the error. */
 export type AsyncImagePhase =
   | { readonly phase: 'empty' }
   | { readonly phase: 'success'; readonly image: HTMLImageElement }
@@ -367,8 +369,8 @@ function Artwork({
   )
 }
 
-/** `Image` for a bundled or local asset: it reserves its size so layout never jumps, and
- * `priority` loads it ahead of other images. Use `alt=""` for decoration. */
+/** Shows a bundled or local image. It reserves its size so layout never jumps, and `priority`
+ * loads it ahead of other images. Use `alt=""` for decoration. */
 export function Image(props: ImageProps) {
   const preparation = useContext(ContentImageContext)
   if (!preparation) return <Artwork {...props} />
@@ -509,7 +511,8 @@ export interface AsyncImageProps extends Omit<ImageProps, 'src'> {
   readonly onPhaseChange?: (phase: AsyncImagePhase) => void
 }
 
-/** Remote artwork keeps its placeholder on failure and never blocks navigation. */
+/** Loads an image from a URL. It keeps its placeholder if loading fails, never holds up
+ * navigation, and reports progress through `onPhaseChange`. */
 export function AsyncImage(props: AsyncImageProps) {
   return <Artwork {...props} remote data-satin-async-image="true" />
 }

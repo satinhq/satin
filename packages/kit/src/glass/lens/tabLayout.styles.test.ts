@@ -1,10 +1,10 @@
 // @vitest-environment happy-dom
-import { readFileSync } from 'node:fs'
+import { frameworkStyleDeclarations } from '../../../test/domStyles.ts'
 import { expect, it } from 'vitest'
 
 it('places landscape icons beside their labels within the dock height', () => {
   const style = document.createElement('style')
-  style.textContent = readFileSync('src/styles.css', 'utf8')
+  style.textContent = frameworkStyleDeclarations()
   const dock = document.createElement('div')
   dock.dataset.satinTabLayout = 'compact'
   const items = document.createElement('div')

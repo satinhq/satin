@@ -213,17 +213,18 @@ function sectionRows(children: ReactNode, parentKeys: string[] = []): SectionRow
   })
 }
 
-/** Per-row list properties. Insets are in points. */
+/** One row's content and its overrides: insets in points, background, separator, swipe actions,
+ * context menu and editing opt-outs. */
 export type ListRowProps = RowActionsProps & {
   children: ReactNode
   listRowInsets?: number | { top?: number; leading?: number; bottom?: number; trailing?: number }
   listRowBackground?: string
   listRowSeparator?: 'visible' | 'hidden'
-  /** `moveDisabled`: no reorder handle in edit mode. Other rows can still pass it. */
+  /** No reorder handle in edit mode. Other rows can still move past it. */
   moveDisabled?: boolean
-  /** `deleteDisabled`: no swipe-to-delete or delete control for this row. */
+  /** No swipe-to-delete or delete control for this row. */
   deleteDisabled?: boolean
-  /** `selectionDisabled`: the List selection skips this row. */
+  /** The List selection skips this row. */
   selectionDisabled?: boolean
 }
 
@@ -255,7 +256,7 @@ function listRowStyle({
 }
 
 /**
- * Explicit framework overrides for a single row, including custom content.
+ * One row with custom content or per-row overrides.
  *
  * A ListRow is always one row. Several children share it side by side, laid out
  * as an HStack would (centred, 8 pt apart, a NavigationLink filling the rest);
@@ -431,7 +432,7 @@ function ListItems({ children, section = false }: { children: ReactNode; section
   )
 }
 
-/** `Section`: a group of rows in a `List` or `Form`, with an optional header and footer. */
+/** A group of rows in a `List` or `Form`, with an optional header and footer. */
 export function Section({ children, header, footer, className, style }: SectionProps) {
   const headerId = useId()
   const rowsRef = useRef<HTMLDivElement>(null)
@@ -630,7 +631,7 @@ export type Choice = {
   symbol?: SymbolName
   /** The option's icon as a React node, for an icon that is not a symbol. */
   icon?: ReactNode
-  /** The icon's colour (its `foregroundStyle`). An option with a colour and no icon shows a
+  /** The icon's colour. An option with a colour and no icon shows a
    * filled circle in that colour, the usual way to offer a colour. */
   color?: string
   /** The option shows dimmed and can't be chosen. */

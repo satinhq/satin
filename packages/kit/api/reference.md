@@ -6,1013 +6,1031 @@ Generated from package declarations and reviewed behavior metadata. Run `pnpm --
 
 Coverage: 943 named exports across 9 declaration entry points. 151 exports have reviewed behavior metadata. 792 type and integration declarations are identified separately in the behavior review inventory. CSS is a stylesheet, not a named export.
 
-An API description establishes the supported contract. It does not certify pixels, motion, touch or installed-app lifecycle behavior. Experimental entry points remain experimental.
+An API description establishes the supported contract. It does not certify pixels, motion, touch or installed-app lifecycle behavior. Experimental entry points remain experimental. An empty Limits cell means there are no limits beyond what the declaration states.
 
 ## Core API
 
 Module: `@satinhq/kit`
 
+Components, hooks and types for building the app.
+
 | Satin export | Behavior | Limits | Also known as |
 | --- | --- | --- | --- |
-| [`Action`](../actions/types.d.ts) | Shared by menus, context menus and row swipe actions. | Native VoiceOver Actions rotor entries are unavailable; accessible named actions exist. |  |
-| [`ActionItem`](../actions/types.d.ts) | A leaf command shared by menus, swipe actions, alerts and confirmation dialogs. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`AdaptiveGridItemOptions`](../content/content.d.ts) | Bounds for repeated adaptive tracks. Only one adaptive descriptor is supported. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`Alert`](../presentation/Presentation.d.ts) | `alert`: a titled presentation with up to three leaf actions and an optional text field. | Cold launch closes legacy restored flags. Destructive confirmations must start closed. |  |
-| [`AlertProps`](../presentation/Presentation.d.ts) | An alert's presentation binding, message and leaf actions. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`AlertTextFieldProps`](../presentation/Presentation.d.ts) | The controlled text and keyboard intent of an alert's embedded field. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`Animation`](../motion/animationValue.d.ts) | An opaque spring timing value for `withAnimation`. Use a named value or `Animation.spring`. | Other state and style changes do not animate. Use ForEach identities for keyed List animation. No null animation, easing curves, repeatCount, delay, completion or per-update nested timing. Use one outer synchronous update. Negative bounces are not offered. |  |
-| [`AppCapability`](../app/definition.d.ts) | A declared app capability that requires framework-owned runtime support. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`AppDefinition`](../app/definition.d.ts) | Defines the `AppDefinition` type in `@satinhq/kit`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`AppDefinitionInput`](../public/definition.d.ts) | What an app declares about itself: identity, install metadata and launch appearance. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`AppIcon`](../app/definition.d.ts) | Defines the `AppIcon` type in `@satinhq/kit`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`AppOrientation`](../app/definition.d.ts) | An orientation that the app supports. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`AsyncImage`](../image/Image.d.ts) | Remote artwork keeps its placeholder on failure and never blocks navigation. | Remote loading is not a native URLSession cache. The phase callback reports loading state; it does not build alternate content. No Photos library authorization API. |  |
-| [`AsyncImagePhase`](../image/Image.d.ts) | Defines the `AsyncImagePhase` type in `@satinhq/kit`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`AsyncImageProps`](../image/Image.d.ts) | An `ImageProps` whose source is a remote URL. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`BuildInfo`](../app/buildInfo.d.ts) | Identity embedded in the running app's JavaScript bundle. The app build ID is a unique build identifier, not a git revision or the service worker's cache hash. | The app build ID is not a git revision or service-worker cache hash. Builds that bypass satinApp report unavailable metadata. Server fetch receipts are separate evidence, not proof of which cached bundle is running. |  |
-| [`BuiltInButtonStyle`](../public/controlStyle.d.ts) | Built-in button styles, by their `buttonStyle` names. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`BuiltInLabelStyle`](../public/controlStyle.d.ts) | Built-in label styles. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`BuiltInToggleStyle`](../public/controlStyle.d.ts) | Built-in toggle styles. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`Button`](../public/controls.d.ts) | Use onPress and framework control styles, size and inherited disabled state. buttonBorderShape selects automatic, capsule or a fixed roundedRectangle radius through the shared material shape. | Native style names apply only to the supported styles. Circle and container-concentric button borders are not exposed; plain and List-row buttons have no painted border. Custom ButtonStyle.makeBody controls the visual content; Satin retains button interaction and accessibility. |  |
-| [`ButtonBorderShape`](../public/buttonBorderShape.d.ts) | `buttonBorderShape`. Fixed radii are measured in points. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ButtonProps`](../public/controls.d.ts) | Button's action, label and control properties. An `iconOnly` button needs an `aria-label`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ButtonRole`](../public/controlStyle.d.ts) | `ButtonRole`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ButtonStyle`](../public/controlStyle.d.ts) | A custom framework `ButtonStyle`. Appearance only: return noninteractive content; Satin owns the button. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ButtonStyleConfiguration`](../public/controlStyle.d.ts) | `ButtonStyleConfiguration`: what a custom `ButtonStyle` draws from. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`Choice`](../list-form/ListForm.d.ts) | One option of a `Picker`. | Supported option values and styles come from PickerProps. |  |
-| [`collection`](../data/database.d.ts) | Declares a collection of records keyed by one string field, like a SwiftData `@Model` with a unique attribute. The curried form, `collection<Note>()({ key, indexes })`, infers index names. | This is IndexedDB, not SwiftData, Core Data or CloudKit. Storage may be evicted; writes can fail. |  |
-| [`Collection`](../data/database.d.ts) | One collection of a database (`db.notes`). Once loaded, writes publish to memory at once, so `useQuery` sees them immediately; the returned promise settles after the durable commit. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`CollectionDefinition`](../data/database.d.ts) | A collection's record type, key and indexes, made by `collection` for `defineDatabase`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`CollectionIndexes`](../data/database.d.ts) | A mapping from declared index names to record properties. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`CollectionSchema`](../data/database.d.ts) | The named collections in a database declaration. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`CollectionUpdateMethods`](../data/database.d.ts) | The accepted record updates for a collection. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ColorPicker`](../controls/ColorPicker.d.ts) | `ColorPicker`: a row with a colour well that opens the system colour picker (grid, spectrum, sliders, eyedropper and, with `supportsOpacity`, opacity). The system picker is titled "Colors", not with the label. | The system picker is titled "Colors" instead of the label. Output is sRGB hex; Display P3 choices are converted to sRGB. See controls.md. |  |
-| [`ColorPickerProps`](../controls/ColorPicker.d.ts) | ColorPicker's label and controlled colour. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ColorScheme`](../public/environment.d.ts) | `ColorScheme`: the appearance currently drawn by the scene. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ConfirmationDialog`](../presentation/Presentation.d.ts) | `confirmationDialog`: a titled action presentation anchored to its initiating control. | Cold launch closes legacy restored flags. Destructive confirmations must start closed. |  |
-| [`ConfirmationDialogProps`](../presentation/Presentation.d.ts) | A confirmation dialog's presentation binding, leaf actions and optional anchor. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ContentAlignment`](../content/content.d.ts) | `Alignment`, for `frame` and `ZStack`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ContentFrame`](../content/content.d.ts) | `frame(width:height:alignment:)` and `frame(minWidth:maxWidth:…)`, in points. `'infinity'` fills the available space. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ContentMargins`](../safe-area/modifiers.d.ts) | Sets margins for descendant scroll views. Lists use horizontal layout margins; the innermost value for each edge wins. | placement scrollIndicators has no effect: Satin draws the indicator in the screen frame. |  |
-| [`ContentMarginsProps`](../safe-area/modifiers.d.ts) | Which edges get a margin, how much, and whether it applies to content or indicators. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ContentPadding`](../content/content.d.ts) | `padding`: `true` is the default 16 pt on every edge, a number pads every edge, and an object pads chosen edges. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ContentProps`](../content/content.d.ts) | Shared content properties for the framework components. Plain HTML attributes, `style` included, still apply. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ContentUnavailableView`](../public/controls.d.ts) | `ContentUnavailableView`: an icon, title and description shown for empty content. | Supports the explicit title, icon, description and actions composition; no automatic search variant. |  |
-| [`ContentUnavailableViewProps`](../public/controls.d.ts) | The empty state's title, optional description and icon (a tray by default). | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ContextMenu`](../actions/RowActions.d.ts) | `contextMenu`: long-pressing the content opens the glass menu of its actions, with an optional custom `preview`. Rows in a `List` take a `contextMenu` prop instead. | Native VoiceOver Actions rotor entries are unavailable; accessible named actions exist. |  |
-| [`ContextMenuConfiguration`](../actions/types.d.ts) | `contextMenu`: row commands and an optional preview. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ControlConfiguration`](../public/controlStyle.d.ts) | The environment every custom control style receives. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ControlSize`](../public/controlStyle.d.ts) | `ControlSize`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ControlStyleProvider`](../public/controlStyle.d.ts) | Sets control defaults for a subtree through `buttonStyle`, `toggleStyle`, `labelStyle`, `controlSize`, `tint` and `disabled`. A control's own props win over the provider, except that a disabled ancestor cannot be re-enabled by a child. | Native style names apply only to the supported styles. Circle and container-concentric button borders are not exposed; plain and List-row buttons have no painted border. Custom ButtonStyle.makeBody controls the visual content; Satin retains button interaction and accessibility. |  |
-| [`ControlStyleValues`](../public/controlStyle.d.ts) | The control environment a `ControlStyleProvider` sets for its subtree. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`CoreSymbolName`](../symbols/catalogue.d.ts) | The core symbol name contract used by public app declarations. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`cornerClipPath`](../shapes/corners.d.ts) | CSS clip for an explicitly sized shape. Radii are CSS points; ellipse and capsule are intentional alternatives, not native-default validation errors. | The caller owns sizing outside framework rows. This helper does not change a glass renderer mask. Continuous path coordinates use the measured iOS 27 corner profile. |  |
-| [`CornerShape`](../shapes/corners.d.ts) | A deliberate shape choice overrides the framework's semantic default. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`DatabaseMigration`](../data/database.d.ts) | An awaited migration over the database transaction collections. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`DatabaseRecord`](../data/database.d.ts) | A stored record with named values. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`DatePicker`](../controls/DatePicker.d.ts) | `DatePicker` in its compact style: the row's grey value capsules open the system date or time picker. Use a civil string selection (`'2026-10-14'`) for a day that must stay the same day in every time zone, such as a due date; use a `Date` for a moment in time. | graphical and wheel styles are unsupported. The open picker is the system UIDatePicker but WebKit adds Reset and Done buttons, centres it rather than anchoring it under the capsule, and does not grey out days outside the range (choices are clamped). See controls.md. |  |
-| [`DatePickerComponent`](../controls/DatePicker.d.ts) | `DatePickerComponents`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`DatePickerProps`](../controls/DatePicker.d.ts) | DatePicker's label, controlled selection, range and the components it edits. `selection` is a `Date`, or a civil string with no time zone: `'2026-10-14'` for a date, `'09:41'` for a time, `'2026-10-14T09:41'` for both. The callback returns the same kind. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`DatePickerRange`](../controls/DatePicker.d.ts) | A DatePicker's selectable range. Omit a bound for a one-sided range (`start...` or `...end`). Bounds use the same kind of value as the selection. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`DatePickerStyle`](../controls/DatePicker.d.ts) | `DatePickerStyle`. `automatic` is `compact`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`DefaultToolbarItem`](../public/toolbar.d.ts) | Places the screen search field among bottom-bar items. Requires Screen searchable. | Only kind search. Without a ToolbarSpacer the neighbouring item is not merged into the search capsule as natively; iPad keeps the drawer. |  |
-| [`DefaultToolbarItemProps`](../public/toolbar.d.ts) | Which system item to place, and where. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`defineApp`](../public/definition.d.ts) | Declares app identity, install metadata and capabilities once. Pass the result to `runApp` and to the `@satinhq/kit/vite` plugin. Everything not given is defaulted and the whole definition is validated, so a bad id or icon fails at build time rather than after install. | One app root and the Home Screen WebKit target. No native multi-window Scene builder. |  |
-| [`defineDatabase`](../data/database.d.ts) | Opens the app's local database (IndexedDB), like a SwiftData `ModelContainer`. Each collection becomes a property of the result. Bump `version` with a migration whenever the schema changes. Export and import are built in, so offer them to the user. | This is IndexedDB, not SwiftData, Core Data or CloudKit. Storage may be evicted; writes can fail. |  |
-| [`defineNamespace`](../motion/matchedGeometry.d.ts) | A namespace declared once at module scope, for views that share no parent component: a `MatchedTransitionSource` in one route and the screen it zooms into in another. Inside one component, use `useNamespace()`. | Pushed screens only: FullScreenCover and Sheet zooms are not available. The source must be on screen in the covered screen, otherwise the push slides. Downward dismissal accepts initial travel within about 26.6 degrees of vertical. Zoom glass uses the projected navigation route atlas. |  |
-| [`defineNavigation`](../public/structure.d.ts) | Declares the app's primary tabs or its single stack before anything renders, so every stack and tab id exists (and is typed) from the first frame. Pass the result to `runApp`; `TabView`, `Tab` and `NavigationStack` then render it. Components may freely wrap those views. | One app root and the Home Screen WebKit target. No native multi-window Scene builder. |  |
-| [`defineRoutes`](../public/routes.d.ts) | Declares every destination once. The same schema types `useNavigation` and `NavigationLink`, validates restored paths and checks notification deep links, so a route id or param is never a free-form string. | No browser-history router. Route parameters must satisfy the declared schema. |  |
-| [`defineWebAuthentication`](../web/authentication.d.ts) | Durable authorization-code + PKCE handoff. This does not implement a native authentication session. | Requires secure context, local storage, Web Locks, dedicated uncached callback and server exchange. Bridge reads require a private transaction proof. Token and OpenID Connect validation belong to the server. No native-session or background-completion guarantee. |  |
-| [`Divider`](../content/content.d.ts) | `Divider`: a hairline across its parent stack's axis. Decorative, so hidden from assistive technology. | Default spacing and frame proposal differences are documented in content.md. No arbitrary modifier ordering. |  |
-| [`Edge`](../safe-area/context.d.ts) | `Edge`. `leading` and `trailing` follow the layout direction. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`EdgeInsets`](../public/environment.d.ts) | `EdgeInsets`: logical safe-area padding in points. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`EdgeLengths`](../safe-area/context.d.ts) | `EdgeInsets` in points, by layout direction. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`EdgeSet`](../safe-area/modifiers.d.ts) | `Edge.Set`: one member or several. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`EdgeSetMember`](../safe-area/modifiers.d.ts) | A logical edge, an axis pair or all edges. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`EditButton`](../public/controls.d.ts) | `EditButton`: toggles the screen's edit mode. In a toolbar it reads Edit, then becomes the prominent checkmark (Done) while editing, as in iOS 27. | Selection identity comes from ForEach ids (no tag). Edit mode is per screen; there is no environment override binding. Plain rows outside edit mode are not keyboard-focusable for selection. |  |
-| [`EditMode`](../list-form/editing.d.ts) | `EditMode`: whether a screen's lists show their editing controls. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ExportDocument`](../data/database.d.ts) | The JSON document `exportJSON` writes and `importJSON` reads. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`FileImporter`](../public/filePickers.d.ts) | Open the system file chooser from a user gesture. Cancel preserves selection. | FileImporter uses React component spelling. MIME hints are not content validation. No PhotosPickerItem identity, persistent file access or exact overlapping chooser attribution. Installed acceptance remains pending. |  |
-| [`FileImporterProps`](../public/filePickers.d.ts) | Import files from the system chooser. Content types are MIME types or extensions. | FileImporter uses React component spelling. MIME hints are not content validation. No PhotosPickerItem identity, persistent file access or exact overlapping chooser attribution. Installed acceptance remains pending. |  |
-| [`FixedGridItemOptions`](../content/content.d.ts) | A fixed track's dimension in points. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`FlexibleGridItemOptions`](../content/content.d.ts) | Bounds for a flexible track; the minimum defaults to 10 points. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`FocusChainField`](../text-input/focusChain.d.ts) | The focusable field capabilities accepted by a declared editing order. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`FontWeight`](../content/content.d.ts) | `Font.Weight`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ForEach`](../list-form/editing.d.ts) | `ForEach`: one row per element of `data`, identified by its `id` (or `id` function). In a `List`, `onDelete` adds swipe-to-delete and the editing delete control; `onMove` adds the reorder handle. Both receive offsets into `data`; apply them with `removing` and `moving`. Put `ForEach` directly in a `List` or `Section`: the list reads it to know each row's identity. | ForEach must sit directly in a List or Section. Selected-group moves, two-finger selection and VoiceOver move actions are not implemented. |  |
-| [`ForEachProps`](../list-form/editing.d.ts) | The collection, how to identify each element, the row each element becomes and its editing actions. `id` may be omitted when the elements have an `id` field. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`Form`](../public/controls.d.ts) | `Form`: an inset grouped `List` for settings and data entry, whose scroll dismisses the keyboard immediately. | ListRow siblings compose within one row. Use separate ListRow elements for separate rows. Compact spacing uses inset-grouped allocations. Numeric gaps change the margin between sections while retaining header/footer allocations. visible retains style and presentation defaults; it does not force an opaque sheet. |  |
-| [`FormProps`](../public/controls.d.ts) | The scroll, search and section options `Form` and `List` share. `style` is inline CSS. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`FullScreenCover`](../public/presentation.d.ts) | `fullScreenCover`: an opaque presentation over the whole screen, closed through its binding or `useDismiss()`. | No interactive dismissal on covers. Visibility starts closed after relaunch. | full screen presentation |
-| [`FullScreenCoverProps`](../public/presentation.d.ts) | FullScreenCover's presentation binding and accessible title. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`GeometryFrame`](../content/layout.d.ts) | Defines the `GeometryFrame` type in `@satinhq/kit`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`GeometryProxy`](../content/layout.d.ts) | Defines the `GeometryProxy` type in `@satinhq/kit`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`GeometryReader`](../content/layout.d.ts) | A greedy layout container. Give a reader in a scroll view a definite height. | CSS needs a definite proposal on scrolling axes. Native safeAreaInsets and transformed proposal semantics are unsupported. |  |
-| [`GeometryReaderProps`](../content/layout.d.ts) | Defines the props accepted by `GeometryReader`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`GeometrySize`](../content/layout.d.ts) | Defines the `GeometrySize` type in `@satinhq/kit`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`Glass`](../public/glassValue.d.ts) | `Glass`: the material intent for a `GlassEffect`. Start from `Glass.regular` or `Glass.clear` and refine it; each call returns a new value. The renderer's treatment stays internal. | Low-level field/outline helpers compute geometry, not a general view modifier. Released apps use blur-and-tint fallback material for unrecoverable WebGPU failures unless strict glass is requested; development builds report the failure. |  |
-| [`GlassEffect`](../public/glass.d.ts) | Draws glass behind its content in the given shape, using a capsule by default. Inside a `GlassEffectContainer`, effects with ids morph into one another. | Low-level field/outline helpers compute geometry, not a general view modifier. Released apps use blur-and-tint fallback material for unrecoverable WebGPU failures unless strict glass is requested; development builds report the failure. | glass; refraction |
-| [`GlassEffectContainer`](../glass/GlassEffect.d.ts) | `GlassEffectContainer`: groups related glass outlines into one field. | Low-level field/outline helpers compute geometry, not a general view modifier. Released apps use blur-and-tint fallback material for unrecoverable WebGPU failures unless strict glass is requested; development builds report the failure. |  |
-| [`GlassEffectProps`](../public/glass.d.ts) | The glass material, shape, DOM attributes and independent morph identity. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`GlassError`](../glass/errors.d.ts) | Defines the `GlassError` type in `@satinhq/kit`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`GlassErrorCode`](../glass/errors.d.ts) | Serializable across the renderer worker boundary. Release failures may select the fallback material. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`GlassShape`](../public/glass.d.ts) | Public glass outlines. Sheet-specific corner geometry stays internal. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`GlassTint`](../glass/regions.d.ts) | Normalized RGBA channels in 0...1. Glass.tintRGBA rejects nonfinite or out-of-range channels. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`GridItem`](../content/content.d.ts) | Stable eager layouts propose track widths with per-track spacing and alignment. Import these layouts and their types from @satinhq/kit. Use List for long data. | Eager rendering without virtualization. Mixed adaptive tracks and Grid/GridRow are deferred. |  |
-| [`GridItemOptions`](../content/content.d.ts) | Track spacing follows this track; alignment places content within each cell. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`GridItemValue`](../content/content.d.ts) | A frozen validated grid track, constructed through GridItem. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`HorizontalTextFieldProps`](../public/controls.d.ts) | Horizontal TextField's controlled text and keyboard intent. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`HStack`](../content/content.d.ts) | `HStack`: arranges its children horizontally. Pair it with `Spacer` to push content to the edges. | Default spacing and frame proposal differences are documented in content.md. No arbitrary modifier ordering. |  |
-| [`HStackProps`](../content/content.d.ts) | HStack's vertical alignment and spacing in points. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`IgnoresSafeArea`](../safe-area/modifiers.d.ts) | Extends content through selected safe-area edges. Container edges and keyboard avoidance can be controlled independently. | Only a view that starts the screen content extends upward. The bottom edge of non-scroll content is not extended. |  |
-| [`IgnoresSafeAreaProps`](../safe-area/modifiers.d.ts) | Which safe-area regions and edges the content ignores. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`Image`](../image/Image.d.ts) | `Image` for a bundled or local asset: it reserves its size so layout never jumps, and `priority` loads it ahead of other images. Use `alt=""` for decoration. | Remote loading is not a native URLSession cache. The phase callback reports loading state; it does not build alternate content. No Photos library authorization API. |  |
-| [`ImageAsset`](../image/asset.d.ts) | Produced by the Satin Vite plugin for imports ending in ?satin-image. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ImageProps`](../image/Image.d.ts) | An image's source, required alt text and aspect-ratio content mode. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`IndexesOfCollection`](../data/database.d.ts) | The index names declared by a collection. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`JustUpdated`](../app/coldLaunchUpdate.d.ts) | The previous and current build identifiers after an app update. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`KeyboardGeometry`](../keyboard/geometry.d.ts) | The keyboard overlap and viewport dimensions in points. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`KeyboardMetrics`](../public/keyboard.d.ts) | Defines the `KeyboardMetrics` type in `@satinhq/kit`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`Label`](../public/Label.d.ts) | Combines a semantic title and icon. Hidden titles remain available to assistive technology; toolbar labels with icons show the icon alone. | Custom labels must obey the public noninteractive label contract. |  |
-| [`LabeledContent`](../public/controls.d.ts) | `LabeledContent`: a row with a label and a secondary trailing value. | Custom labels must obey the public noninteractive label contract. |  |
-| [`LabeledContentProps`](../public/controls.d.ts) | The row's label and the trailing value it shows. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`LabelProps`](../public/Label.d.ts) | A label's title (children) and its icon: a `symbol` name or any `icon` node. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`LabelStyle`](../public/controlStyle.d.ts) | A custom framework `LabelStyle` that arranges a label's title and icon. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`LabelStyleConfiguration`](../public/controlStyle.d.ts) | `LabelStyleConfiguration`: the label's title and icon. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`LaunchScreenSlot`](../app/launchScreen.d.ts) | Serializable so the same slot paints before JavaScript modules load. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`LayoutModifierProps`](../safe-area/modifiers.d.ts) | The content and standard DOM attributes of a layout modifier wrapper. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`LazyHGrid`](../content/content.d.ts) | Rows growing horizontally. Renders every child eagerly; use List for long data. | Eager rendering without virtualization. Mixed adaptive tracks and Grid/GridRow are deferred. |  |
-| [`LazyHGridProps`](../content/content.d.ts) | Rows define row spacing; spacing here is the distance between columns. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`LazyHStack`](../content/content.d.ts) | Horizontal stack with eager mounting and retained child state. No viewport virtualization. | Eager rendering without virtualization. Mixed adaptive tracks and Grid/GridRow are deferred. |  |
-| [`LazyHStackProps`](../content/content.d.ts) | LazyHStack's layout props. Every child mounts eagerly; use List for long data. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`LazyVGrid`](../content/content.d.ts) | Columns growing vertically. Renders every child eagerly; use List for long data. | Eager rendering without virtualization. Mixed adaptive tracks and Grid/GridRow are deferred. |  |
-| [`LazyVGridProps`](../content/content.d.ts) | Columns define column spacing; spacing here is the distance between rows. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`LazyVStack`](../content/content.d.ts) | Vertical stack with eager mounting and retained child state. No viewport virtualization. | Eager rendering without virtualization. Mixed adaptive tracks and Grid/GridRow are deferred. |  |
-| [`LazyVStackProps`](../content/content.d.ts) | LazyVStack's layout props. Every child mounts eagerly; use List for long data. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`LineLimit`](../public/controls.d.ts) | A number caps growth; a range also reserves its minimum number of lines. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`Link`](../web/openURL.d.ts) | An accessible URL action with the framework's press and scroll-cancellation policy. | External browser selection is unavailable. Web dispatch is not page completion. Cross-origin or denied frames report status unverified; reload and stop require same-origin access. |  |
-| [`LinkProps`](../web/openURL.d.ts) | Defines the props accepted by `Link`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`List`](../public/controls.d.ts) | `List`: a named vertical scroll view of rows, inset grouped by default. Controls inside it render as rows. Its `id` keys scroll restoration, so keep it stable. With `selection`, rows from a `ForEach` become selectable; with an `EditButton` in the screen's toolbar, `ForEach`'s `onDelete` and `onMove` add the editing controls. | The refresh indicator holds a 60-point content inset while the action runs. Its activity animation is shared with ProgressView. ListRow siblings compose within one row. Use separate ListRow elements for separate rows. Compact spacing uses inset-grouped allocations. Numeric gaps change the margin between sections while retaining header/footer allocations. visible retains style and presentation defaults; it does not force an opaque sheet. Selection identity comes from ForEach ids (no tag). Edit mode is per screen; there is no environment override binding. Plain rows outside edit mode are not keyboard-focusable for selection. Bottom toolbar presentation is not animated yet and its scope bar is not drawn (scoped fields stay in the drawer). The search tab bottom field is not drawn; a declared tab role="search" is metadata. Never hand-build a search bar. | list; rows; pull to refresh |
-| [`ListItemID`](../list-form/editing.d.ts) | A row's identity in `List` selection: the `ForEach` id. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ListProps`](../public/controls.d.ts) | A `List` takes a `Form`'s options, its `listStyle` and an optional `selection`. | Compact spacing uses inset-grouped allocations. Numeric gaps change the margin between sections while retaining header/footer allocations. visible retains style and presentation defaults; it does not force an opaque sheet. |  |
-| [`ListRow`](../list-form/ListForm.d.ts) | Explicit framework overrides for a single row, including custom content. A ListRow is always one row. Several children share it side by side, laid out as an HStack would (centred, 8 pt apart, a NavigationLink filling the rest); each separate row needs its own ListRow. | ListRow siblings compose within one row. Use separate ListRow elements for separate rows. Framework geometry ownership still applies. No raw viewport or safe-area CSS. ForEach must sit directly in a List or Section. Selected-group moves, two-finger selection and VoiceOver move actions are not implemented. Selection identity comes from ForEach ids (no tag). Edit mode is per screen; there is no environment override binding. Plain rows outside edit mode are not keyboard-focusable for selection. |  |
-| [`ListRowProps`](../list-form/ListForm.d.ts) | Per-row list properties. Insets are in points. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ListSelectionProps`](../public/controls.d.ts) | `List(selection:)`. An optional id selects one row: tapping a row selects it. A `Set` selects many: while editing, rows show selection circles and taps toggle them. Rows are identified by their `ForEach` ids. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ListStyle`](../public/controls.d.ts) | `listStyle`: the row chrome of a `List`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`LocalReachabilityState`](../reachability/model.d.ts) | The connectivity state of an app that does not require an app server. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`MatchedTransitionSource`](../public/navigationTransition.d.ts) | `matchedTransitionSource(id:in:)`: marks the view a zoom transition starts from and returns to. A push zooms only while its source is on screen; otherwise it slides as usual. | Pushed screens only: FullScreenCover and Sheet zooms are not available. The source must be on screen in the covered screen, otherwise the push slides. Downward dismissal accepts initial travel within about 26.6 degrees of vertical. Zoom glass uses the projected navigation route atlas. |  |
-| [`MatchedTransitionSourceProps`](../public/navigationTransition.d.ts) | Props of `MatchedTransitionSource`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`MediaCommandResult`](../media/types.d.ts) | How a media command ended. `needs-user-activation` means WebKit wants a tap first. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`MediaController`](../media/types.d.ts) | Queue results acknowledge the transaction. Playback and seek results acknowledge observed completion. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`MediaPlayer`](../media/types.d.ts) | `useMediaPlayer`'s result: the commands and the live state. | Audio transport only; no VideoPlayer, AVKit or background audio entitlement. Playback depends on WebKit codec support and the server delivering compatible media with byte-range support. |  |
-| [`MediaQueueEntry`](../media/types.d.ts) | Each occurrence has its own entryId, including repeated songs. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`MediaQueueOptions`](../media/types.d.ts) | Where a replaced queue starts, and whether it plays. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`MediaRepeat`](../media/types.d.ts) | The queue's repeat mode. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`MediaSnapshot`](../media/types.d.ts) | Everything the player shows: the queue, the current entry, status, position and modes. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`Menu`](../public/actions.d.ts) | Opens a menu of actions. Toolbar labels with symbols render as icon buttons; text labels render as capsules. | Native VoiceOver Actions rotor entries are unavailable; accessible named actions exist. |  |
-| [`MenuProps`](../public/actions.d.ts) | A menu's label and its actions. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`MenuTriggerProps`](../glass/menuPresenter.d.ts) | Defines the props accepted by `MenuTrigger`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`moving`](../list-form/offsets.d.ts) | Returns a new array: the elements at `fromOffsets` move, in their original order, to just before the element that was at `toOffset`. Pass it exactly what `ForEach`'s `onMove` reports. `toOffset` counts positions in the original array: moving the first of three rows below the second reports `toOffset` 2, not 1. Use `items.length` to move to the end. | Returns a new array. Store the result with setState to update the rendered rows. |  |
-| [`NamespaceID`](../motion/matchedGeometry.d.ts) | `Namespace.ID`: the scope `MatchedGeometryEffect` ids are matched within. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`Navigation`](../public/runtime.d.ts) | The current stack's typed navigation actions. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`NavigationArguments`](../public/runtime.d.ts) | The typed parameter tuple accepted by push and replace. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`NavigationBackButtonBehavior`](../navigation/types.d.ts) | Defines the `NavigationBackButtonBehavior` type in `@satinhq/kit`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`NavigationDeclaration`](../public/structure.d.ts) | An app's primary navigation: either tabs, each owning a stack, or one stack. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`NavigationLink`](../public/controls.d.ts) | `NavigationLink(value:)`: pushes a declared route. In a `List` it is a disclosure row; elsewhere, a plain pressable. | No browser-history router. Route parameters must satisfy the declared schema. |  |
-| [`NavigationLinkProps`](../public/controls.d.ts) | A destination route and its params (typed against the registered routes), plus the row's label and accessories. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`NavigationSplitView`](../public/runtime.d.ts) | `NavigationSplitView`: the declared root becomes the sidebar and pushes become the retained detail stack. It collapses to a plain stack at compact width. A `NavigationStack` never splits by itself. | Select an existing declared tab; modal and ad hoc root props are not supported. | sidebar and detail |
-| [`NavigationSplitViewProps`](../public/runtime.d.ts) | Selects which declared primary stack the split view renders; inside a `Tab`, its own. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`NavigationStack`](../public/runtime.d.ts) | Renders an in-memory navigation stack. A primary stack's root comes from `defineNavigation`, never from JSX. Inside a `Sheet`, `modal` with a `root` makes a stack the sheet owns. | No browser-history router. Route parameters must satisfy the declared schema. | navigation stack |
-| [`NavigationStackProps`](../public/runtime.d.ts) | Either a declared primary stack (optionally naming its tab), or a modal stack inside a `Sheet` that declares its own root. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`NavigationTransition`](../public/navigationTransition.d.ts) | `NavigationTransition`: how a pushed screen arrives and leaves. Give one to `Screen`'s `navigationTransition`. | Pushed screens only: FullScreenCover and Sheet zooms are not available. The source must be on screen in the covered screen, otherwise the push slides. Downward dismissal accepts initial travel within about 26.6 degrees of vertical. Zoom glass uses the projected navigation route atlas. |  |
-| [`newId`](../data/database.d.ts) | A new unique record id that sorts by creation time. | This is IndexedDB, not SwiftData, Core Data or CloudKit. Storage may be evicted; writes can fail. |  |
-| [`NotificationAuthorizationStatus`](../public/environment.d.ts) | Notification permission, independent of subscription setup and token rotation. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`NotificationPermissionExplainer`](../public/environment.d.ts) | Explains what notifications are for before the user asks for them; its button requests authorization from that gesture. | Installed Home Screen permission is required. Local scheduled notification delivery is unavailable; use an app-owned authenticated server scheduler. |  |
-| [`NotificationPermissionExplainerProps`](../public/environment.d.ts) | The notification permission explanation's title and app-authored content. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`OfflinePresentationProps`](../reachability/react.d.ts) | Defines the props accepted by `OfflinePresentation`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`OpenURLAction`](../web/openURL.d.ts) | Defines the `OpenURLAction` type in `@satinhq/kit`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`OpenURLOptions`](../web/openURL.d.ts) | A preference for the browser-owned presentation, not a Safari launch guarantee. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`OpenURLResult`](../web/openURL.d.ts) | Dispatched means WebKit accepted the action; it does not mean the page loaded. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`OrientationFallback`](../app/definition.d.ts) | The presentation policy when the window uses an unsupported orientation. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`Overlay`](../safe-area/Overlay.d.ts) | An overlay in SafeAreaInset shares its reduced safe area and keyboard carrier with the composer. | Bottom composer geometry shares the existing inset store. This is the view-content overload; shape-style overlay is not implemented. |  |
-| [`OverlayProps`](../safe-area/Overlay.d.ts) | `overlay(alignment:content:)`: children determine the frame; content respects its safe area. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`param`](../push/schema.d.ts) | Declare typed destinations and use the framework in-memory navigation stack. | No browser-history router. Route parameters must satisfy the declared schema. |  |
-| [`Parameter`](../push/schema.d.ts) | One route parameter's validator, made by `param`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ParameterSchema`](../push/schema.d.ts) | A route's parameters by name. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`PasteButton`](../public/deviceActions.d.ts) | Reads text only when pressed; it never probes clipboard contents while rendering. | No clipboard preflight, arbitrary Transferable content, or reliable distinction between dismissal and denial. WebKit can require an additional Paste confirmation. Installed acceptance remains pending. |  |
-| [`PasteButtonProps`](../public/deviceActions.d.ts) | A user-initiated plain-text paste, subject to WebKit's permission UI. | No clipboard preflight, arbitrary Transferable content, or reliable distinction between dismissal and denial. WebKit can require an additional Paste confirmation. Installed acceptance remains pending. |  |
-| [`PhotosPicker`](../public/filePickers.d.ts) | Photos-library identifiers and persistent access are not exposed by WebKit. | FileImporter uses React component spelling. MIME hints are not content validation. No PhotosPickerItem identity, persistent file access or exact overlapping chooser attribution. Installed acceptance remains pending. |  |
-| [`PhotosPickerProps`](../public/filePickers.d.ts) | Select one photo or video as file bytes through the system chooser. | FileImporter uses React component spelling. MIME hints are not content validation. No PhotosPickerItem identity, persistent file access or exact overlapping chooser attribution. Installed acceptance remains pending. |  |
-| [`Picker`](../public/controls.d.ts) | `Picker`: choose one option. `menu` (default) shows a menu from the row, `navigationLink` pushes a list of options, `inline` lists them in place and `segmented` draws a segmented control. An option can carry a `symbol` (or `icon`) and a `color`. Icons draw in colour in an inline or navigationLink list, in the label colour inside the open menu, and not at all when segmented. | Supported option values and styles come from PickerProps. |  |
-| [`PickerProps`](../public/controls.d.ts) | Picker's options, controlled value and `pickerStyle`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`preferredColorScheme`](../app/appearance.d.ts) | Set this installed scene's appearance. System or null resumes the retained system trait. Store a user's choice with useAppStorage; the override itself lasts for this document. | System or null clears the override. Persist and reapply the choice with useAppStorage. Whole-scene scope including presentations; no per-view or independent sheet preference. |  |
-| [`PreferredColorScheme`](../app/appearanceStore.d.ts) | `preferredColorScheme`: a whole-scene appearance override, or system appearance. | System or null clears the override. Persist and reapply the choice with useAppStorage. Whole-scene scope including presentations; no per-view or independent sheet preference. |  |
-| [`PresentationDetent`](../presentation/model.d.ts) | `PresentationDetent`: a sheet's supported resting height. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`PresentationProps`](../presentation/Presentation.d.ts) | The presentation binding, accessible title and dismissal callback shared by presentations. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`Pressable`](../press/Pressable.d.ts) | Use onPress and framework control styles, size and inherited disabled state. buttonBorderShape selects automatic, capsule or a fixed roundedRectangle radius through the shared material shape. | Native style names apply only to the supported styles. Circle and container-concentric button borders are not exposed; plain and List-row buttons have no painted border. Custom ButtonStyle.makeBody controls the visual content; Satin retains button interaction and accessibility. |  |
-| [`PressableOwnedHandlers`](../press/Pressable.d.ts) | DOM activation handlers reserved for the Pressable interaction policy. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`PressableProps`](../press/Pressable.d.ts) | Defines the props accepted by `Pressable`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`PressState`](../press/stateMachine.d.ts) | Whether a press is idle, held or cancelled. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ProgressView`](../controls/ProgressView.d.ts) | `ProgressView`: a spinning activity indicator, or a linear bar for `value` of `total` (default 1). | Automatic preserves the value-dependent defaults. Circular progress uses the shared activity indicator; indeterminate linear progress draws an empty track. Shares the activity animation used by the refresh indicator. See controls.md. |  |
-| [`ProgressViewProps`](../controls/ProgressView.d.ts) | ProgressView's optional label and progress; without `value` it is indeterminate. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ProgressViewStyle`](../controls/ProgressView.d.ts) | `ProgressViewStyle`: `automatic` is linear with a value, circular without. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`Query`](../data/database.d.ts) | An immutable query over a collection: `index`, `keyRange`, `reverse`, `limit` and `filter` each return a new query. `useQuery` hands one to its configure callback. | This is IndexedDB, not SwiftData, Core Data or CloudKit. Storage may be evicted; writes can fail. |  |
-| [`ReachabilityPresentation`](../reachability/model.d.ts) | The connectivity presentation currently shown to the user. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ReachabilityProbeConfig`](../reachability/model.d.ts) | The endpoint and deadlines used to probe the app server. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ReachabilityRoutePolicy`](../reachability/model.d.ts) | Whether a destination remains usable without the app server. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ReachabilityState`](../reachability/model.d.ts) | Defines the `ReachabilityState` type in `@satinhq/kit`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ReachabilityStateStatus`](../reachability/model.d.ts) | The server probe result, including an unknown initial state. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ReachabilityStatus`](../reachability/model.d.ts) | The result of the app server reachability probe. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ReachabilitySurface`](../reachability/model.d.ts) | The framework connectivity presentation to show for a failed probe. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`RecordOfCollection`](../data/database.d.ts) | The record type stored by a collection declaration. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`Register`](../public/routes.d.ts) | Augment once in the app to type bare `NavigationLink`, `NavigationStack`, `TabView` and `useNavigation` without generics. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`RegisteredNavigation`](../public/structure.d.ts) | The navigation declared through `Register`, which types bare `TabView`, `Tab` and `NavigationStack`; `never` when the app has not registered one. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`RegisteredRoutes`](../public/routes.d.ts) | The routes declared through `Register`; an empty route set when the app has not registered. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`removing`](../list-form/offsets.d.ts) | Swift `remove(atOffsets:)`, returning a new array without the elements at `offsets`. Pass it exactly what `ForEach`'s `onDelete` reports. | Returns a new array. Store the result with setState to update the rendered rows. |  |
-| [`route`](../public/routes.d.ts) | Binds a screen component to its parameter schema and static chrome. Declare the params first, then type the component with `RouteParameters<typeof params>`; this order avoids inference cycles. | No browser-history router. Route parameters must satisfy the declared schema. |  |
-| [`RouteDefinition`](../public/routes.d.ts) | A screen bound to its parameter schema; made by `route`, collected by `defineRoutes`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`RouteOptions`](../public/routes.d.ts) | A destination's static chrome: what its bar shows from the first frame of the push. `Screen` overrides any of these once the screen has its data. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`RouteParameters`](../push/schema.d.ts) | The props a route component receives for a parameter schema; optional params are optional. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`RouteParameterValue`](../push/schema.d.ts) | The value described by a route parameter declaration. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`RouteProps`](../public/routes.d.ts) | The params of one route, as its component receives them. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`Routes`](../public/routes.d.ts) | Every destination of an app, made by `defineRoutes`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`RowActionsProps`](../actions/types.d.ts) | Row swipe actions and context-menu commands. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`RowIcon`](../list-form/ListForm.d.ts) | A Settings-style icon: a white symbol on a rounded colour tile, for a row's leading edge. | Custom labels must obey the public noninteractive label contract. |  |
-| [`RowIconProps`](../list-form/ListForm.d.ts) | The symbol and its tile colour: a system colour name or any CSS colour. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`RowInteractionProps`](../public/controls.d.ts) | `swipeActions` and `contextMenu` for a row inside a `List`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`RowLabel`](../public/controls.d.ts) | A row's title with a secondary line under it, with a title and a subheadline. The framework owns its layout. | Custom labels must obey the public noninteractive label contract. |  |
-| [`RowLabelProps`](../public/controls.d.ts) | A row title and its secondary line. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`runApp`](../public/runtime.d.ts) | Mounts the app into `#root`. Satin creates every primary stack and restores the scene and its launch route before React's first commit, then owns navigation, restoration, notifications and the app shell. Call it once. `Content` replaces the default root, usually to add app-wide providers; it renders `TabView` or `NavigationStack` itself. Without it Satin renders the declaration directly. | One app root and the Home Screen WebKit target. No native multi-window Scene builder. System or null clears the override. Persist and reapply the choice with useAppStorage. Whole-scene scope including presentations; no per-view or independent sheet preference. |  |
-| [`RunAppConfiguration`](../public/runtime.d.ts) | The app, routes, navigation and optional root content mounted by runApp. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`RunAppOptions`](../public/runtime.d.ts) | App-wide runtime options for `runApp`. Every one is optional. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`SafeAreaBar`](../safe-area/modifiers.d.ts) | Places a top or bottom safe-area inset with no spacing and its own scroll-edge material. | The bar material is a CSS backdrop blur, not the navigation bar edge effect; it does not extend the navigation bar edge or its seam. |  |
-| [`SafeAreaBarProps`](../safe-area/modifiers.d.ts) | A `SafeAreaInset` limited to the top or bottom edge, with no spacing. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`SafeAreaInset`](../safe-area/SafeAreaInset.d.ts) | `safeAreaInset(edge:spacing:content:)`. The accessory takes room from the content's safe area on its edge; a scroll view inside still spans the whole frame and scrolls under it. Bottom: content can scroll under the accessory; its terminal anchor clears it. The accessory's height reaches the content's scroll inset in the same frame it changes (CSS `--satin-inset-accessory-height`, written by its resize observer), so a composer that grows by a line keeps the newest message above it with no frame between. | A top inset under a large title stays at the expanded title edge while the title collapses. On an installed iPhone the status band is a flat WebKit fill (top-edge-limitation.md). | safe area; accessory |
-| [`SafeAreaInsetEdge`](../safe-area/SafeAreaInset.d.ts) | `VerticalEdge`/`HorizontalEdge`: `leading` and `trailing` follow the layout direction. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`SafeAreaInsetProps`](../safe-area/SafeAreaInset.d.ts) | The edge, the accessory (`content`) and its spacing; `children` is the content it insets. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`SafeAreaPadding`](../safe-area/modifiers.d.ts) | Adds to the content safe area. Scroll views keep their frame and inset content; other content is padded. Nested padding adds up. | Bottom padding on a scroll view is a trailing spacer in its content. Nested padding adds up as chained modifiers do. |  |
-| [`SafeAreaPaddingProps`](../safe-area/modifiers.d.ts) | Which edges to pad, and by how much. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ScenePhase`](../public/environment.d.ts) | `ScenePhase`: the foreground, focus and suspension state. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`Screen`](../public/Screen.d.ts) | A route component's navigation chrome: title, toolbar, search and related options, declared by the screen that owns them. Use it when the title or toolbar depends on the screen's data; static chrome belongs in the route's options. | Only the options in ScreenProps exist. Use only the props documented in the declaration. Bottom toolbar presentation is not animated yet and its scope bar is not drawn (scoped fields stay in the drawer). The search tab bottom field is not drawn; a declared tab role="search" is metadata. Never hand-build a search bar. Opt-in navigation-bar minimization. Use never to keep the bar expanded. |  |
-| [`ScreenLifecycle`](../navigation/types.d.ts) | The lifecycle state of a retained navigation entry. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ScreenLifecycleCallbacks`](../navigation/types.d.ts) | Callbacks for a retained navigation entry appearing, being covered or disappearing. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ScreenProps`](../public/Screen.d.ts) | A screen's own chrome, overriding its route's static options. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ScrollAnchor`](../scroll/position.d.ts) | `UnitPoint`: the vertical alignment of a scroll target. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ScrollAxis`](../scroll/types.d.ts) | The axis along which a scroll surface accepts scrolling. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ScrollDismissesKeyboardMode`](../keyboard/adapter.d.ts) | - `immediately`: a drag on the surface ends editing. - `interactively`: scrolling keeps the keyboard; a drag that reaches the keyboard ends editing. Native tracks the keyboard under the finger from there; WebKit's keyboard cannot follow a finger, so it leaves on its own curve (the bottom inset chain follows it). | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ScrollEdge`](../scroll/edgePolicy.d.ts) | `Edge`: a logical edge of a scroll view. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ScrollEdgeEffectHidden`](../scroll/edgePolicy.d.ts) | Whether to hide scroll edge material, optionally for specific edges. | Hard top material throws an unsupported error. The navigation engine renders only the top edge; selecting other edges creates no material. |  |
-| [`ScrollEdgeEffectStyle`](../scroll/edgePolicy.d.ts) | `ScrollEdgeEffectStyle`: the requested edge material treatment. | Hard top material throws an unsupported error. The navigation engine renders only the top edge; selecting other edges creates no material. |  |
-| [`ScrollEdgeEffectStyleSelection`](../scroll/edgePolicy.d.ts) | The scroll edge treatment and the edges to which it applies. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ScrollEdgeSelection`](../scroll/edgePolicy.d.ts) | One or more scroll edges, or all edges. | Hard top material throws an unsupported error. The navigation engine renders only the top edge; selecting other edges creates no material. |  |
-| [`ScrollOffset`](../scroll/types.d.ts) | The scroll position in points along the physical x and y axes. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ScrollPositionBinding`](../scroll/position.d.ts) | `ScrollPosition`: a target identity and the callback that receives its changes. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ScrollPositionOptions`](../scroll/position.d.ts) | A scroll target binding, anchor and geometry observation policy. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ScrollTarget`](../scroll/ScrollTarget.d.ts) | A stable identity in a vertical ScrollView's normal-flow target layout. | Supported anchoring is in ScrollViewProps, including defaultScrollAnchor and maintainVisibleContentPosition. Only the declared scroll options are supported. |  |
-| [`ScrollToTopOptions`](../scroll/types.d.ts) | Options for restoring a named scroll surface to its top. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ScrollView`](../public/scroll.d.ts) | Await a refreshable action on a vertical scroll surface. Own a named scroll region, vertical by default, and address declared targets through its handle or position binding. Standalone views own mount-local scroll state without navigation chrome or scene restoration. Wrap any view: one at the top safe edge draws from the screen top and keeps its layout slot; a primary scroll view inside runs under the bars; the keyboard region keeps a bottom SafeAreaInset above the home indicator. Select soft/automatic top material and edge-specific visibility through ScrollView props. Boolean visibility selects the top edge. | The refresh indicator holds a 60-point content inset while the action runs. Its activity animation is shared with ProgressView. Supported anchoring is in ScrollViewProps, including defaultScrollAnchor and maintainVisibleContentPosition. Only the declared scroll options are supported. Only a view that starts the screen content extends upward. The bottom edge of non-scroll content is not extended. Hard top material throws an unsupported error. The navigation engine renders only the top edge; selecting other edges creates no material. | scrolling; pull to refresh |
-| [`ScrollViewHandle`](../public/scroll.d.ts) | The current offset and imperative positioning of a scroll view. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ScrollViewProps`](../public/scroll.d.ts) | Scroll policy. Target positioning, refresh and scalar geometry are vertical-only. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`Searchable`](../search/searchable.d.ts) | `searchable(text:isPresented:placement:prompt:)`. The bar owns the field: its capsule, magnifier, clear button, close button, scope bar and collapse on scroll. In the bottom toolbar, the presented field rides above the keyboard with a close button, and the bar and title give way. Place `<DefaultToolbarItem kind="search" placement="bottomBar" />` to put it beside other bottom bar items (Messages). | Bottom toolbar presentation is not animated yet and its scope bar is not drawn (scoped fields stay in the drawer). The search tab bottom field is not drawn; a declared tab role="search" is metadata. Never hand-build a search bar. |  |
-| [`SearchFieldPlacement`](../search/searchable.d.ts) | `SearchFieldPlacement`. `'automatic'` uses platform placement on iPhone: the bottom toolbar outside a TabView when the screen has no other bottom bar items or scopes, else a drawer that scrolls away with content. Regular-width automatic search uses the trailing navigation toolbar. | Bottom toolbar presentation is not animated yet and its scope bar is not drawn (scoped fields stay in the drawer). The search tab bottom field is not drawn; a declared tab role="search" is metadata. Never hand-build a search bar. |  |
-| [`SearchScopes`](../search/searchable.d.ts) | `searchScopes(_:activation: .onSearchPresentation)`: a controlled scope bar shown under the field while search is presented. | Bottom toolbar presentation is not animated yet and its scope bar is not drawn (scoped fields stay in the drawer). The search tab bottom field is not drawn; a declared tab role="search" is metadata. Never hand-build a search bar. |  |
-| [`SearchSuggestion`](../search/searchable.d.ts) | `searchSuggestions` with `searchCompletion`: choosing one replaces the text. It does not submit. | Bottom toolbar presentation is not animated yet and its scope bar is not drawn (scoped fields stay in the drawer). The search tab bottom field is not drawn; a declared tab role="search" is metadata. Never hand-build a search bar. |  |
-| [`Section`](../list-form/ListForm.d.ts) | `Section`: a group of rows in a `List` or `Form`, with an optional header and footer. | ListRow siblings compose within one row. Use separate ListRow elements for separate rows. |  |
-| [`SectionProps`](../list-form/ListForm.d.ts) | A section's rows and its optional header and footer. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`SecureField`](../public/controls.d.ts) | Edit controlled password text through secure system input. | No access to system password-manager internals. |  |
-| [`SecureFieldProps`](../public/controls.d.ts) | SecureField's controlled text, label and prompt. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`Selectable`](../root/SatinRoot.d.ts) | `textSelection(.enabled)`: restores text selection and system callouts for user-authored content, which app chrome otherwise suppresses. | Page zoom remains disabled by the installed shell; general-purpose gesture composition is unsupported. |  |
-| [`SelectableProps`](../root/SatinRoot.d.ts) | A content-role wrapper's children and plain div attributes. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`semanticColor`](../public/colors.d.ts) | UIKit semantic content colors, inherited by app content and portals. | Values follow measured normal-contrast iOS 27 traits. Increased contrast and Display P3 are not supported. Semantic label colors and composited secondary/tertiary foreground can differ. |  |
-| [`SemanticColorName`](../public/colors.d.ts) | UIKit's semantic colour names (`label`, `secondarySystemBackground`, …). | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`SensoryButton`](../haptics/SensoryButton.d.ts) | SensoryButton selection uses browser native switch-label activation where available. | Only selection and false are accepted. Other feedback kinds are unsupported. Keyboard/assistive activation do not promise a native tick. |  |
-| [`SensoryButtonProps`](../haptics/SensoryButton.d.ts) | A tap target's action, content and the feedback it plays. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`SensoryFeedback`](../haptics/SensoryButton.d.ts) | The native switch selection tick. Other feedback kinds are unsupported. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ServerReachabilityConfig`](../reachability/model.d.ts) | The server probe and presentation policy for an app that requires connectivity. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ServerReachabilityState`](../reachability/model.d.ts) | The last server probe, retry and connectivity presentation state. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ShareLink`](../public/deviceActions.d.ts) | Opens the system share sheet during the press. Prepare file bytes before rendering. | No Transferable or file-provider integration. Completion is platform handoff, not recipient delivery; AbortError also covers no suitable target. Installed acceptance remains pending. |  |
-| [`ShareLinkProps`](../public/deviceActions.d.ts) | Prepared text, URL or files to hand to the operating system's share sheet. | No Transferable or file-provider integration. Completion is platform handoff, not recipient delivery; AbortError also covers no suitable target. Installed acceptance remains pending. |  |
-| [`Sheet`](../public/presentation.d.ts) | `sheet(isPresented:)`: a card over the current screen, with optional detents. It can host its own `NavigationStack modal`. Keep `isPresented` in plain React state: presentations start closed after a relaunch. | Visibility starts closed after relaunch. Persist editor drafts separately, never presentation flags. | sheet; modal presentation |
-| [`SheetProps`](../public/presentation.d.ts) | Sheet's presentation binding, title, detents and drag behaviour. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`Slider`](../public/controls.d.ts) | `Slider(value:in:step:)`: in a List or Form it fills its own 60 pt row. | No minimum/maximum value labels or custom tick content; label is accessibility-only. Only the thumb takes a drag. |  |
-| [`SliderProps`](../public/controls.d.ts) | Slider's controlled value, range, step and accessibility label. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`Spacer`](../content/content.d.ts) | `Spacer`: takes the free space along its parent stack's axis. | Default spacing and frame proposal differences are documented in content.md. No arbitrary modifier ordering. |  |
-| [`SpacerProps`](../content/content.d.ts) | Spacer's minimum length in points. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`SpringOptions`](../motion/animationValue.d.ts) | Options for a spring defined by duration and bounce. | Other state and style changes do not animate. Use ForEach identities for keyed List animation. No null animation, easing curves, repeatCount, delay, completion or per-update nested timing. Use one outer synchronous update. Negative bounces are not offered. |  |
-| [`StackDeclaration`](../public/structure.d.ts) | A primary stack: its root route and, when that route requires them, the root's params. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`Stepper`](../public/controls.d.ts) | `Stepper`: increments or decrements a controlled number within its bounds. A row in a `List`, the bare control elsewhere. | Use a controlled numeric value and the declared Stepper props. |  |
-| [`StepperProps`](../public/controls.d.ts) | Stepper's controlled value, bounds and step. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`storageQuota`](../public/storage.d.ts) | Use the reactive local database, schema declarations and explicit durability promises. | This is IndexedDB, not SwiftData, Core Data or CloudKit. Storage may be evicted; writes can fail. |  |
-| [`StringPropertyKey`](../data/database.d.ts) | The property keys whose values are strings. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`SubmitLabel`](../text-input/kinds.d.ts) | `SubmitLabel`: the return key's title. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`SwipeAction`](../actions/types.d.ts) | Defines the `SwipeAction` type in `@satinhq/kit`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`SwipeActionItem`](../actions/types.d.ts) | A swipe command may omit its visible title while retaining an accessible name. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`SwipeActions`](../actions/types.d.ts) | `swipeActions`: one or more edge configurations for a row. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`SwipeActionsConfiguration`](../actions/types.d.ts) | Swipe actions on one row edge. Full swipe is enabled unless explicitly disabled. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`SymbolGlyph`](../symbols/types.d.ts) | Filled paths on Framework7's 56-unit grid. No font, HTML or external resource. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`SymbolImage`](../symbols/Symbol.d.ts) | `Image(systemName:)`: a vector symbol that sizes with the surrounding font and takes its colour. A `.fill` variant is chosen automatically where the context selects it (a selected tab). | The bundled catalogue uses Framework7 Icons 5.0.5 (MIT) plus Satin-drawn clean-room additions, not Apple SF Symbols assets. Preserve copyright and license notices. Provider glyphs need their own provenance. Only shipped or registered names exist. |  |
-| [`SymbolImageProps`](../symbols/Symbol.d.ts) | The symbol's name, symbol properties and an optional accessible label. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`SymbolName`](../symbols/Symbol.d.ts) | A symbol name in SF Symbols style (`'plus'`, `'trash.fill'`). The bundled names autocomplete; any string is accepted for glyphs added through `SymbolProvider`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`SymbolProvider`](../symbols/Symbol.d.ts) | Extend or override glyphs locally. Paths must be original or redistributable with provenance. | The bundled catalogue uses Framework7 Icons 5.0.5 (MIT) plus Satin-drawn clean-room additions, not Apple SF Symbols assets. Preserve copyright and license notices. Provider glyphs need their own provenance. Only shipped or registered names exist. |  |
-| [`SymbolRenderingMode`](../symbols/types.d.ts) | `SymbolRenderingMode`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`SymbolScale`](../symbols/types.d.ts) | `Image.Scale`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`SymbolSource`](../symbols/types.d.ts) | Glyphs by symbol name, for `SymbolProvider`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`SymbolWeight`](../symbols/types.d.ts) | `Font.Weight` as applied to a symbol. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`systemColor`](../public/colors.d.ts) | A named system color as a CSS color that follows the appearance. | Values follow measured normal-contrast iOS 27 traits. Increased contrast and Display P3 are not supported. Semantic label colors and composited secondary/tertiary foreground can differ. |  |
-| [`SystemColorName`](../public/colors.d.ts) | Appearance-aware UIKit system palette. Explicit CSS colors remain supported. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`Tab`](../public/runtime.d.ts) | Render one declared tab's content; identities and root stacks come from defineNavigation. | Only declared tab styles are supported; no desktop browser support. |  |
-| [`TabDeclaration`](../public/structure.d.ts) | The tab declaration contract used by public app declarations. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`TabId`](../public/structure.d.ts) | The union of a navigation declaration's tab ids. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`TabProps`](../public/runtime.d.ts) | Names the declared tab to render. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`TabSection`](../tabs/TabSection.d.ts) | A collapsible sidebar group. TabView consumes this declaration. | Only explicit sidebarOnly placement is supported; automatic section representation in the top bar, tab customization and section header actions are unavailable. Section expansion is retained for this mounted TabView. With no available sidebar, a sidebar-only selection presents the first available primary tab. |  |
-| [`TabSectionProps`](../tabs/TabSection.d.ts) | Groups destinations in the adaptable sidebar without creating another navigator. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`TabView`](../public/runtime.d.ts) | `TabView`: renders the tabs from `defineNavigation`, each retaining its own stack, and restores the selected tab with the scene. Pass `selection` and `onSelectionChange` to control it; a controlled tab press only requests the change. | Only declared tab styles are supported; no desktop browser support. A tab can declare role="search" in defineNavigation. No minimizeBehavior or public useBottomAccessoryPlacement contract exists at this revision. The native collapse/inline morph remains incomplete. |  |
-| [`TabViewProps`](../public/runtime.d.ts) | TabView's selection binding and bar behaviour; its tabs come from `defineNavigation`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`TaskAction`](../tasks/useTask.d.ts) | The work `useTask` runs: pass `signal` to fetches and publish state through `commit`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`TaskCommit`](../tasks/useTask.d.ts) | Publish synchronous state updates only while this invocation is current. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`TaskOptions`](../tasks/useTask.d.ts) | `task(id:)`: a change of `id` cancels the current run and starts a new one. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`TaskRunner`](../tasks/useTask.d.ts) | Cancels the current run and starts the task again; resolves when that run ends. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`Text`](../content/content.d.ts) | `Text`: inline text in a system text style. Nested Text inherits its enclosing style unless explicitly overridden. A `lineLimit` truncates with an ellipsis. | Default spacing and frame proposal differences are documented in content.md. No arbitrary modifier ordering. |  |
-| [`TextEditor`](../public/controls.d.ts) | Edit controlled multiline text with framework keyboard geometry. | Only TextEditorProps apply; no arbitrary native text-layout engine. |  |
-| [`TextEditorProps`](../public/controls.d.ts) | TextEditor's controlled text, label and prompt. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`TextField`](../public/controls.d.ts) | Edit controlled text with prompt, keyboard intent and automatic row placement; vertical axis uses the shared editor with lineLimit. | Plain styling uses textFieldStyle="plain". The style prop accepts inline CSS. WebKit owns the system keyboard; arbitrary native text layout is not exposed. |  |
-| [`TextFieldKind`](../text-input/kinds.d.ts) | What a field holds, setting its keyboard, autofill and autocorrection together. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`TextFieldProps`](../public/controls.d.ts) | A single-line field, or with `axis="vertical"` a field that grows to its `lineLimit`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`TextFieldStyle`](../public/controls.d.ts) | `textFieldStyle`: `automatic` adapts to the container; `plain` draws no field chrome. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`TextProps`](../content/content.d.ts) | Text's font, weight, design, line limit and alignment. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`TextStyle`](../content/content.d.ts) | iOS text styles at the measured default Dynamic Type size. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`TitleDisplayMode`](../navigation/types.d.ts) | `toolbarTitleDisplayMode`; `inlineLarge` draws the large title inside the bar row. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`Toggle`](../public/controls.d.ts) | `Toggle`: a controlled boolean. It is a switch row in a `List` or `Form`, a bare switch elsewhere, or a `button` or custom `ToggleStyle`. | This does not provide every platform ToggleStyle. |  |
-| [`ToggleProps`](../public/controls.d.ts) | Toggle's controlled value, label and control properties. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ToggleStyle`](../public/controlStyle.d.ts) | A custom framework `ToggleStyle`. Its declared semantics are applied to the framework-owned interactive element. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ToggleStyleConfiguration`](../public/controlStyle.d.ts) | `ToggleStyleConfiguration`: what a custom `ToggleStyle` draws from. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ToolbarItem`](../public/toolbar.d.ts) | Places one navigation or bottom-bar item. Adjacent actions share a glass capsule; ToolbarSpacer separates groups. | Toolbar items use the available capsule and principal placements. Use the declared ToolbarItem props for grouping and sizing. |  |
-| [`ToolbarItemGroup`](../public/toolbar.d.ts) | `ToolbarItemGroup`: its items render as consecutive `ToolbarItem`s of the placement, which share one glass capsule (iOS 26+ draws a group and adjacent items identically). | Toolbar items use the available capsule and principal placements. Use the declared ToolbarItem props for grouping and sizing. |  |
-| [`ToolbarItemProps`](../public/toolbar.d.ts) | The supported toolbar placement names. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ToolbarMinimizationBehavior`](../navigation/toolbarMinimization.d.ts) | `ToolbarMinimizationBehavior`: when a toolbar may minimize. | Opt-in navigation-bar minimization. Use never to keep the bar expanded. |  |
-| [`ToolbarMinimizationRestoration`](../navigation/toolbarMinimization.d.ts) | The interaction that restores a minimized toolbar. | Opt-in navigation-bar minimization. Use never to keep the bar expanded. |  |
-| [`ToolbarMinimizationSafeAreaAdjustment`](../navigation/toolbarMinimization.d.ts) | Whether toolbar minimization changes its reserved content inset. | Opt-in navigation-bar minimization. Use never to keep the bar expanded. |  |
-| [`ToolbarSpacer`](../public/toolbar.d.ts) | `ToolbarSpacer(_:placement:)`. Consecutive items of one placement share one glass capsule; a spacer between them splits it. Place it directly in `toolbar`, next to the items. | Toolbar items use the available capsule and principal placements. Use the declared ToolbarItem props for grouping and sizing. |  |
-| [`ToolbarSpacerProps`](../public/toolbar.d.ts) | The spacer's sizing and placement. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`TransactionCollection`](../data/database.d.ts) | A collection as seen inside `db.transaction`: its writes commit together or not at all. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`TransactionCollections`](../data/database.d.ts) | The typed collection handles available inside a database transaction. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`TransitionPhase`](../navigation/types.d.ts) | The progress phase of a navigation transition. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`UpdateActivation`](../app/definition.d.ts) | When a prepared app update may activate. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`useAppStorage`](../public/environment.d.ts) | `@AppStorage`: a small JSON-serializable preference, kept across launches and shared by every component that reads the same key. | Origin-local WebKit storage, not UserDefaults or an iCloud key-value store. | persistent settings |
-| [`useAppUpdate`](../public/environment.d.ts) | Reports whether this launch applied an app update: `justUpdated` holds the previous and current build ids after an update, null otherwise (and until launch settles). Release updates apply at launch, before first input after foregrounding, or at a clean suspension. | Preview may reload on update. Release remains the installed production default. |  |
-| [`useBuildInfo`](../app/buildInfo.d.ts) | The build loaded by this app, including offline launches. Metadata comes from satinApp at build time; it never reads the server's latest deployment. | The app build ID is not a git revision or service-worker cache hash. Builds that bypass satinApp report unavailable metadata. Server fetch receipts are separate evidence, not proof of which cached bundle is running. |  |
-| [`useColorScheme`](../public/environment.d.ts) | `colorScheme`: the appearance Satin is currently drawing, `light` or `dark`. | System or null clears the override. Persist and reapply the choice with useAppStorage. Whole-scene scope including presentations; no per-view or independent sheet preference. Values follow measured normal-contrast iOS 27 traits. Increased contrast and Display P3 are not supported. Semantic label colors and composited secondary/tertiary foreground can differ. |  |
-| [`useDismiss`](../presentation/dismiss.d.ts) | Closes the screen or presentation that contains the caller. In a pushed screen it pops that screen; at the root of a Sheet or FullScreenCover it dismisses the presentation, even when interactive dismissal is disabled. Elsewhere it does nothing. | No interactive dismissal on covers. Visibility starts closed after relaunch. |  |
-| [`useEditMode`](../list-form/editing.d.ts) | `@Environment(\.editMode)`: this screen's edit mode and a setter. `EditButton` toggles the same value, so a toolbar or bottom bar can follow it. | Selection identity comes from ForEach ids (no tag). Edit mode is per screen; there is no environment override binding. Plain rows outside edit mode are not keyboard-focusable for selection. |  |
-| [`useFocusChain`](../text-input/focusChain.d.ts) | `@FocusState` for a form: the return key moves to the next field in `order` and the last one dismisses the keyboard. Spread `field(key)` onto each field. | Focus registration uses framework hooks; custom keyboard replacement is unsupported. |  |
-| [`useGlassErrors`](../public/environment.d.ts) | Every glass renderer error so far, re-rendering when one is added. For diagnostics screens; `runApp`'s `onGlassError` is the way to report them. | Diagnostic receipts are not native fidelity or installed acceptance evidence. |  |
-| [`useHorizontalSizeClass`](../public/environment.d.ts) | `horizontalSizeClass`: a presentation's own class inside it, else the window's. | Values follow measured normal-contrast iOS 27 traits. Increased contrast and Display P3 are not supported. Semantic label colors and composited secondary/tertiary foreground can differ. |  |
-| [`useKeyboardMetrics`](../public/keyboard.d.ts) | Keyboard geometry in points, including the expected software-keyboard height. | No native keyboard-frame API or permission to add an independent keyboard lifecycle. |  |
-| [`useMediaPlayer`](../media/react.d.ts) | Subscribe to the root-owned audio queue and system media commands. Video playback is not supported. | Audio transport only; no VideoPlayer, AVKit or background audio entitlement. Playback depends on WebKit codec support and the server delivering compatible media with byte-range support. |  |
-| [`useNamespace`](../motion/matchedGeometry.d.ts) | `@Namespace`: a stable id scope for `MatchedGeometryEffect`, one per component. | Frame matching only (properties .frame, anchor .center). Corner radius scales with the frame during flight rather than remaining fixed in points. A non-source view does not follow its source outside an animation. Removed glass presenters do not travel. |  |
-| [`useNavigation`](../public/runtime.d.ts) | Returns the enclosing stack's navigation actions, typed against the registered routes. A wrong route id or a missing param is a compile error. | No browser-history router. Route parameters must satisfy the declared schema. |  |
-| [`useNotifications`](../public/environment.d.ts) | The app's notification permission and badge. Call `requestAuthorization` from a user gesture, after explaining why (see `NotificationPermissionExplainer`). Without `runApp`'s `notifications` option the status is `unsupported`. | Installed Home Screen permission is required. Local scheduled notification delivery is unavailable; use an app-owned authenticated server scheduler. |  |
-| [`useOpenURL`](../web/openURL.d.ts) | Open a web URL from an action. Registered app URLs stay in the current document. | External browser selection is unavailable. Web dispatch is not page completion. Cross-origin or denied frames report status unverified; reload and stop require same-origin access. |  |
-| [`useQuery`](../data/database.d.ts) | SwiftData `@Query`: a collection's records as `{ data, loading, error }`, kept live. Local writes show up synchronously, before they persist. | This is IndexedDB, not SwiftData, Core Data or CloudKit. Storage may be evicted; writes can fail. |  |
-| [`useReachability`](../reachability/react.d.ts) | The server status and visible offline presentation, with fetch and retry helpers. | No native Network framework path monitor or guarantee that a request will succeed. |  |
-| [`useRecord`](../data/database.d.ts) | One record by key, kept live; `data` is undefined while loading and when no record exists. | This is IndexedDB, not SwiftData, Core Data or CloudKit. Storage may be evicted; writes can fail. |  |
-| [`UserInterfaceSizeClass`](../public/environment.d.ts) | `UserInterfaceSizeClass`: the available size along one axis. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`useSafeAreaInsets`](../public/environment.d.ts) | The live safe-area insets in CSS pixels. Use them instead of `env(safe-area-inset-*)`. | A top inset under a large title stays at the expanded title edge while the title collapses. On an installed iPhone the status band is a flat WebKit fill (top-edge-limitation.md). |  |
-| [`useScaledMetric`](../content/scaledMetric.d.ts) | Scale a dimension by the target WebKit system text style's Dynamic Type ratio. | System font probes are shared per subscribed style and use the same font definitions as Text. largeTitle and callout use fixed-size fallbacks because WebKit lacks their system font keywords. |  |
-| [`useScenePhase`](../public/environment.d.ts) | `scenePhase`: `active` in the foreground with focus, `inactive` without focus, `background` when hidden. | Browser execution can stop when suspended. Screen lifecycle is distinct from app foreground state. |  |
-| [`useSceneStorage`](../public/environment.d.ts) | `@SceneStorage`: state kept with the current navigation entry in the scene checkpoint, so a draft survives a relaunch. Each pushed entry owns its own value. Values must be JSON-serializable. Keep saved records in a collection, not here. | Not presentation visibility. Checkpoints cannot guarantee recovery after storage eviction or every process crash. | restorable screen state |
-| [`useScreenLifecycle`](../navigation/navigationContext.d.ts) | `onAppear` and `onDisappear`: callbacks for a retained navigation entry's visible lifecycle. | Browser execution can stop when suspended. Screen lifecycle is distinct from app foreground state. |  |
-| [`useTask`](../tasks/useTask.d.ts) | A task tied to this view’s lifetime. Pass signal to fetch and publish results through commit. Cancellation is cooperative; arbitrary setters outside commit cannot be intercepted. The returned runner cancels and replaces the current run. | Cancellation is cooperative. Arbitrary setters outside commit cannot be intercepted. Native lifecycle has been measured; this is foreground work, not a Web Worker or background scheduler. | cancellable task |
-| [`useUnsavedChanges`](../root/runtimeContext.d.ts) | Register app-managed unsaved state while it exists. Native inputs are checked automatically. | This is a framework guard, not a general native interactiveDismissDisabled guarantee. |  |
-| [`useVerticalSizeClass`](../public/environment.d.ts) | `verticalSizeClass`: a presentation's own class inside it, else the window's. | Values follow measured normal-contrast iOS 27 traits. Increased contrast and Display P3 are not supported. Semantic label colors and composited secondary/tertiary foreground can differ. |  |
-| [`useWebAuthentication`](../web/useWebAuthentication.d.ts) | Subscribe to durable authentication state and reconcile on launch and resume. | Requires secure context, local storage, Web Locks, dedicated uncached callback and server exchange. Bridge reads require a private transaction proof. Token and OpenID Connect validation belong to the server. No native-session or background-completion guarantee. |  |
-| [`useWebFrame`](../web/WebView.d.ts) | Observe a WebView and request the operations its origin permits. | External browser selection is unavailable. Web dispatch is not page completion. Cross-origin or denied frames report status unverified; reload and stop require same-origin access. |  |
-| [`VerticalScrollGeometry`](../scroll/position.d.ts) | Vertical scroll geometry: the current viewport and content offset in points. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`VerticalTextFieldProps`](../public/controls.d.ts) | Vertical TextField's controlled text, growth limits and keyboard intent. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ViewportFitPolicy`](../app/viewportValue.d.ts) | The viewport fitting policy selected before rendering an app. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ViewThatFits`](../content/layout.d.ts) | Select the first ideal size that fits, or the last candidate when none does. | Give vertical proposals a definite height. Candidates remain mounted; hidden candidates are inert and pause framework tasks and activity indicators. Arbitrary app effects remain active. Selection uses CSS ideal sizes and retains each candidate; hidden children do not unmount. |  |
-| [`ViewThatFitsAxis`](../content/layout.d.ts) | Defines the `ViewThatFitsAxis` type in `@satinhq/kit`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ViewThatFitsProps`](../content/layout.d.ts) | Defines the props accepted by `ViewThatFits`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`Visibility`](../navigation/types.d.ts) | `toolbarVisibility(_:for: .navigationBar)`: a hidden bar reserves no row. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`VStack`](../content/content.d.ts) | `VStack`: arranges its children vertically. Give `spacing` explicitly where it matters; wrappers and custom controls do not propagate measured child spacing preferences. | Default spacing and frame proposal differences are documented in content.md. No arbitrary modifier ordering. |  |
-| [`VStackProps`](../content/content.d.ts) | VStack's horizontal alignment and spacing in points. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`WebAuthentication`](../web/authentication.d.ts) | Defines the `WebAuthentication` type in `@satinhq/kit`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`WebAuthenticationCallbackResult`](../web/authentication.d.ts) | Defines the `WebAuthenticationCallbackResult` type in `@satinhq/kit`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`WebAuthenticationConfiguration`](../web/authentication.d.ts) | Defines the `WebAuthenticationConfiguration` type in `@satinhq/kit`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`WebAuthenticationExchange`](../web/authentication.d.ts) | Defines the `WebAuthenticationExchange` type in `@satinhq/kit`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`WebAuthenticationRequest`](../web/authentication.d.ts) | Defines the `WebAuthenticationRequest` type in `@satinhq/kit`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`WebAuthenticationStartResult`](../web/authentication.d.ts) | Defines the `WebAuthenticationStartResult` type in `@satinhq/kit`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`WebAuthenticationState`](../web/authentication.d.ts) | Defines the `WebAuthenticationState` type in `@satinhq/kit`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`WebFrameActionResult`](../web/WebView.d.ts) | Defines the `WebFrameActionResult` type in `@satinhq/kit`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`WebFrameController`](../web/WebView.d.ts) | Only same-origin frames expose their current page or accept reload/stop commands. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`WebFrameState`](../web/WebView.d.ts) | Defines the `WebFrameState` type in `@satinhq/kit`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`WebView`](../web/WebView.d.ts) | A sandboxed embedded page. Framing policy and partitioned storage remain browser-owned. | External browser selection is unavailable. Web dispatch is not page completion. Cross-origin or denied frames report status unverified; reload and stop require same-origin access. |  |
-| [`WebViewProps`](../web/WebView.d.ts) | Defines the props accepted by `WebView`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`withAnimation`](../motion/matchedGeometry.d.ts) | Applies the state changes in `update`, then animates the `MatchedGeometryEffect` views they move, insert or remove. Call it from an event handler. Keyed List rows also move to their new positions. Other views take their new layout at once. Returns the callback result and propagates errors. Only synchronous updates participate. Nested calls share the outer List transaction; per-update nested timing is not supported. | Other state and style changes do not animate. Use ForEach identities for keyed List animation. No null animation, easing curves, repeatCount, delay, completion or per-update nested timing. Use one outer synchronous update. Negative bounces are not offered. | animated state update |
-| [`WriteFailure`](../data/write-store.d.ts) | A durable write that failed after it was published to memory, reported to `db.onError`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`Zoomable`](../zoom/Zoomable.d.ts) | A bounded image/map viewport. Pinch and pan belong only to this content role. Keyboard + / - zoom about the center; 0 resets. Supply an accessible label. | Page zoom remains disabled by the installed shell; general-purpose gesture composition is unsupported. |  |
-| [`ZoomableProps`](../zoom/Zoomable.d.ts) | Zoomable's maximum scale and scale callback; Satin owns its pointer handlers. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ZoomTransitionOptions`](../public/navigationTransition.d.ts) | The source identity and namespace for `NavigationTransition.zoom`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ZStack`](../content/content.d.ts) | `ZStack`: overlays its children in one cell, later children on top, keeping source order for assistive technology. | Default spacing and frame proposal differences are documented in content.md. No arbitrary modifier ordering. |  |
-| [`ZStackProps`](../content/content.d.ts) | How ZStack aligns its layers. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
+| [`Action`](../actions/types.d.ts) | An entry in a menu, context menu or swipe action list: a command, a titled section of entries, or a submenu. | Actions have accessible names, but they do not appear in the VoiceOver Actions rotor. |  |
+| [`ActionItem`](../actions/types.d.ts) | A single command with an id, a label, an optional symbol and role, and an `onPress` handler. Menus, swipe actions, alerts and confirmation dialogs all use it. |  |  |
+| [`AdaptiveGridItemOptions`](../content/content.d.ts) | Bounds for an adaptive track, which repeats to fit as many columns or rows as the space allows. A grid with an adaptive track can have no other track. |  |  |
+| [`Alert`](../presentation/Presentation.d.ts) | A centred alert with a title, an optional message, up to three actions and an optional text field. | Alerts and confirmation dialogs start closed after a relaunch, so a destructive confirmation is never restored open. | alert; dialog; popup |
+| [`AlertProps`](../presentation/Presentation.d.ts) | An alert's presentation binding, title, message, actions and optional text field. |  |  |
+| [`AlertTextFieldProps`](../presentation/Presentation.d.ts) | The text field inside an alert: its label, controlled text, prompt and keyboard intent. |  |  |
+| [`Animation`](../motion/animationValue.d.ts) | An opaque spring timing value for `withAnimation`. Use a named value or `Animation.spring`. | Other state and style changes do not animate. There is no null animation, easing curve, repeat, delay, completion callback or per-update timing; use one outer synchronous update. Bounce cannot be negative. |  |
+| [`AppCapability`](../app/definition.d.ts) | A capability the app declares so Satin sets up its runtime support: `push`, `badging` or `background-work`. |  |  |
+| [`AppDefinition`](../app/definition.d.ts) | A validated app definition, returned by `defineApp`. Pass it to `runApp` and to the Vite plugin. |  |  |
+| [`AppDefinitionInput`](../public/definition.d.ts) | What an app declares about itself: identity, install metadata and launch appearance. |  |  |
+| [`AppIcon`](../app/definition.d.ts) | One generated app icon file: its URL, pixel sizes, image type and purpose. |  |  |
+| [`AppOrientation`](../app/definition.d.ts) | An orientation that the app supports. |  |  |
+| [`AsyncImage`](../image/Image.d.ts) | Loads an image from a URL. It keeps its placeholder if loading fails, never holds up navigation, and reports progress through `onPhaseChange`. | Remote images use the browser's HTTP cache. onPhaseChange reports loading state; it does not swap in other content. There is no Photos library access. | remote image; image URL |
+| [`AsyncImagePhase`](../image/Image.d.ts) | The loading state an `AsyncImage` reports: `empty` while loading, then `success` with the image element or `failure` with the error. |  |  |
+| [`AsyncImageProps`](../image/Image.d.ts) | An `ImageProps` whose source is a remote URL. |  |  |
+| [`BuildInfo`](../app/buildInfo.d.ts) | The framework version, build id, build time and build kind baked into the running bundle. The build id is unique per build. | The build id is not a git revision or a service worker cache hash. Builds made without satinApp report "unavailable". What the server last served says nothing about which cached bundle is running. |  |
+| [`BuiltInButtonStyle`](../public/controlStyle.d.ts) | The built-in button styles, by their `buttonStyle` names. `automatic` picks one for the context. |  |  |
+| [`BuiltInLabelStyle`](../public/controlStyle.d.ts) | The built-in label styles: the title, the icon or both. `automatic` picks for the context. |  |  |
+| [`BuiltInToggleStyle`](../public/controlStyle.d.ts) | The built-in toggle styles: `switch` or `button`. `automatic` picks for the context. |  |  |
+| [`Button`](../public/controls.d.ts) | A pressable control that adapts to where it is: a tinted row in a `List`, a glass button in a toolbar, otherwise the `buttonStyle` you choose. `role="destructive"` carries into every context. | Only the listed button styles exist. There are no circle or container-concentric borders, and plain and list-row buttons draw no border. A custom ButtonStyle draws the content; Satin keeps the press handling and accessibility. | button; tap |
+| [`ButtonBorderShape`](../public/buttonBorderShape.d.ts) | The outline of a bordered button: `automatic`, `capsule`, or a rounded rectangle with a fixed corner radius in points. |  |  |
+| [`ButtonProps`](../public/controls.d.ts) | Button's action, label and control properties. An `iconOnly` button needs an `aria-label`. |  |  |
+| [`ButtonRole`](../public/controlStyle.d.ts) | A button's role. `destructive` draws it in red; `cancel` marks the action that backs out. |  |  |
+| [`ButtonStyle`](../public/controlStyle.d.ts) | A custom look for `Button`. `makeBody` returns noninteractive content; Satin still owns the button's press handling and accessibility. |  |  |
+| [`ButtonStyleConfiguration`](../public/controlStyle.d.ts) | What a custom `ButtonStyle` draws from: the label, the pressed state and the role, plus the shared control values. |  |  |
+| [`Choice`](../list-form/ListForm.d.ts) | One option of a `Picker`. | Only the menu, navigationLink, inline and segmented styles exist. |  |
+| [`collection`](../data/database.d.ts) | Declares a collection of records keyed by one unique string field. The curried form, `collection<Note>()({ key, indexes })`, infers index names. | Data lives in IndexedDB on this device. The browser may evict it, and writes can fail. |  |
+| [`Collection`](../data/database.d.ts) | One collection of a database (`db.notes`). Once loaded, writes publish to memory at once, so `useQuery` sees them immediately; the returned promise settles after the durable commit. |  |  |
+| [`CollectionDefinition`](../data/database.d.ts) | A collection's record type, key and indexes, made by `collection` for `defineDatabase`. |  |  |
+| [`CollectionIndexes`](../data/database.d.ts) | A mapping from declared index names to record properties. |  |  |
+| [`CollectionSchema`](../data/database.d.ts) | The named collections in a database declaration. |  |  |
+| [`CollectionUpdateMethods`](../data/database.d.ts) | A collection's `update` method: a partial record to merge, or a function that returns the new record. |  |  |
+| [`ColorPicker`](../controls/ColorPicker.d.ts) | A row with a colour well that opens the system colour picker: grid, spectrum, sliders, eyedropper and, with `supportsOpacity`, opacity. | The system picker is titled "Colors", not with the label. Output is sRGB hex; Display P3 choices are converted to sRGB. See controls.md. | color picker; color well |
+| [`ColorPickerProps`](../controls/ColorPicker.d.ts) | ColorPicker's label and controlled colour. |  |  |
+| [`ColorScheme`](../public/environment.d.ts) | A light or dark appearance. |  |  |
+| [`ConfirmationDialog`](../presentation/Presentation.d.ts) | A titled set of actions, such as Delete and Cancel, shown next to the control that opened it. | Alerts and confirmation dialogs start closed after a relaunch, so a destructive confirmation is never restored open. | action sheet; delete confirmation |
+| [`ConfirmationDialogProps`](../presentation/Presentation.d.ts) | A confirmation dialog's presentation binding, title, message, actions and optional anchor. |  |  |
+| [`ContentAlignment`](../content/content.d.ts) | Where content sits inside a larger frame. Used by `frame` and `ZStack`. |  |  |
+| [`ContentFrame`](../content/content.d.ts) | A fixed size or size bounds for a view, in points, and how its content aligns inside. `'infinity'` fills the available space. |  |  |
+| [`ContentMargins`](../safe-area/modifiers.d.ts) | Sets content margins for every scroll view inside it. A `List` takes a horizontal margin as its layout margin. The innermost value for each edge wins. | placement="scrollIndicators" has no effect: Satin draws the scroll indicator in the screen frame. | content inset |
+| [`ContentMarginsProps`](../safe-area/modifiers.d.ts) | Which edges get a margin, how much, and whether it applies to content or indicators. |  |  |
+| [`ContentPadding`](../content/content.d.ts) | The `padding` prop. `true` adds the default 16 pt on every edge, a number pads every edge, and an object pads the edges it names. |  |  |
+| [`ContentProps`](../content/content.d.ts) | The padding, frame and background props shared by text and stacks. Plain HTML attributes, `style` included, still apply. |  |  |
+| [`ContentUnavailableView`](../public/controls.d.ts) | An empty state: an icon, a title, an optional description and optional action children. | Takes an explicit title, icon, description and actions; there is no built-in search variant. | empty state; no results |
+| [`ContentUnavailableViewProps`](../public/controls.d.ts) | The empty state's title, optional description and icon (a tray by default). |  |  |
+| [`ContextMenu`](../actions/RowActions.d.ts) | Opens a menu of actions when the user long-presses its content, with an optional custom `preview`. Rows in a `List` take a `contextMenu` prop instead. | Actions have accessible names, but they do not appear in the VoiceOver Actions rotor. | long press menu |
+| [`ContextMenuConfiguration`](../actions/types.d.ts) | The `contextMenu` prop of a row: a list of actions, or actions with a custom `preview`. |  |  |
+| [`ControlConfiguration`](../public/controlStyle.d.ts) | What every custom control style receives: enabled state, control size and tint. |  |  |
+| [`ControlSize`](../public/controlStyle.d.ts) | A control's size, from `mini` to `extraLarge`. `regular` is the default. |  |  |
+| [`ControlStyleProvider`](../public/controlStyle.d.ts) | Sets control defaults for a subtree through `buttonStyle`, `toggleStyle`, `labelStyle`, `controlSize`, `tint` and `disabled`. A control's own props win over the provider, except that a disabled ancestor cannot be re-enabled by a child. | Only the listed button styles exist. There are no circle or container-concentric borders, and plain and list-row buttons draw no border. A custom ButtonStyle draws the content; Satin keeps the press handling and accessibility. |  |
+| [`ControlStyleValues`](../public/controlStyle.d.ts) | The control environment a `ControlStyleProvider` sets for its subtree. |  |  |
+| [`CoreSymbolName`](../symbols/catalogue.d.ts) | Every symbol name in the bundled catalogue. |  |  |
+| [`cornerClipPath`](../shapes/corners.d.ts) | Returns a CSS `clip-path` for a shape at an explicit width and height. Radii are in points. | You size it yourself outside framework rows. It does not change a glass mask. Continuous corners follow the iOS 27 corner curve. |  |
+| [`CornerShape`](../shapes/corners.d.ts) | A shape for `cornerClipPath` and swipe action faces: a capsule, an ellipse, a rounded rectangle or a custom clip path. Choosing one overrides the framework's default shape. |  |  |
+| [`DatabaseMigration`](../data/database.d.ts) | A schema migration. It runs inside one transaction and may be async. |  |  |
+| [`DatabaseRecord`](../data/database.d.ts) | A stored record with named values. |  |  |
+| [`DatePicker`](../controls/DatePicker.d.ts) | A row for picking a date, a time or both. Its grey value capsules open the system date or time picker. Use a civil string selection (`'2026-10-14'`) for a day that must stay the same day in every time zone, such as a due date; use a `Date` for a moment in time. | No graphical or wheel style. WebKit adds Reset and Done buttons to the system picker, centres it instead of anchoring it to the capsule, and does not grey out days outside the range. See controls.md. | date picker; time picker; calendar |
+| [`DatePickerComponent`](../controls/DatePicker.d.ts) | A part of the value a `DatePicker` edits: the `date`, or the `hourAndMinute`. |  |  |
+| [`DatePickerProps`](../controls/DatePicker.d.ts) | DatePicker's label, controlled selection, range and the components it edits. `selection` is a `Date`, or a civil string with no time zone: `'2026-10-14'` for a date, `'09:41'` for a time, `'2026-10-14T09:41'` for both. The callback returns the same kind. |  |  |
+| [`DatePickerRange`](../controls/DatePicker.d.ts) | A DatePicker's selectable range. Omit a bound for a one-sided range (`start...` or `...end`). Bounds use the same kind of value as the selection. |  |  |
+| [`DatePickerStyle`](../controls/DatePicker.d.ts) | How a `DatePicker` draws. Only the compact style exists; `automatic` is `compact`. |  |  |
+| [`DefaultToolbarItem`](../public/toolbar.d.ts) | Places the screen's search field among its bottom toolbar items. The screen must be `searchable`. | Only kind="search". Without a ToolbarSpacer the next item is not merged into the search capsule. iPad keeps the drawer. | bottom search bar |
+| [`DefaultToolbarItemProps`](../public/toolbar.d.ts) | Which system item to place, and where. Only `search` exists. |  |  |
+| [`defineApp`](../public/definition.d.ts) | Declares app identity, install metadata and capabilities once. Pass the result to `runApp` and to the `@satinhq/kit/vite` plugin. Everything not given is defaulted and the whole definition is validated, so a bad id or icon fails at build time rather than after install. | One app root per page, for iPhone and iPad WebKit. There are no multiple windows. | app manifest; app config |
+| [`defineDatabase`](../data/database.d.ts) | Opens the app's local database, stored in IndexedDB. Each collection becomes a property of the result. Bump `version` with a migration whenever the schema changes. Export and import are built in, so offer them to the user. | Data lives in IndexedDB on this device. The browser may evict it, and writes can fail. | local database; offline storage; IndexedDB |
+| [`defineNamespace`](../motion/matchedGeometry.d.ts) | A namespace declared once at module scope, for views that share no parent component: a `MatchedTransitionSource` in one route and the screen it zooms into in another. Inside one component, use `useNamespace()`. | Pushed screens only; sheets and full-screen covers do not zoom. The source must be on screen, or the push slides. A downward dismiss must start within about 27 degrees of vertical. |  |
+| [`defineNavigation`](../public/structure.d.ts) | Declares the app's primary tabs or its single stack before anything renders, so every stack and tab id exists (and is typed) from the first frame. Pass the result to `runApp`; `TabView`, `Tab` and `NavigationStack` then render it. Components may freely wrap those views. | One app root per page, for iPhone and iPad WebKit. There are no multiple windows. |  |
+| [`defineRoutes`](../public/routes.d.ts) | Declares every destination once. The same schema types `useNavigation` and `NavigationLink`, validates restored paths and checks notification deep links, so a route id or param is never a free-form string. | Navigation does not use browser history. Route params must match the declared schema. | router; routes; deep links |
+| [`defineWebAuthentication`](../web/authentication.d.ts) | Sets up an OAuth authorization-code sign-in with PKCE. The transaction is stored durably, so it survives a redirect or a suspended app. Your server redeems the code. | Needs a secure context, local storage, Web Locks, a dedicated uncached callback page and a server exchange. Bridge reads need a private transaction proof. Your server validates tokens and OpenID Connect. Completion in the background is not guaranteed. | OAuth; sign in; PKCE |
+| [`Divider`](../content/content.d.ts) | A hairline across its parent stack's axis. It is decorative, so assistive technology skips it. | Default spacing and frame differences are listed in content.md. Props apply in a fixed order, not the order you write them. | separator; hairline |
+| [`Edge`](../safe-area/context.d.ts) | A logical edge. `leading` and `trailing` follow the layout direction. |  |  |
+| [`EdgeInsets`](../public/environment.d.ts) | Insets on each edge in points. `leading` and `trailing` follow the layout direction. |  |  |
+| [`EdgeLengths`](../safe-area/context.d.ts) | Optional lengths per logical edge, in points. |  |  |
+| [`EdgeSet`](../safe-area/modifiers.d.ts) | One edge group or a list of them. |  |  |
+| [`EdgeSetMember`](../safe-area/modifiers.d.ts) | A logical edge, an axis pair or all edges. |  |  |
+| [`EditButton`](../public/controls.d.ts) | Toggles the screen's edit mode. In a toolbar it reads Edit, then becomes a prominent checkmark (Done) while editing. | Rows are identified by their ForEach ids. Edit mode belongs to each screen and cannot be set from outside it. Outside edit mode, plain rows cannot be selected with the keyboard. | edit mode; Edit and Done |
+| [`EditMode`](../list-form/editing.d.ts) | Whether a screen's lists show their editing controls: `active` or `inactive`. |  |  |
+| [`ExportDocument`](../data/database.d.ts) | The JSON document `exportJSON` writes and `importJSON` reads. |  |  |
+| [`FileImporter`](../public/filePickers.d.ts) | A button that opens the system file chooser and returns the chosen files. Cancelling keeps the current selection. | MIME types are hints, not validation. There is no photo library identifier and no lasting file access, and overlapping choosers cannot always be told apart. Not yet verified in an installed app. | file upload; document picker |
+| [`FileImporterProps`](../public/filePickers.d.ts) | The importer's label, the selected files and the content types it accepts, as MIME types or extensions. | MIME types are hints, not validation. There is no photo library identifier and no lasting file access, and overlapping choosers cannot always be told apart. Not yet verified in an installed app. |  |
+| [`FixedGridItemOptions`](../content/content.d.ts) | A fixed track's size in points. |  |  |
+| [`FlexibleGridItemOptions`](../content/content.d.ts) | Bounds for a flexible track; the minimum defaults to 10 points. |  |  |
+| [`FocusChainField`](../text-input/focusChain.d.ts) | The parts of a field element that `useFocusChain` uses to move focus. |  |  |
+| [`FontWeight`](../content/content.d.ts) | A font weight, from `ultraLight` to `black`. |  |  |
+| [`ForEach`](../list-form/editing.d.ts) | Makes one row per element of `data`, identified by its `id` (or an `id` function). In a `List`, `onDelete` adds swipe-to-delete and the editing delete control; `onMove` adds the reorder handle. Both receive offsets into `data`; apply them with `removing` and `moving`. Put `ForEach` directly in a `List` or `Section`: the list reads it to know each row's identity. | ForEach must sit directly in a List or Section. Moving a selected group, two-finger selection and VoiceOver move actions are not available. | swipe to delete; reorder rows |
+| [`ForEachProps`](../list-form/editing.d.ts) | The collection, how to identify each element, the row each element becomes and its editing actions. `id` may be omitted when the elements have an `id` field. |  |  |
+| [`Form`](../public/controls.d.ts) | An inset grouped `List` for settings and data entry. Scrolling it dismisses the keyboard at once. | A ListRow is always one row: its children sit side by side. Use one ListRow per row. A numeric gap changes the space between sections; header and footer space stays. visible keeps the default background; it does not make a sheet opaque. | settings screen; form |
+| [`FormProps`](../public/controls.d.ts) | The scroll, search and section options `Form` and `List` share. `style` is inline CSS. |  |  |
+| [`FullScreenCover`](../public/presentation.d.ts) | An opaque presentation that slides up over the whole screen. It has no interactive dismissal; close it through its binding or `useDismiss()`. | Covers cannot be swiped away. They start closed after a relaunch. | full screen presentation; modal |
+| [`FullScreenCoverProps`](../public/presentation.d.ts) | A full-screen cover's presentation binding and accessible title. |  |  |
+| [`GeometryFrame`](../content/layout.d.ts) | A rectangle in points: origin `x` and `y` plus a size. |  |  |
+| [`GeometryProxy`](../content/layout.d.ts) | What a `GeometryReader` passes to its children: its size and a way to read its frame. |  |  |
+| [`GeometryReader`](../content/layout.d.ts) | Fills the space it is offered and calls its children with that size. Its content renders once the first measurement is in. | Inside a scroll view, give it a definite height. The proxy reports no safe-area insets. | measure size |
+| [`GeometryReaderProps`](../content/layout.d.ts) | A `GeometryReader`'s render function, plus plain div attributes. |  |  |
+| [`GeometrySize`](../content/layout.d.ts) | A width and height in points. |  |  |
+| [`Glass`](../public/glassValue.d.ts) | The glass material for a `GlassEffect`. Start from `Glass.regular` or `Glass.clear` and refine it with a tint or `interactive()`; each call returns a new value. | If WebGPU fails for good, release builds fall back to a blur-and-tint material unless strict glass is on; development builds report the failure. |  |
+| [`GlassEffect`](../public/glass.d.ts) | Draws glass behind its content in the given shape, a capsule by default. Inside a `GlassEffectContainer`, effects with ids morph into one another. | If WebGPU fails for good, release builds fall back to a blur-and-tint material unless strict glass is on; development builds report the failure. | glass; refraction |
+| [`GlassEffectContainer`](../glass/GlassEffect.d.ts) | Groups nearby glass effects so they render together and blend or morph into one another. `spacing`, 20 pt by default, sets how close effects must be to merge. | If WebGPU fails for good, release builds fall back to a blur-and-tint material unless strict glass is on; development builds report the failure. | glass morph; glass group |
+| [`GlassEffectProps`](../public/glass.d.ts) | The glass material and shape, plus the namespace and id that let effects morph into each other. Plain div attributes also apply. |  |  |
+| [`GlassError`](../glass/errors.d.ts) | One glass renderer failure: its code, message, the stage it happened in and when. |  |  |
+| [`GlassErrorCode`](../glass/errors.d.ts) | Why the glass renderer failed, such as `gpu-unavailable` or `device-lost`. In a release build a failure can switch glass to the fallback material. |  |  |
+| [`GlassShape`](../public/glass.d.ts) | The outline of a glass effect: `capsule`, `circle` or a rounded rectangle with a corner radius in points. |  |  |
+| [`GlassTint`](../glass/regions.d.ts) | A glass tint as red, green, blue and alpha channels from 0 to 1. `Glass.tintRGBA` rejects values outside that range. |  |  |
+| [`GridItem`](../content/content.d.ts) | Makes grid tracks for `LazyVGrid` and `LazyHGrid`: `fixed`, `flexible` or `adaptive`. Each call validates its options and throws a `RangeError` for bad bounds or spacing. | Every child renders at once; there is no virtualization. An adaptive track must be the only track, and there is no Grid or GridRow. |  |
+| [`GridItemOptions`](../content/content.d.ts) | Options every grid track takes. `spacing` is the gap after this track; `alignment` places content within each cell. |  |  |
+| [`GridItemValue`](../content/content.d.ts) | A validated grid track. Make one with `GridItem.fixed`, `.flexible` or `.adaptive`. |  |  |
+| [`HorizontalTextFieldProps`](../public/controls.d.ts) | Horizontal TextField's controlled text and keyboard intent. |  |  |
+| [`HStack`](../content/content.d.ts) | Arranges its children in a row. Add a `Spacer` to push content to the edges. | Default spacing and frame differences are listed in content.md. Props apply in a fixed order, not the order you write them. | row; horizontal layout |
+| [`HStackProps`](../content/content.d.ts) | HStack's vertical alignment and spacing in points. |  |  |
+| [`IgnoresSafeArea`](../safe-area/modifiers.d.ts) | Lets content extend through the safe area on the chosen edges, for full-bleed backgrounds and media. The container edges and keyboard avoidance can be ignored separately. | Only a view at the start of the screen content extends upward. Content that does not scroll does not extend through the bottom edge. | full bleed; edge to edge |
+| [`IgnoresSafeAreaProps`](../safe-area/modifiers.d.ts) | Which safe-area regions and edges the content ignores. |  |  |
+| [`Image`](../image/Image.d.ts) | Shows a bundled or local image. It reserves its size so layout never jumps, and `priority` loads it ahead of other images. Use `alt=""` for decoration. | Remote images use the browser's HTTP cache. onPhaseChange reports loading state; it does not swap in other content. There is no Photos library access. | image; picture |
+| [`ImageAsset`](../image/asset.d.ts) | A responsive image with its size, `srcSet` and a tiny placeholder. The Vite plugin produces one for each import ending in `?satin-image`. |  |  |
+| [`ImageProps`](../image/Image.d.ts) | An image's source, required alt text and aspect-ratio content mode. |  |  |
+| [`IndexesOfCollection`](../data/database.d.ts) | The index names declared by a collection. |  |  |
+| [`JustUpdated`](../app/coldLaunchUpdate.d.ts) | The previous and current build identifiers after an app update. |  |  |
+| [`KeyboardGeometry`](../keyboard/geometry.d.ts) | How much the keyboard covers, whether it shows, and the viewport size, in points. |  |  |
+| [`KeyboardMetrics`](../public/keyboard.d.ts) | The keyboard's current geometry in points, plus the software keyboard height to plan for at this window size. |  |  |
+| [`Label`](../public/Label.d.ts) | A title with an icon. In a toolbar a label with an icon shows the icon alone; a hidden title stays available to assistive technology. | Labels are not interactive, and a custom LabelStyle must return noninteractive content. |  |
+| [`LabeledContent`](../public/controls.d.ts) | A row with a label and a trailing value in secondary text. | Labels are not interactive, and a custom LabelStyle must return noninteractive content. | value row; detail row |
+| [`LabeledContentProps`](../public/controls.d.ts) | The row's label and the trailing value it shows. |  |  |
+| [`LabelProps`](../public/Label.d.ts) | A label's title (children) and its icon: a `symbol` name or any `icon` node. |  |  |
+| [`LabelStyle`](../public/controlStyle.d.ts) | A custom arrangement of a label's title and icon. |  |  |
+| [`LabelStyleConfiguration`](../public/controlStyle.d.ts) | What a custom `LabelStyle` draws from: the label's title and icon. |  |  |
+| [`LaunchScreenSlot`](../app/launchScreen.d.ts) | The launch screen's icon and optional label. The inline environment paints it before application JavaScript loads, so both must be plain strings. |  |  |
+| [`LayoutModifierProps`](../safe-area/modifiers.d.ts) | The children and plain div attributes every layout wrapper takes. |  |  |
+| [`LazyHGrid`](../content/content.d.ts) | A grid with fixed rows that grows sideways. Every child renders at once; use `List` for long data. | Every child renders at once; there is no virtualization. An adaptive track must be the only track, and there is no Grid or GridRow. | horizontal grid |
+| [`LazyHGridProps`](../content/content.d.ts) | The grid's rows and the spacing between columns. Each row sets the gap after itself. |  |  |
+| [`LazyHStack`](../content/content.d.ts) | Lays out its children like `HStack`. Every child mounts at once and keeps its state. | Every child renders at once; there is no virtualization. |  |
+| [`LazyHStackProps`](../content/content.d.ts) | LazyHStack's layout props. Every child mounts eagerly; use List for long data. |  |  |
+| [`LazyVGrid`](../content/content.d.ts) | A grid with fixed columns that grows downward. Every child renders at once; use `List` for long data. | Every child renders at once; there is no virtualization. An adaptive track must be the only track, and there is no Grid or GridRow. | grid; columns |
+| [`LazyVGridProps`](../content/content.d.ts) | The grid's columns and the spacing between rows. Each column sets the gap after itself. |  |  |
+| [`LazyVStack`](../content/content.d.ts) | Lays out its children like `VStack`. Every child mounts at once and keeps its state, so use `List` for long data. | Every child renders at once; there is no virtualization. |  |
+| [`LazyVStackProps`](../content/content.d.ts) | LazyVStack's layout props. Every child mounts eagerly; use List for long data. |  |  |
+| [`LineLimit`](../public/controls.d.ts) | A number caps growth; a range also reserves its minimum number of lines. |  |  |
+| [`Link`](../web/openURL.d.ts) | Opens a URL when pressed, like `useOpenURL`. A press that turns into a scroll does not open it. | You cannot force the external browser. A dispatched URL is not a loaded page. Cross-origin or blocked frames report unverified, and only same-origin frames can be reloaded or stopped. | link; open URL |
+| [`LinkProps`](../web/openURL.d.ts) | The link's destination URL, its content and an optional result callback. |  |  |
+| [`List`](../public/controls.d.ts) | A scrolling column of rows, inset grouped by default. Controls inside it render as rows. Its `id` keys scroll restoration, so keep it stable. With `selection`, rows from a `ForEach` become selectable; with an `EditButton` in the screen's toolbar, `ForEach`'s `onDelete` and `onMove` add the editing controls. | The refresh indicator holds a 60 pt inset while the action runs. A ListRow is always one row: its children sit side by side. Use one ListRow per row. A numeric gap changes the space between sections; header and footer space stays. visible keeps the default background; it does not make a sheet opaque. Rows are identified by their ForEach ids. Edit mode belongs to each screen and cannot be set from outside it. Outside edit mode, plain rows cannot be selected with the keyboard. | list; rows; pull to refresh; swipe actions |
+| [`ListItemID`](../list-form/editing.d.ts) | A row's identity in `List` selection: the `ForEach` id. |  |  |
+| [`ListProps`](../public/controls.d.ts) | A `List` takes a `Form`'s options, its `listStyle` and an optional `selection`. | A numeric gap changes the space between sections; header and footer space stays. visible keeps the default background; it does not make a sheet opaque. |  |
+| [`ListRow`](../list-form/ListForm.d.ts) | One row with custom content or per-row overrides. A ListRow is always one row. Several children share it side by side, laid out as an HStack would (centred, 8 pt apart, a NavigationLink filling the rest); each separate row needs its own ListRow. | A ListRow is always one row: its children sit side by side. Use one ListRow per row. Satin still owns row geometry. Do not use raw viewport or safe-area CSS in rows. ForEach must sit directly in a List or Section. Moving a selected group, two-finger selection and VoiceOver move actions are not available. Rows are identified by their ForEach ids. Edit mode belongs to each screen and cannot be set from outside it. Outside edit mode, plain rows cannot be selected with the keyboard. | swipe actions; row insets |
+| [`ListRowProps`](../list-form/ListForm.d.ts) | One row's content and its overrides: insets in points, background, separator, swipe actions, context menu and editing opt-outs. |  |  |
+| [`ListSelectionProps`](../public/controls.d.ts) | Row selection for a `List`. An optional id selects one row: tapping a row selects it. A `Set` selects many: while editing, rows show selection circles and taps toggle them. Rows are identified by their `ForEach` ids. |  |  |
+| [`ListStyle`](../public/controls.d.ts) | How a `List` draws its rows and sections. `insetGrouped` is the default. |  |  |
+| [`LocalReachabilityState`](../reachability/model.d.ts) | The reachability state of an app that needs no app server. Its status is always `local`. |  |  |
+| [`MatchedTransitionSource`](../public/navigationTransition.d.ts) | Marks the view a zoom transition starts from and returns to. A push zooms only while its source is on screen; otherwise it slides as usual. | Pushed screens only; sheets and full-screen covers do not zoom. The source must be on screen, or the push slides. A downward dismiss must start within about 27 degrees of vertical. | zoom transition |
+| [`MatchedTransitionSourceProps`](../public/navigationTransition.d.ts) | The source's id and namespace, and the one element the screen zooms out of. |  |  |
+| [`MediaCommandResult`](../media/types.d.ts) | How a media command ended. `needs-user-activation` means WebKit wants a tap first. |  |  |
+| [`MediaController`](../media/types.d.ts) | The audio player's commands: queue editing, transport, seek, repeat and shuffle. Queue commands resolve once the change is made; `play` and `seek` resolve once playback is seen to respond. |  |  |
+| [`MediaPlayer`](../media/types.d.ts) | `useMediaPlayer`'s result: the commands and the live state. | Audio only, with no video player and no background playback beyond what WebKit allows. Playback depends on WebKit codec support and a server that serves byte ranges. |  |
+| [`MediaQueueEntry`](../media/types.d.ts) | One item in the audio queue: its source URL, media id and display metadata. Each occurrence has its own `entryId`, so a repeated song appears twice. |  |  |
+| [`MediaQueueOptions`](../media/types.d.ts) | Where a replaced queue starts, and whether it plays. |  |  |
+| [`MediaRepeat`](../media/types.d.ts) | The queue's repeat mode: `off`, `one` or `all`. |  |  |
+| [`MediaSnapshot`](../media/types.d.ts) | Everything the player shows: the queue, the current entry, status, position and modes. |  |  |
+| [`Menu`](../public/actions.d.ts) | A button that opens a menu of actions. In a toolbar a symbol label draws an icon button and a text label draws a capsule. | Actions have accessible names, but they do not appear in the VoiceOver Actions rotor. | dropdown menu; more button |
+| [`MenuProps`](../public/actions.d.ts) | A menu's label and its actions. |  |  |
+| [`MenuTriggerProps`](../glass/menuPresenter.d.ts) | The props a custom `Menu` trigger receives. Forward all of them to the element that opens the menu. |  |  |
+| [`moving`](../list-form/offsets.d.ts) | Returns a new array: the elements at `fromOffsets` move, in their original order, to just before the element that was at `toOffset`. Pass it exactly what `ForEach`'s `onMove` reports. `toOffset` counts positions in the original array: moving the first of three rows below the second reports `toOffset` 2, not 1. Use `items.length` to move to the end. | Each returns a new array; store the result in state to update the rows. | reorder rows |
+| [`NamespaceID`](../motion/matchedGeometry.d.ts) | A scope for matched-geometry ids. Two views match only if they share an id and a namespace. |  |  |
+| [`Navigation`](../public/runtime.d.ts) | The actions `useNavigation` returns: `push`, `replace`, `pop`, `popToRoot` and `showAcknowledgements`, typed against the routes. |  |  |
+| [`NavigationArguments`](../public/runtime.d.ts) | The typed parameter tuple accepted by push and replace. |  |  |
+| [`NavigationBackButtonBehavior`](../navigation/types.d.ts) | Whether a pushed screen shows its back button. `automatic` shows it; `hidden` removes it. |  |  |
+| [`NavigationDeclaration`](../public/structure.d.ts) | An app's primary navigation: either tabs, each owning a stack, or one stack. |  |  |
+| [`NavigationLink`](../public/controls.d.ts) | Pushes a declared route. In a `List` it draws a disclosure row; elsewhere it is a plain pressable. | Navigation does not use browser history. Route params must match the declared schema. | push; disclosure row |
+| [`NavigationLinkProps`](../public/controls.d.ts) | A destination route and its params (typed against the registered routes), plus the row's label and accessories. |  |  |
+| [`NavigationSplitView`](../public/runtime.d.ts) | Shows the declared root as a sidebar and pushes into a retained detail column. At compact width it collapses to a plain stack. A `NavigationStack` never splits by itself. | It renders an existing declared stack; it takes no modal or ad hoc root. | sidebar and detail; split view |
+| [`NavigationSplitViewProps`](../public/runtime.d.ts) | Selects which declared primary stack the split view renders; inside a `Tab`, its own. |  |  |
+| [`NavigationStack`](../public/runtime.d.ts) | Renders an in-memory navigation stack. A primary stack's root comes from `defineNavigation`, never from JSX. Inside a `Sheet`, `modal` with a `root` makes a stack the sheet owns. | Navigation does not use browser history. Route params must match the declared schema. | navigation stack; push; back button |
+| [`NavigationStackProps`](../public/runtime.d.ts) | Either a declared primary stack (optionally naming its tab), or a modal stack inside a `Sheet` that declares its own root. |  |  |
+| [`NavigationTransition`](../public/navigationTransition.d.ts) | How a pushed screen arrives and leaves: `automatic` (a slide) or `zoom`. Give one to `Screen`'s `navigationTransition`. | Pushed screens only; sheets and full-screen covers do not zoom. The source must be on screen, or the push slides. A downward dismiss must start within about 27 degrees of vertical. | zoom transition |
+| [`newId`](../data/database.d.ts) | A new unique record id that sorts by creation time. | Data lives in IndexedDB on this device. The browser may evict it, and writes can fail. |  |
+| [`NotificationAuthorizationStatus`](../public/environment.d.ts) | Notification permission, independent of subscription setup and token rotation. |  |  |
+| [`NotificationPermissionExplainer`](../public/environment.d.ts) | Explains what notifications are for before the user asks for them; its button requests authorization from that gesture. | Permission requires the app to be installed on the Home Screen. Local scheduled notifications are unavailable; schedule them from your own authenticated server. | notification permission prompt |
+| [`NotificationPermissionExplainerProps`](../public/environment.d.ts) | The notification permission explanation's title and app-authored content. |  |  |
+| [`OfflinePresentationProps`](../reachability/react.d.ts) | What the offline view shows: why the server is unavailable, how it is presented, and the recheck and back actions. |  |  |
+| [`OpenURLAction`](../web/openURL.d.ts) | The function `useOpenURL` returns. It opens a URL and reports the result at once. |  |  |
+| [`OpenURLOptions`](../web/openURL.d.ts) | How to open a web page. `prefersInApp` is a preference; the browser decides how the page is presented. |  |  |
+| [`OpenURLResult`](../web/openURL.d.ts) | What happened to an open request: `handled` in the app, `dispatched` to the browser, or `unavailable` with a reason. `dispatched` does not mean the page loaded. |  |  |
+| [`OrientationFallback`](../app/definition.d.ts) | What the app shows when the device is in an orientation it does not support: a rotation prompt, a letterboxed layout, a responsive layout, or nothing. |  |  |
+| [`Overlay`](../safe-area/Overlay.d.ts) | Layers `content` over its children without changing their frame. Inside a `SafeAreaInset`, the overlay keeps to the reduced safe area and moves with the keyboard, like the composer. | Only views can be overlaid; there is no shape or style overlay. |  |
+| [`OverlayProps`](../safe-area/Overlay.d.ts) | The layered `content` and its alignment. The children set the frame. |  |  |
+| [`param`](../push/schema.d.ts) | Route parameter types: `string`, `int`, `number` (finite), `boolean` and `enum`, each with `.optional()`. The same schema validates navigation, restoration and notification deep links. | Navigation does not use browser history. Route params must match the declared schema. |  |
+| [`Parameter`](../push/schema.d.ts) | One route parameter's validator, made by `param`. |  |  |
+| [`ParameterSchema`](../push/schema.d.ts) | A route's parameters by name. |  |  |
+| [`PasteButton`](../public/deviceActions.d.ts) | A button that pastes plain text from the clipboard when pressed. It never reads the clipboard before the press. The browser may ask the user to confirm. | Plain text only. Dismissal and denial look the same. WebKit may show an extra Paste confirmation. Not yet verified in an installed app. | paste; clipboard |
+| [`PasteButtonProps`](../public/deviceActions.d.ts) | The button content and the callbacks that receive the pasted text or the error. | Plain text only. Dismissal and denial look the same. WebKit may show an extra Paste confirmation. Not yet verified in an installed app. |  |
+| [`PhotosPicker`](../public/filePickers.d.ts) | A button that opens the system photo chooser and returns one photo or video as a `File`. | MIME types are hints, not validation. There is no photo library identifier and no lasting file access, and overlapping choosers cannot always be told apart. Not yet verified in an installed app. | photo picker; image upload |
+| [`PhotosPickerProps`](../public/filePickers.d.ts) | The picker's label, the selected file and the kind of media it accepts. | MIME types are hints, not validation. There is no photo library identifier and no lasting file access, and overlapping choosers cannot always be told apart. Not yet verified in an installed app. |  |
+| [`Picker`](../public/controls.d.ts) | Chooses one option. `menu` (the default) opens a menu from the row, `navigationLink` pushes a list of options, `inline` lists them in place and `segmented` draws a segmented control. An option can carry a `symbol` (or `icon`) and a `color`. Icons draw in colour in an inline or navigationLink list, in the label colour inside the open menu, and not at all when segmented. | Only the menu, navigationLink, inline and segmented styles exist. | dropdown; select; segmented control |
+| [`PickerProps`](../public/controls.d.ts) | Picker's options, controlled value and `pickerStyle`. |  |  |
+| [`preferredColorScheme`](../app/appearance.d.ts) | Forces the whole app into `light` or `dark`. `system` or null follows the system again. The override lasts until the page reloads, so store the user's choice with `useAppStorage` and apply it at launch. | The override covers the whole app, presentations included; one view or sheet cannot differ. Persist the choice with useAppStorage and apply it at launch. | dark mode; light mode |
+| [`PreferredColorScheme`](../app/appearanceStore.d.ts) | An appearance override for the whole app: `light`, `dark`, or `system` (or null) to follow the system. | The override covers the whole app, presentations included; one view or sheet cannot differ. Persist the choice with useAppStorage and apply it at launch. |  |
+| [`PresentationDetent`](../presentation/model.d.ts) | A height a sheet can rest at: `medium`, `large`, a fixed `height` in points or a `fraction` of the available height. |  |  |
+| [`PresentationProps`](../presentation/Presentation.d.ts) | The presentation binding, accessible title and dismissal callback shared by presentations. |  |  |
+| [`Pressable`](../press/Pressable.d.ts) | A plain tap target with no button chrome. It dims while pressed, and a touch that turns into a scroll does not fire `onPress`. Use it for custom tappable content. | An icon-only Pressable needs an aria-label. |  |
+| [`PressableOwnedHandlers`](../press/Pressable.d.ts) | The DOM event handlers `Pressable` owns. Use `onPress` and `onPressStateChange` instead. |  |  |
+| [`PressableProps`](../press/Pressable.d.ts) | A pressable's `onPress` action, content and press feedback. An `iconOnly` pressable needs an `aria-label`. |  |  |
+| [`PressState`](../press/stateMachine.d.ts) | Whether a press is `idle`, held down (`pressed`) or cancelled (`deactivated`). |  |  |
+| [`ProgressView`](../controls/ProgressView.d.ts) | A spinning activity indicator, or a linear bar showing `value` out of `total` (1 by default). | Circular progress always spins; it does not show a value. Indeterminate linear progress draws an empty track. See controls.md. | spinner; activity indicator; progress bar; loading |
+| [`ProgressViewProps`](../controls/ProgressView.d.ts) | ProgressView's optional label and progress; without `value` it is indeterminate. |  |  |
+| [`ProgressViewStyle`](../controls/ProgressView.d.ts) | How a `ProgressView` draws: `linear`, `circular` or `automatic`, which is linear with a value and circular without. |  |  |
+| [`Query`](../data/database.d.ts) | An immutable query over a collection: `index`, `keyRange`, `reverse`, `limit` and `filter` each return a new query. `useQuery` hands one to its configure callback. | Data lives in IndexedDB on this device. The browser may evict it, and writes can fail. |  |
+| [`ReachabilityPresentation`](../reachability/model.d.ts) | The connectivity presentation currently shown to the user. |  |  |
+| [`ReachabilityProbeConfig`](../reachability/model.d.ts) | The endpoint and deadlines used to probe the app server. |  |  |
+| [`ReachabilityRoutePolicy`](../reachability/model.d.ts) | Whether a destination remains usable without the app server. |  |  |
+| [`ReachabilityState`](../reachability/model.d.ts) | The full reachability state: local for apps without a server, or the server probe state. |  |  |
+| [`ReachabilityStateStatus`](../reachability/model.d.ts) | The server probe result, including an unknown initial state. |  |  |
+| [`ReachabilityStatus`](../reachability/model.d.ts) | Whether the app server answered: `reachable`, `server-unreachable` or `device-offline`. |  |  |
+| [`ReachabilitySurface`](../reachability/model.d.ts) | How Satin shows a failed probe: a `banner`, a `full-screen` offline view, or `none`. |  |  |
+| [`RecordOfCollection`](../data/database.d.ts) | The record type stored by a collection declaration. |  |  |
+| [`Register`](../public/routes.d.ts) | Augment once in the app to type bare `NavigationLink`, `NavigationStack`, `TabView` and `useNavigation` without generics. |  |  |
+| [`RegisteredNavigation`](../public/structure.d.ts) | The navigation declared through `Register`, which types bare `TabView`, `Tab` and `NavigationStack`; `never` when the app has not registered one. |  |  |
+| [`RegisteredRoutes`](../public/routes.d.ts) | The routes declared through `Register`; an empty route set when the app has not registered. |  |  |
+| [`removing`](../list-form/offsets.d.ts) | Returns a new array without the elements at `offsets`. Pass it exactly what `ForEach`'s `onDelete` reports. | Each returns a new array; store the result in state to update the rows. | delete rows |
+| [`route`](../public/routes.d.ts) | Binds a screen component to its parameter schema and static chrome. Declare the params first, then type the component with `RouteParameters<typeof params>`; this order avoids inference cycles. | Navigation does not use browser history. Route params must match the declared schema. |  |
+| [`RouteDefinition`](../public/routes.d.ts) | A screen bound to its parameter schema; made by `route`, collected by `defineRoutes`. |  |  |
+| [`RouteOptions`](../public/routes.d.ts) | A destination's static chrome: what its bar shows from the first frame of the push. `Screen` overrides any of these once the screen has its data. |  |  |
+| [`RouteParameters`](../push/schema.d.ts) | The props a route component receives for a parameter schema; optional params are optional. |  |  |
+| [`RouteParameterValue`](../push/schema.d.ts) | The value described by a route parameter declaration. |  |  |
+| [`RouteProps`](../public/routes.d.ts) | The params of one route, as its component receives them. |  |  |
+| [`Routes`](../public/routes.d.ts) | Every destination of an app, made by `defineRoutes`. |  |  |
+| [`RowActionsProps`](../actions/types.d.ts) | Row swipe actions and context-menu commands. |  |  |
+| [`RowIcon`](../list-form/ListForm.d.ts) | A Settings-style icon: a white symbol on a rounded colour tile, for a row's leading edge. | Labels are not interactive, and a custom LabelStyle must return noninteractive content. | settings icon |
+| [`RowIconProps`](../list-form/ListForm.d.ts) | The symbol and its tile colour: a system colour name or any CSS colour. |  |  |
+| [`RowInteractionProps`](../public/controls.d.ts) | The `swipeActions` and `contextMenu` props of a row in a `List`. |  |  |
+| [`RowLabel`](../public/controls.d.ts) | A row title with a secondary `detail` line under it. The framework owns its layout. | Labels are not interactive, and a custom LabelStyle must return noninteractive content. |  |
+| [`RowLabelProps`](../public/controls.d.ts) | A row title and its secondary line. |  |  |
+| [`runApp`](../public/runtime.d.ts) | Mounts the app into `#root`. Satin creates every primary stack and restores the scene and its launch route before React's first commit, then owns navigation, restoration, notifications and the app shell. Call it once. `Content` replaces the default root, usually to add app-wide providers; it renders `TabView` or `NavigationStack` itself. Without it Satin renders the declaration directly. | One app root per page, for iPhone and iPad WebKit. There are no multiple windows. | mount app; entry point |
+| [`RunAppConfiguration`](../public/runtime.d.ts) | The app, routes, navigation and optional root content mounted by runApp. |  |  |
+| [`RunAppOptions`](../public/runtime.d.ts) | App-wide runtime options for `runApp`. Every one is optional. |  |  |
+| [`SafeAreaBar`](../safe-area/modifiers.d.ts) | A bar on the top or bottom edge that content scrolls under. It is a `SafeAreaInset` with no spacing and its own scroll-edge blur. | The bar uses a CSS backdrop blur, not the navigation bar edge effect, and does not extend the navigation bar. | bottom bar; top bar |
+| [`SafeAreaBarProps`](../safe-area/modifiers.d.ts) | A `SafeAreaInset` limited to the top or bottom edge, with no spacing. |  |  |
+| [`SafeAreaInset`](../safe-area/SafeAreaInset.d.ts) | Pins an accessory, such as a composer or a filter bar, to one edge of its content. The accessory takes room from the content's safe area on its edge; a scroll view inside still spans the whole frame and scrolls under it. At the bottom, content scrolls under the accessory and its last item stays clear of it. When the accessory resizes, the scroll inset changes in the same frame (through `--satin-inset-accessory-height`), so a composer that grows by a line keeps the newest message in view. | A top inset under a large title stays at the expanded title edge while the title collapses. On an installed iPhone the status bar area is a flat fill (see top-edge-limitation.md). | safe area; accessory; composer bar |
+| [`SafeAreaInsetEdge`](../safe-area/SafeAreaInset.d.ts) | The edge a `SafeAreaInset` accessory sits on. `leading` and `trailing` follow the layout direction. |  |  |
+| [`SafeAreaInsetProps`](../safe-area/SafeAreaInset.d.ts) | The edge, the accessory (`content`) and its spacing; `children` is the content it insets. |  |  |
+| [`SafeAreaPadding`](../safe-area/modifiers.d.ts) | Grows the safe area of the content inside it. Scroll views keep their frame and inset their content; other content is padded. Nested padding adds up. | On a scroll view, bottom padding is a spacer at the end of the content. Nested padding adds up. |  |
+| [`SafeAreaPaddingProps`](../safe-area/modifiers.d.ts) | Which edges to pad, and by how much. |  |  |
+| [`ScenePhase`](../public/environment.d.ts) | Whether the app is in the foreground with focus (`active`), without focus (`inactive`) or hidden (`background`). |  |  |
+| [`Screen`](../public/Screen.d.ts) | A route component's navigation chrome: title, toolbar, search and related options, declared by the screen that owns them. Use it when the title or toolbar depends on the screen's data; static chrome belongs in the route's options. | Title fonts and sizes follow the system; there is no custom title style. Navigation bar minimization is opt-in; never keeps the bar expanded. | navigation bar; title; toolbar |
+| [`ScreenLifecycle`](../navigation/types.d.ts) | Whether a screen is covered by another, and the phase of its current transition. |  |  |
+| [`ScreenLifecycleCallbacks`](../navigation/types.d.ts) | The `appear` and `disappear` callbacks for `useScreenLifecycle`. |  |  |
+| [`ScreenProps`](../public/Screen.d.ts) | A screen's own chrome, overriding its route's static options. |  |  |
+| [`ScrollAnchor`](../scroll/position.d.ts) | Where a scroll target lines up in the viewport: `top`, `center` or `bottom`. |  |  |
+| [`ScrollAxis`](../scroll/types.d.ts) | The axis along which a scroll surface accepts scrolling. |  |  |
+| [`ScrollDismissesKeyboardMode`](../keyboard/adapter.d.ts) | When scrolling dismisses the keyboard: `never`; `immediately`, as soon as a drag on the surface starts; or `interactively`, when a drag reaches the keyboard. WebKit's keyboard cannot follow the finger, so it then slides away on its own curve and the bottom inset follows it. |  |  |
+| [`ScrollEdge`](../scroll/edgePolicy.d.ts) | A logical edge of a scroll view. |  |  |
+| [`ScrollEdgeEffectHidden`](../scroll/edgePolicy.d.ts) | Whether to hide scroll edge material, optionally for specific edges. | The hard style throws an unsupported error. Only the top edge draws material; other edges draw none. |  |
+| [`ScrollEdgeEffectStyle`](../scroll/edgePolicy.d.ts) | The material under bars at a scroll view's edge: `soft`, `hard` or `automatic`. | The hard style throws an unsupported error. Only the top edge draws material; other edges draw none. |  |
+| [`ScrollEdgeEffectStyleSelection`](../scroll/edgePolicy.d.ts) | The scroll edge treatment and the edges to which it applies. |  |  |
+| [`ScrollEdgeSelection`](../scroll/edgePolicy.d.ts) | One or more scroll edges, or all edges. | The hard style throws an unsupported error. Only the top edge draws material; other edges draw none. |  |
+| [`ScrollOffset`](../scroll/types.d.ts) | The scroll position in points along the physical x and y axes. |  |  |
+| [`ScrollPositionBinding`](../scroll/position.d.ts) | A controlled scroll position: the id of the target in view, its anchor and the callback that receives changes. |  |  |
+| [`ScrollPositionOptions`](../scroll/position.d.ts) | The scroll view's position options: where it starts, whether it keeps visible content in place, a controlled position and a geometry callback. |  |  |
+| [`ScrollTarget`](../scroll/ScrollTarget.d.ts) | Marks content a vertical `ScrollView` can scroll to by `id`. | Scroll targets, pull to refresh and scroll geometry work only on the vertical axis. |  |
+| [`ScrollToTopOptions`](../scroll/types.d.ts) | Options for `scrollToTop`: whether to animate. |  |  |
+| [`ScrollView`](../public/scroll.d.ts) | A scrolling region, vertical by default. Inside a screen its `id` keys scroll restoration, so keep it stable. `refreshable` adds pull to refresh, and a ref handle scrolls to a `ScrollTarget`. | The refresh indicator holds a 60 pt inset while the action runs. Scroll targets, pull to refresh and scroll geometry work only on the vertical axis. The hard style throws an unsupported error. Only the top edge draws material; other edges draw none. | scrolling; pull to refresh; scroll to |
+| [`ScrollViewHandle`](../public/scroll.d.ts) | A scroll view's ref handle: its current offset, `scrollTo` a target and `scrollToTop`. |  |  |
+| [`ScrollViewProps`](../public/scroll.d.ts) | A scroll view's id, axis, refresh action, keyboard dismissal, edge material and position options. Targets, refresh and geometry work only on the vertical axis. |  |  |
+| [`Searchable`](../search/searchable.d.ts) | A search field for a screen or list: its controlled text, prompt, placement, scopes and suggestions. The bar owns the field: its capsule, magnifier, clear button, close button, scope bar and collapse on scroll. In the bottom toolbar, the presented field rides above the keyboard with a close button, and the bar and title give way. Place `<DefaultToolbarItem kind="search" placement="bottomBar" />` to put it beside other bottom bar items. | The bottom toolbar field does not animate in yet and draws no scope bar, so scoped fields stay in the drawer. A search tab draws no bottom field; role="search" is metadata only. Do not build your own search bar. | search bar; search field |
+| [`SearchFieldPlacement`](../search/searchable.d.ts) | Where the search field goes. On iPhone, `'automatic'` uses the bottom toolbar outside a `TabView` when the screen has no other bottom bar items or scopes; otherwise it uses a drawer that scrolls away with the content. On iPad, automatic search belongs to the trailing navigation toolbar, or below the sidebar toolbar in a split view. Explicit toolbar placement stays trailing on iPad, including narrow windows. | The bottom toolbar field does not animate in yet and draws no scope bar, so scoped fields stay in the drawer. A search tab draws no bottom field; role="search" is metadata only. Do not build your own search bar. |  |
+| [`SearchScopes`](../search/searchable.d.ts) | A controlled scope bar, shown under the search field while search is presented. | The bottom toolbar field does not animate in yet and draws no scope bar, so scoped fields stay in the drawer. A search tab draws no bottom field; role="search" is metadata only. Do not build your own search bar. |  |
+| [`SearchSuggestion`](../search/searchable.d.ts) | A suggestion shown under the search field. Choosing one replaces the search text; it does not submit. | The bottom toolbar field does not animate in yet and draws no scope bar, so scoped fields stay in the drawer. A search tab draws no bottom field; role="search" is metadata only. Do not build your own search bar. |  |
+| [`Section`](../list-form/ListForm.d.ts) | A group of rows in a `List` or `Form`, with an optional header and footer. | A ListRow is always one row: its children sit side by side. Use one ListRow per row. |  |
+| [`SectionProps`](../list-form/ListForm.d.ts) | A section's rows and its optional header and footer. |  |  |
+| [`SecureField`](../public/controls.d.ts) | Password entry through secure system input. In a `List` or `Form` it becomes the row. | Password manager support is limited to autofill. | password field |
+| [`SecureFieldProps`](../public/controls.d.ts) | SecureField's controlled text, label and prompt. |  |  |
+| [`Selectable`](../root/SatinRoot.d.ts) | Lets the user select and copy the text inside it. App chrome turns text selection off everywhere else, so wrap user-authored content such as notes or messages. | Zoomable is the only region that zooms; the page itself never does. There is no general gesture composition. | text selection; copy text |
+| [`SelectableProps`](../root/SatinRoot.d.ts) | The wrapped content and plain div attributes. |  |  |
+| [`semanticColor`](../public/colors.d.ts) | Returns a semantic colour, such as `label` or `systemGroupedBackground`, as a CSS colour that follows light and dark appearance. It also resolves inside portals. | Values match iOS 27 at normal contrast. Increased contrast and Display P3 are not supported. Semantic label colours and layered secondary or tertiary text can differ slightly from iOS. |  |
+| [`SemanticColorName`](../public/colors.d.ts) | The names of the iOS semantic colours for text, fills, backgrounds, separators and tint (`label`, `secondarySystemBackground`, …). |  |  |
+| [`SensoryButton`](../haptics/SensoryButton.d.ts) | A tap target that plays the system selection tick where the browser supports it. There is no other way to trigger haptics. Use plain content only: links, buttons and other form controls cannot be nested. | Only selection or false. Keyboard and assistive activation may not tick. | haptics; vibration |
+| [`SensoryButtonProps`](../haptics/SensoryButton.d.ts) | A tap target's action, content and the feedback it plays. |  |  |
+| [`SensoryFeedback`](../haptics/SensoryButton.d.ts) | The feedback a `SensoryButton` plays. Only `selection`, the switch tick, exists. |  |  |
+| [`ServerReachabilityConfig`](../reachability/model.d.ts) | The server probe and presentation policy for an app that requires connectivity. |  |  |
+| [`ServerReachabilityState`](../reachability/model.d.ts) | The last server probe, retry and connectivity presentation state. |  |  |
+| [`ShareLink`](../public/deviceActions.d.ts) | A button that opens the system share sheet. Prepare file bytes before rendering, because the sheet must open during the press. | No drag and drop or file provider integration. Completion means the system took the share, not that anyone received it; AbortError also covers having no suitable target. Not yet verified in an installed app. | share sheet; share button |
+| [`ShareLinkProps`](../public/deviceActions.d.ts) | The text, URL or files to share, the button content and the completion and error callbacks. | No drag and drop or file provider integration. Completion means the system took the share, not that anyone received it; AbortError also covers having no suitable target. Not yet verified in an installed app. |  |
+| [`Sheet`](../public/presentation.d.ts) | A card that slides up over the current screen and can rest at several heights. It can host its own `NavigationStack modal`. Keep `isPresented` in plain React state: presentations start closed after a relaunch. | Sheets start closed after a relaunch. Persist drafts separately, never the presentation flag. | sheet; modal presentation; bottom sheet |
+| [`SheetProps`](../public/presentation.d.ts) | A sheet's presentation binding, title, detents and drag behaviour. Supplying `selection` requires `onSelectionChange`. |  |  |
+| [`Slider`](../public/controls.d.ts) | Drags a controlled number between `min` and `max`, continuously or in steps. In a `List` or `Form` it fills its own 60 pt row. | No minimum or maximum value labels and no custom tick marks. The label is for accessibility only, and only the thumb can be dragged. | slider; range input |
+| [`SliderProps`](../public/controls.d.ts) | Slider's controlled value, range, step and accessibility label. |  |  |
+| [`Spacer`](../content/content.d.ts) | Takes up the free space along its parent stack's axis. | Default spacing and frame differences are listed in content.md. Props apply in a fixed order, not the order you write them. | flexible space |
+| [`SpacerProps`](../content/content.d.ts) | Spacer's minimum length in points. |  |  |
+| [`SpringOptions`](../motion/animationValue.d.ts) | A spring's duration in milliseconds and its bounce, for `Animation.spring`. | Other state and style changes do not animate. There is no null animation, easing curve, repeat, delay, completion callback or per-update timing; use one outer synchronous update. Bounce cannot be negative. |  |
+| [`StackDeclaration`](../public/structure.d.ts) | A primary stack: its root route and, when that route requires them, the root's params. |  |  |
+| [`Stepper`](../public/controls.d.ts) | Increments or decrements a controlled number within its bounds. It draws a row in a `List` and the bare control elsewhere. | Controlled only: pass value and onChange. | stepper; plus and minus buttons |
+| [`StepperProps`](../public/controls.d.ts) | Stepper's controlled value, bounds and step. |  |  |
+| [`storageQuota`](../public/storage.d.ts) | The app's storage quota: `estimate()` reports usage, and `requestPersistence()` asks WebKit not to evict the app's data. Request persistence after the user saves something meaningful. | Data lives in IndexedDB on this device. The browser may evict it, and writes can fail. |  |
+| [`StringPropertyKey`](../data/database.d.ts) | The property keys whose values are strings. |  |  |
+| [`SubmitLabel`](../text-input/kinds.d.ts) | The return key's title: `done`, `go`, `next`, `search` or `send`. |  |  |
+| [`SwipeAction`](../actions/types.d.ts) | An entry in a row's swipe actions: any menu entry, or a swipe command that shows only a symbol. |  |  |
+| [`SwipeActionItem`](../actions/types.d.ts) | A swipe action command. It may drop its visible label if it has a symbol or icon and an `accessibilityLabel`. |  |  |
+| [`SwipeActions`](../actions/types.d.ts) | The `swipeActions` prop of a row: actions for one edge, or a list with one entry per edge. |  | swipe actions; swipe to delete |
+| [`SwipeActionsConfiguration`](../actions/types.d.ts) | The swipe actions on one row edge, `trailing` by default. A full swipe runs the first action unless `allowsFullSwipe` is false. |  |  |
+| [`SymbolGlyph`](../symbols/types.d.ts) | A symbol's artwork: filled SVG paths on a 56-unit grid, with optional layers for hierarchical and palette rendering, and its provenance. No font, HTML or external resource. |  |  |
+| [`SymbolImage`](../symbols/Symbol.d.ts) | Draws a named vector symbol that sizes with the surrounding font and takes its colour. A `.fill` variant is chosen automatically where the context calls for it, such as a selected tab. | The bundled symbols are Framework7 Icons 5.0.5 (MIT) plus clean-room glyphs drawn for Satin, not Apple SF Symbols. Keep their copyright and license notices. Provider glyphs need their own provenance. Only shipped or registered names draw. | icon; glyph |
+| [`SymbolImageProps`](../symbols/Symbol.d.ts) | The symbol's name, symbol properties and an optional accessible label. |  |  |
+| [`SymbolName`](../symbols/Symbol.d.ts) | A symbol name, such as `'plus'` or `'trash.fill'`. The bundled names autocomplete; any string is accepted for glyphs added through `SymbolProvider`. |  |  |
+| [`SymbolProvider`](../symbols/Symbol.d.ts) | Adds or replaces symbol glyphs for everything inside it. Paths must be original, or redistributable with their provenance recorded. | The bundled symbols are Framework7 Icons 5.0.5 (MIT) plus clean-room glyphs drawn for Satin, not Apple SF Symbols. Keep their copyright and license notices. Provider glyphs need their own provenance. Only shipped or registered names draw. |  |
+| [`SymbolRenderingMode`](../symbols/types.d.ts) | How a symbol's layers are coloured: `monochrome` in one colour, `hierarchical` in shades of one colour, or `palette` with a colour per layer. |  |  |
+| [`SymbolScale`](../symbols/types.d.ts) | A symbol's size relative to the text around it: `small`, `medium` or `large`. |  |  |
+| [`SymbolSource`](../symbols/types.d.ts) | Glyphs by symbol name, for `SymbolProvider`. |  |  |
+| [`SymbolWeight`](../symbols/types.d.ts) | The weight a symbol is drawn at. It uses the same names as font weights. |  |  |
+| [`systemColor`](../public/colors.d.ts) | Returns a system colour as a CSS colour that follows light and dark appearance. | Values match iOS 27 at normal contrast. Increased contrast and Display P3 are not supported. Semantic label colours and layered secondary or tertiary text can differ slightly from iOS. |  |
+| [`SystemColorName`](../public/colors.d.ts) | The names of the iOS system colours. Each has a light and a dark value. Plain CSS colours work too. |  |  |
+| [`Tab`](../public/runtime.d.ts) | Renders one declared tab inside a `TabView`. Its id, label and root stack come from `defineNavigation`. | Only the declared tab styles exist. Desktop browsers are not supported. |  |
+| [`TabDeclaration`](../public/structure.d.ts) | One tab in `defineNavigation`: its id, label, symbol or icon, and the root of its stack. |  |  |
+| [`TabId`](../public/structure.d.ts) | The union of a navigation declaration's tab ids. |  |  |
+| [`TabProps`](../public/runtime.d.ts) | Names the declared tab to render. |  |  |
+| [`TabSection`](../tabs/TabSection.d.ts) | Groups `Tab`s under a collapsible header in the `TabView` sidebar. It adds no navigator of its own. | Only sidebarOnly placement exists: no automatic sections in the top bar, no tab customization and no section header actions. Expansion lasts while the TabView is mounted. With no sidebar, a sidebar-only selection shows the first primary tab. |  |
+| [`TabSectionProps`](../tabs/TabSection.d.ts) | A sidebar group's title, optional id and placement, and its `Tab` children. |  |  |
+| [`TabView`](../public/runtime.d.ts) | Renders the tabs from `defineNavigation`. Each tab keeps its own stack, and the selected tab is restored with the scene. Pass `selection` and `onSelectionChange` to control it; a controlled tab press only requests the change. | Only the declared tab styles exist. Desktop browsers are not supported. There is no minimize behavior or placement hook yet, and the collapse into the tab bar is incomplete. | tab bar; tabs |
+| [`TabViewProps`](../public/runtime.d.ts) | TabView's selection binding and bar behaviour; its tabs come from `defineNavigation`. |  |  |
+| [`TaskAction`](../tasks/useTask.d.ts) | The work `useTask` runs: pass `signal` to fetches and publish state through `commit`. |  |  |
+| [`TaskCommit`](../tasks/useTask.d.ts) | Publish synchronous state updates only while this invocation is current. |  |  |
+| [`TaskOptions`](../tasks/useTask.d.ts) | Options for `useTask`. A change of `id` cancels the current run and starts a new one. |  |  |
+| [`TaskRunner`](../tasks/useTask.d.ts) | Cancels the current run and starts the task again; resolves when that run ends. |  |  |
+| [`Text`](../content/content.d.ts) | Inline text in a system text style. Nested Text inherits its enclosing style unless it sets its own. A `lineLimit` truncates with an ellipsis. | Default spacing and frame differences are listed in content.md. Props apply in a fixed order, not the order you write them. | text; font; typography |
+| [`TextEditor`](../public/controls.d.ts) | Multiline text entry. In a `List` or `Form` it becomes the row; elsewhere it shows three lines by default. | Text layout cannot be customized. | multiline text; text area |
+| [`TextEditorProps`](../public/controls.d.ts) | TextEditor's controlled text, label and prompt. |  |  |
+| [`TextField`](../public/controls.d.ts) | Single-line controlled text with a label, an optional `prompt` and keyboard intent from `kind`. In a `List` or `Form` it becomes the row; elsewhere it draws a standalone field. `axis="vertical"` grows with its content. | textFieldStyle="plain" removes the field chrome. WebKit owns the system keyboard, and text layout cannot be customized. | text field; text input |
+| [`TextFieldKind`](../text-input/kinds.d.ts) | What a field holds, setting its keyboard, autofill and autocorrection together. |  |  |
+| [`TextFieldProps`](../public/controls.d.ts) | A single-line field, or with `axis="vertical"` a field that grows to its `lineLimit`. |  |  |
+| [`TextFieldStyle`](../public/controls.d.ts) | How a text field draws. `automatic` adapts to its container; `plain` draws no field chrome. |  |  |
+| [`TextProps`](../content/content.d.ts) | Text's font, weight, design, line limit and alignment. |  |  |
+| [`TextStyle`](../content/content.d.ts) | The system text styles, sized as iOS draws them at the default text size. |  |  |
+| [`TitleDisplayMode`](../navigation/types.d.ts) | How a screen title is drawn: `inline` in the bar, `large` below it, `inlineLarge` large inside the bar row, or `none`. |  |  |
+| [`Toggle`](../public/controls.d.ts) | A controlled on/off value. It draws a switch row in a `List` or `Form` and a bare switch elsewhere. `toggleStyle` can make it a button or a custom `ToggleStyle`. | Only the switch and button styles are built in; anything else needs a custom ToggleStyle. | switch; checkbox |
+| [`ToggleProps`](../public/controls.d.ts) | Toggle's controlled value, label and control properties. |  |  |
+| [`ToggleStyle`](../public/controlStyle.d.ts) | A custom look for `Toggle`. Satin applies the declared `semantics` (switch, checkbox or button) to the element it owns; `makeBody` draws the appearance. |  |  |
+| [`ToggleStyleConfiguration`](../public/controlStyle.d.ts) | What a custom `ToggleStyle` draws from: the label, the on state and the pressed state, plus the shared control values. |  |  |
+| [`ToolbarItem`](../public/toolbar.d.ts) | Places one item in the navigation bar or the bottom toolbar. Adjacent actions share a glass capsule; a `ToolbarSpacer` separates groups. | Only the placements in ToolbarItemProps exist. | toolbar button; bar button |
+| [`ToolbarItemGroup`](../public/toolbar.d.ts) | Groups several items under one placement. They render as consecutive `ToolbarItem`s and share one glass capsule. | Only the placements in ToolbarItemProps exist. |  |
+| [`ToolbarItemProps`](../public/toolbar.d.ts) | A toolbar item's placement and content. `automatic` lets the bar choose; `bottomBar` puts it in the bottom toolbar. |  |  |
+| [`ToolbarMinimizationBehavior`](../navigation/toolbarMinimization.d.ts) | When the navigation bar minimizes: `onScrollDown`, `onScrollUp` or `never`. | Navigation bar minimization is opt-in; never keeps the bar expanded. |  |
+| [`ToolbarMinimizationRestoration`](../navigation/toolbarMinimization.d.ts) | What brings back a minimized bar: `automatic`, or only reaching the scroll edge (`atScrollEdge`). | Navigation bar minimization is opt-in; never keeps the bar expanded. |  |
+| [`ToolbarMinimizationSafeAreaAdjustment`](../navigation/toolbarMinimization.d.ts) | Whether the content inset shrinks when the bar minimizes. | Navigation bar minimization is opt-in; never keeps the bar expanded. |  |
+| [`ToolbarSpacer`](../public/toolbar.d.ts) | Splits toolbar items into separate glass capsules. Consecutive items of one placement share one capsule; a spacer between them splits it. Place it directly in `toolbar`, next to the items. | Only the placements in ToolbarItemProps exist. |  |
+| [`ToolbarSpacerProps`](../public/toolbar.d.ts) | The spacer's sizing and placement. |  |  |
+| [`TransactionCollection`](../data/database.d.ts) | A collection as seen inside `db.transaction`: its writes commit together or not at all. |  |  |
+| [`TransactionCollections`](../data/database.d.ts) | The typed collection handles available inside a database transaction. |  |  |
+| [`TransitionPhase`](../navigation/types.d.ts) | Where a screen is in a navigation transition: `entering`, `exiting` or `settled`. |  |  |
+| [`UpdateActivation`](../app/definition.d.ts) | When a downloaded update may apply: `cold-launch`, the default, or `cold-launch-or-explicit`, which also lets it apply on request, as the development menu does. |  |  |
+| [`useAppStorage`](../public/environment.d.ts) | A small preference kept in local storage across launches. Every component that reads the same key sees the same value. Values must be JSON-serializable. | Stored in the origin's local storage on this device. It does not sync across devices. | persistent settings; preferences; local storage |
+| [`useAppUpdate`](../public/environment.d.ts) | Reports whether this launch applied an app update: `justUpdated` holds the previous and current build ids after an update, null otherwise (and until launch settles). Release updates apply at launch, before first input after foregrounding, or at a clean suspension. | Preview builds may reload on update. Release, the default, applies updates only at safe moments. |  |
+| [`useBuildInfo`](../app/buildInfo.d.ts) | Returns the build that is running, even offline. The values are written by `satinApp` at build time; it never asks the server for the latest deployment. | The build id is not a git revision or a service worker cache hash. Builds made without satinApp report "unavailable". What the server last served says nothing about which cached bundle is running. |  |
+| [`useColorScheme`](../public/environment.d.ts) | The appearance Satin is drawing right now, `light` or `dark`. | Increased contrast is not reported. Size classes are compact or regular only. | dark mode |
+| [`useDismiss`](../presentation/dismiss.d.ts) | Closes the screen or presentation that contains the caller. In a pushed screen it pops that screen; at the root of a Sheet or FullScreenCover it dismisses the presentation, even when interactive dismissal is disabled. Elsewhere it does nothing. | Covers cannot be swiped away. They start closed after a relaunch. | close; go back |
+| [`useEditMode`](../list-form/editing.d.ts) | Returns this screen's edit mode and a setter. `EditButton` toggles the same value, so a toolbar or bottom bar can follow it. | Rows are identified by their ForEach ids. Edit mode belongs to each screen and cannot be set from outside it. Outside edit mode, plain rows cannot be selected with the keyboard. |  |
+| [`useFocusChain`](../text-input/focusChain.d.ts) | Moves focus through a form's fields in `order`. The return key goes to the next field and the last one dismisses the keyboard. Disabled and unmounted fields are skipped. Spread `field(key)` onto each field. | Focus moves only through the fields you register. A custom keyboard is not possible. | next field; return key |
+| [`useGlassErrors`](../public/environment.d.ts) | Every glass renderer error so far, re-rendering when one is added. For diagnostics screens; `runApp`'s `onGlassError` is the way to report them. | Diagnostics show what failed; they do not prove the app looks or behaves right on a device. |  |
+| [`useHorizontalSizeClass`](../public/environment.d.ts) | The horizontal size class: `compact` or `regular`. Inside a presentation it is the presentation's own class; elsewhere, the window's. | Increased contrast is not reported. Size classes are compact or regular only. | iPad layout; responsive layout |
+| [`useKeyboardMetrics`](../public/keyboard.d.ts) | Returns the keyboard's geometry in points and re-renders as it changes. `expectedHeight` is the keyboard height to plan for before the keyboard has shown. | It reads the keyboard; it cannot change the keyboard or add a separate keyboard lifecycle. | keyboard height |
+| [`useMediaPlayer`](../media/react.d.ts) | Returns the app's audio player: its commands and its live state. The system's Lock Screen media controls drive the same player. Audio only; there is no video playback. | Audio only, with no video player and no background playback beyond what WebKit allows. Playback depends on WebKit codec support and a server that serves byte ranges. | audio player; music player |
+| [`useNamespace`](../motion/matchedGeometry.d.ts) | Returns a namespace that stays the same for the life of the component. Pass it to `MatchedGeometryEffect` and `MatchedTransitionSource`. | Matches frames only, around the centre. Corner radius scales with the frame during the flight instead of staying fixed. A non-source view does not follow its source outside an animation. Glass does not travel with a removed view. |  |
+| [`useNavigation`](../public/runtime.d.ts) | Returns the enclosing stack's navigation actions, typed against the registered routes. A wrong route id or a missing param is a compile error. | Navigation does not use browser history. Route params must match the declared schema. |  |
+| [`useNotifications`](../public/environment.d.ts) | The app's notification permission and badge. Call `requestAuthorization` from a user gesture, after explaining why (see `NotificationPermissionExplainer`). Without `runApp`'s `notifications` option the status is `unsupported`. | Permission requires the app to be installed on the Home Screen. Local scheduled notifications are unavailable; schedule them from your own authenticated server. | push notifications; badge |
+| [`useOpenURL`](../web/openURL.d.ts) | Returns a function that opens a URL from an action. App URLs that match a registered route navigate inside the app; other URLs go to the browser. | You cannot force the external browser. A dispatched URL is not a loaded page. Cross-origin or blocked frames report unverified, and only same-origin frames can be reloaded or stopped. | open link; open URL |
+| [`useQuery`](../data/database.d.ts) | Reads a collection's records as `{ data, loading, error }` and keeps them live. Local writes show up synchronously, before they persist. | Data lives in IndexedDB on this device. The browser may evict it, and writes can fail. | live query |
+| [`useReachability`](../reachability/react.d.ts) | The app server's status and the offline view currently shown, with `fetch` and `recheck` helpers that feed the status. | It cannot promise that a request will succeed. | offline; network status |
+| [`useRecord`](../data/database.d.ts) | One record by key, kept live; `data` is undefined while loading and when no record exists. | Data lives in IndexedDB on this device. The browser may evict it, and writes can fail. |  |
+| [`UserInterfaceSizeClass`](../public/environment.d.ts) | How much room there is along one axis: `compact` or `regular`. |  |  |
+| [`useSafeAreaInsets`](../public/environment.d.ts) | The live safe-area insets in CSS pixels. Use them instead of `env(safe-area-inset-*)`. | A top inset under a large title stays at the expanded title edge while the title collapses. On an installed iPhone the status bar area is a flat fill (see top-edge-limitation.md). | safe area insets; notch; home indicator |
+| [`useScaledMetric`](../content/scaledMetric.d.ts) | Scales a dimension with the user's text size, relative to a text style (`body` by default). Use it for spacing or icon sizes that should grow with text. | largeTitle and callout scale by fixed fallbacks, because WebKit has no system font keyword for them. | text size scaling |
+| [`useScenePhase`](../public/environment.d.ts) | Whether the app is in use: `active` in the foreground with focus, `inactive` without focus, `background` when hidden. | The browser may stop running the app while it is suspended. A screen's lifecycle is separate from the app's foreground state. | foreground; background; app state |
+| [`useSceneStorage`](../public/environment.d.ts) | State kept with the current navigation entry, so a draft survives a relaunch. Each pushed entry owns its own value. Values must be JSON-serializable. Keep saved records in a collection, not here. | Do not store presentation visibility here. A checkpoint can be lost if the browser evicts storage or the process crashes. | restorable screen state; draft |
+| [`useScreenLifecycle`](../navigation/navigationContext.d.ts) | Runs `appear` and `disappear` callbacks as the screen is shown and covered or removed, and returns whether it is covered and its transition phase. | The browser may stop running the app while it is suspended. A screen's lifecycle is separate from the app's foreground state. |  |
+| [`useTask`](../tasks/useTask.d.ts) | Runs async work while its screen is showing. It cancels the run when the screen is covered, its tab is hidden or the component unmounts, and starts again when it shows. Pass `signal` to `fetch` and publish results through `commit`. An error the task throws reaches the nearest error boundary. The returned runner cancels and replaces the current run. | Cancellation is cooperative: state set outside commit cannot be stopped. The work runs in the foreground only; it is not a Web Worker or a background scheduler. | cancellable task; data loading |
+| [`useUnsavedChanges`](../root/runtimeContext.d.ts) | Tells Satin the app has unsaved work while `unsaved` is true, so a pending app update waits instead of reloading over it. Edits in text fields are detected without this hook. | It only delays app updates; it does not stop the user from dismissing a sheet. | unsaved changes |
+| [`useVerticalSizeClass`](../public/environment.d.ts) | The vertical size class: `compact` or `regular`. Inside a presentation it is the presentation's own class; elsewhere, the window's. | Increased contrast is not reported. Size classes are compact or regular only. |  |
+| [`useWebAuthentication`](../web/useWebAuthentication.d.ts) | Returns a sign-in flow's current state and re-renders when it changes. It checks for a finished sign-in on launch and when the app returns to the foreground. | Needs a secure context, local storage, Web Locks, a dedicated uncached callback page and a server exchange. Bridge reads need a private transaction proof. Your server validates tokens and OpenID Connect. Completion in the background is not guaranteed. |  |
+| [`useWebFrame`](../web/WebView.d.ts) | Makes a controller to pass to a `WebView`, for reading its state and reloading or stopping it. | You cannot force the external browser. A dispatched URL is not a loaded page. Cross-origin or blocked frames report unverified, and only same-origin frames can be reloaded or stopped. |  |
+| [`VerticalScrollGeometry`](../scroll/position.d.ts) | Vertical scroll geometry: the current viewport and content offset in points. |  |  |
+| [`VerticalTextFieldProps`](../public/controls.d.ts) | Vertical TextField's controlled text, growth limits and keyboard intent. |  |  |
+| [`ViewportFitPolicy`](../app/viewportValue.d.ts) | How the app fits the screen around the notch and home indicator. `adaptive` picks a fit per device before the app renders. |  |  |
+| [`ViewThatFits`](../content/layout.d.ts) | Shows the first child whose natural size fits the space, or the last child when none fits. It measures again when the space or a child resizes. | Give it a definite height when it checks the vertical axis. Every child stays mounted: hidden children are inert and pause Satin tasks and activity indicators, but their own effects keep running. | responsive layout; fallback layout |
+| [`ViewThatFitsAxis`](../content/layout.d.ts) | The axes a `ViewThatFits` candidate must fit along. |  |  |
+| [`ViewThatFitsProps`](../content/layout.d.ts) | The axes to check, `both` by default, plus plain div attributes. |  |  |
+| [`Visibility`](../navigation/types.d.ts) | Whether the navigation bar shows. A hidden bar reserves no row. |  |  |
+| [`VStack`](../content/content.d.ts) | Arranges its children in a column. Set `spacing` where it matters: wrappers and custom controls do not pass their children's preferred spacing up to the stack. | Default spacing and frame differences are listed in content.md. Props apply in a fixed order, not the order you write them. | column; vertical layout |
+| [`VStackProps`](../content/content.d.ts) | VStack's horizontal alignment and spacing in points. |  |  |
+| [`WebAuthentication`](../web/authentication.d.ts) | A sign-in flow made by `defineWebAuthentication`: prepare, start, complete and resume it, or subscribe to its state. |  |  |
+| [`WebAuthenticationCallbackResult`](../web/authentication.d.ts) | The outcome of `complete` on the callback page: the URL to return to, or why it was rejected. |  |  |
+| [`WebAuthenticationConfiguration`](../web/authentication.d.ts) | The OAuth provider, client, callback and app URLs for `defineWebAuthentication`, and the `exchange` function that finishes sign-in on your server. |  |  |
+| [`WebAuthenticationExchange`](../web/authentication.d.ts) | What `exchange` receives: the authorization code, the PKCE verifier and the values your server needs to redeem and check it. |  |  |
+| [`WebAuthenticationRequest`](../web/authentication.d.ts) | A prepared sign-in. Call `start` from the user's press. |  |  |
+| [`WebAuthenticationStartResult`](../web/authentication.d.ts) | Whether `start` opened the provider in a popup or a redirect, or why it could not. |  |  |
+| [`WebAuthenticationState`](../web/authentication.d.ts) | Where a sign-in stands, from `idle` through `pending` and `completing` to a final status. |  |  |
+| [`WebFrameActionResult`](../web/WebView.d.ts) | Whether a `reload` or `stop` request was sent to the frame, or why not. |  |  |
+| [`WebFrameController`](../web/WebView.d.ts) | Reads a `WebView`'s state and sends it `reload` and `stop`. Only same-origin frames expose their current page or accept these commands. |  |  |
+| [`WebFrameState`](../web/WebView.d.ts) | The embedded page's load state. A cross-origin page reports `unverified`, because its contents cannot be read. |  |  |
+| [`WebView`](../web/WebView.d.ts) | Embeds a web page in a sandboxed frame. The browser decides whether the page may be framed, and the frame's storage is partitioned from the app's. | You cannot force the external browser. A dispatched URL is not a loaded page. Cross-origin or blocked frames report unverified, and only same-origin frames can be reloaded or stopped. | iframe; embedded web page |
+| [`WebViewProps`](../web/WebView.d.ts) | The page URL, its accessible title, an optional controller, and what the page may run. Scripts and forms are off by default. |  |  |
+| [`withAnimation`](../motion/matchedGeometry.d.ts) | Applies the state changes in `update`, then animates the `MatchedGeometryEffect` views they move, insert or remove. Call it from an event handler. Keyed List rows also move to their new positions. Other views take their new layout at once. Returns the callback result and passes errors through. Only synchronous updates take part, and nested calls join the outer one. | Other state and style changes do not animate. There is no null animation, easing curve, repeat, delay, completion callback or per-update timing; use one outer synchronous update. Bounce cannot be negative. | animated state update |
+| [`WriteFailure`](../data/write-store.d.ts) | A durable write that failed after it was published to memory, reported to `db.onError`. |  |  |
+| [`Zoomable`](../zoom/Zoomable.d.ts) | A region the user can pinch to zoom and pan, such as a photo or a map. The + and - keys zoom about the centre and 0 resets. Give it an accessible label. | Zoomable is the only region that zooms; the page itself never does. There is no general gesture composition. | pinch to zoom |
+| [`ZoomableProps`](../zoom/Zoomable.d.ts) | The maximum zoom (4 by default) and a scale callback. Satin owns the pointer handlers. |  |  |
+| [`ZoomTransitionOptions`](../public/navigationTransition.d.ts) | The source identity and namespace for `NavigationTransition.zoom`. |  |  |
+| [`ZStack`](../content/content.d.ts) | Layers its children in one cell, later children on top. Assistive technology reads them in source order. | Default spacing and frame differences are listed in content.md. Props apply in a fixed order, not the order you write them. | layers; overlay |
+| [`ZStackProps`](../content/content.d.ts) | How ZStack aligns its layers. |  |  |
 
 ## diagnostics API
 
 Module: `@satinhq/kit/diagnostics`
 
+Readers for installation and appearance records, for an optional diagnostics screen.
+
 | Satin export | Behavior | Limits | Also known as |
 | --- | --- | --- | --- |
-| [`AppearanceEvent`](../app/appearanceStore.d.ts) | A diagnostic appearance event and its observed state. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`InstallationDiagnostics`](../app/InstallationDiagnostics.d.ts) | Installation receipts for an optional Settings diagnostics screen. Use the app's scope. | Package integration API. It does not add a separately supported app control. |  |
-| [`InstallationDiagnosticsProps`](../app/InstallationDiagnostics.d.ts) | The app scope whose installation receipts are shown. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`InstallationFailure`](../app/installationFailure.d.ts) | A diagnostic installation failure recorded before app launch. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`readAppearanceDiagnostics`](../app/appearance.d.ts) | Provides `readAppearanceDiagnostics` through the `@satinhq/kit/diagnostics` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`readInstallationFailure`](../app/installationFailure.d.ts) | Reads the recorded installation failure for acceptance fixtures. | Package integration API. It does not add a separately supported app control. |  |
+| [`AppearanceEvent`](../app/appearanceStore.d.ts) | One entry in the appearance diagnostics log: what happened and the appearance seen then. |  |  |
+| [`InstallationDiagnostics`](../app/InstallationDiagnostics.d.ts) | Shows the app's installation receipts, for an optional diagnostics screen in Settings. Pass the app's scope. |  |  |
+| [`InstallationDiagnosticsProps`](../app/InstallationDiagnostics.d.ts) | The app scope whose installation receipts are shown. |  |  |
+| [`InstallationFailure`](../app/installationFailure.d.ts) | An installation failure recorded before the app launched: the build, the URL, the reason and whether the network failed. |  |  |
+| [`readAppearanceDiagnostics`](../app/appearance.d.ts) | Returns a short log of appearance changes and lifecycle events, for diagnosing appearance after a resume. |  |  |
+| [`readInstallationFailure`](../app/installationFailure.d.ts) | Reads the last recorded installation failure for an app scope, or null when there is none. |  |  |
 
 ## install API
 
 Module: `@satinhq/kit/install`
 
+Building blocks for a custom install page. They work only on the install page that `satinApp` builds.
+
 | Satin export | Behavior | Limits | Also known as |
 | --- | --- | --- | --- |
-| [`copyInstallLink`](../app/installContext.d.ts) | Copies the install page's address. Never throws: a refusal is reported with the address. | Package integration API. It does not add a separately supported app control. |  |
-| [`CopyLinkResult`](../app/installContext.d.ts) | Defines the `CopyLinkResult` type in `@satinhq/kit/install`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`InstallApp`](../app/installContext.d.ts) | Defines the `InstallApp` type in `@satinhq/kit/install`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`InstallBrowser`](../app/installContext.d.ts) | Defines the `InstallBrowser` type in `@satinhq/kit/install`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`InstallContext`](../app/installContext.d.ts) | Defines the `InstallContext` type in `@satinhq/kit/install`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`InstallDevice`](../app/installContext.d.ts) | What a custom install page needs to know (public through `@satinhq/kit/install`). Every value is read from the browser as it is; nothing is inferred. In particular "installed" is only the standalone display mode: a Safari tab cannot tell whether the app is on the Home Screen. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`InstallSteps`](../app/InstallComponents.d.ts) | The three steps, in the words of Satin's page, for this device, browser and Safari layout. | Package integration API. It does not add a separately supported app control. |  |
-| [`InstallTip`](../app/InstallComponents.d.ts) | The tip at Safari's real control ("Page Menu, then Share" or "Share"), in Satin's glass. Shown only in Safari 27 on an iPhone or iPad, where the control's place was measured; renders nothing anywhere else. Its glass takes the page's background colour. | Package integration API. It does not add a separately supported app control. |  |
-| [`readInstallContext`](../app/installContext.d.ts) | Provides `readInstallContext` through the `@satinhq/kit/install` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`useInstallContext`](../app/InstallComponents.d.ts) | Optional building blocks for a custom install page (public through `@satinhq/kit/install`): the context hook, the steps list and the tip, with the default page's words and look. Styles are scoped to `satin-` classes; `--satin-install-tint` overrides the app's tint. | Package integration API. It does not add a separately supported app control. |  |
+| [`copyInstallLink`](../app/installContext.d.ts) | Copies the install page's address. Never throws: a refusal is reported with the address. |  |  |
+| [`CopyLinkResult`](../app/installContext.d.ts) | Whether `copyInstallLink` copied the address, and the address itself. |  |  |
+| [`InstallApp`](../app/installContext.d.ts) | The app being installed: its name, icon, tint and install page address. |  |  |
+| [`InstallBrowser`](../app/installContext.d.ts) | The browser the install page is open in. `in-app` is a browser inside another app, which cannot add to the Home Screen. |  |  |
+| [`InstallContext`](../app/installContext.d.ts) | What a custom install page knows about where it is open: device, browser, Safari version, standalone mode and the app. A Safari tab cannot tell whether the app is already on the Home Screen. |  |  |
+| [`InstallDevice`](../app/installContext.d.ts) | The device the install page is open on: `iphone`, `ipad` or `other`. |  |  |
+| [`InstallSteps`](../app/InstallComponents.d.ts) | The three install steps for this device, browser and Safari layout, worded as on Satin's own install page. |  |  |
+| [`InstallTip`](../app/InstallComponents.d.ts) | The tip at Safari's real control ("Page Menu, then Share" or "Share"), in Satin's glass. Shown only in Safari 27 on an iPhone or iPad, where the control's place was measured; renders nothing anywhere else. Its glass takes the page's background colour. |  |  |
+| [`readInstallContext`](../app/installContext.d.ts) | Reads the install context from the browser. It throws outside the install page that `satinApp` builds. |  |  |
+| [`useInstallContext`](../app/InstallComponents.d.ts) | Returns the install context, read once when the page opens. It throws outside the install page. |  |  |
 
 ## internal API
 
 Module: `@satinhq/kit/internal`
 
+Framework internals for Satin tooling and tests. App code must not import them; app lint rejects this module, and it changes without notice.
+
 | Satin export | Behavior | Limits | Also known as |
 | --- | --- | --- | --- |
-| [`Action`](../actions/types.d.ts) | Shared by menus, context menus and row swipe actions. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ActionItem`](../actions/types.d.ts) | A leaf command shared by menus, swipe actions, alerts and confirmation dialogs. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`Alert`](../presentation/Presentation.d.ts) | `alert`: a titled presentation with up to three leaf actions and an optional text field. | Package integration API. It does not add a separately supported app control. |  |
-| [`AlertProps`](../presentation/Presentation.d.ts) | An alert's presentation binding, message and leaf actions. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`AnyScreenDefinition`](../navigation/types.d.ts) | Defines the `AnyScreenDefinition` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`AppDefinition`](../app/definition.d.ts) | Defines the `AppDefinition` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`AppDeploymentInput`](../app/definition.d.ts) | Resolved app deployment fields, including local or server connectivity. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`Appearance`](../glass/lens/theme.d.ts) | Defines the `Appearance` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`AppearanceEvent`](../app/appearanceStore.d.ts) | A diagnostic appearance event and its observed state. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`AppShellBuildState`](../sw/registerAppShell.d.ts) | Defines the `AppShellBuildState` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`AxisLayoutClass`](../layout/layoutClass.d.ts) | Defines the `AxisLayoutClass` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`bindMenuGestures`](../menu/menuGesture.d.ts) | One pointer owns a menu session, including the trigger-to-panel handoff. Native buttons retain their click/keyboard/assistive activation path. Hosts must declare touch-action:none on these gesture owners, never the document. | Package integration API. It does not add a separately supported app control. |  |
-| [`BitmapBackdropMode`](../glass/lens/bitmapBackdrop.d.ts) | Measurement fixtures share a decoded bitmap between DOM and GPU sources. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`blendMenuFrames`](../glass/lens/menuMotion.d.ts) | Provides `blendMenuFrames` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`BridgeMode`](../glass/renderSpecs.d.ts) | Defines the `BridgeMode` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ButtonRow`](../list-form/ListForm.d.ts) | Provides `ButtonRow` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`cancelStackTransition`](../navigation/stack.d.ts) | Provides `cancelStackTransition` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`CapsuleShape`](../glass/renderSpecs.d.ts) | Defines the `CapsuleShape` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`Choice`](../list-form/ListForm.d.ts) | One option of a `Picker`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`Chrome`](../root/SatinRoot.d.ts) | Re-enters app-chrome policy inside a Selectable region. | Package integration API. It does not add a separately supported app control. |  |
-| [`ChromeBandSpec`](../glass/renderSpecs.d.ts) | Defines the `ChromeBandSpec` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`clampStepper`](../list-form/state.d.ts) | Provides `clampStepper` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`collection`](../data/database.d.ts) | Declares a collection of records keyed by one string field, like a SwiftData `@Model` with a unique attribute. The curried form, `collection<Note>()({ key, indexes })`, infers index names. | Package integration API. It does not add a separately supported app control. |  |
-| [`Collection`](../data/database.d.ts) | One collection of a database (`db.notes`). Once loaded, writes publish to memory at once, so `useQuery` sees them immediately; the returned promise settles after the durable commit. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`CollectionDefinition`](../data/database.d.ts) | A collection's record type, key and indexes, made by `collection` for `defineDatabase`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ConfirmationDialog`](../presentation/Presentation.d.ts) | `confirmationDialog`: a titled action presentation anchored to its initiating control. | Package integration API. It does not add a separately supported app control. |  |
-| [`ConfirmationDialogProps`](../presentation/Presentation.d.ts) | A confirmation dialog's presentation binding, leaf actions and optional anchor. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`connectPushRoutes`](../push/urlProjection.d.ts) | Pending taps are acknowledged after acceptance and the optional durability gate. | Package integration API. It does not add a separately supported app control. |  |
-| [`ContentPage`](../glass/lens/tabPresentation.d.ts) | Defines the `ContentPage` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ContextMenu`](../actions/RowActions.d.ts) | `contextMenu`: long-pressing the content opens the glass menu of its actions, with an optional custom `preview`. Rows in a `List` take a `contextMenu` prop instead. | Package integration API. It does not add a separately supported app control. |  |
-| [`ContextMenuConfiguration`](../actions/types.d.ts) | `contextMenu`: row commands and an optional preview. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`createAnimatedTransitionController`](../navigation/motion.d.ts) | State, besides the lifecycle: - `interactionPhase` (interactive pops): 'held' while the finger owns the page, then 'completing' or 'cancelling' once released. A cancelling pop can be caught again (resumeInteractive) and returns to 'held'. - Who moves the page: a native scroll scrub (`scrollSource`, the private scroller drives scroll-timeline tracks), the frame loop (setProgress writes a pose), or the release and automatic tracks in `activeAnimations`. - `binding`: the elements of the screens it moves, bound after React commits them. A release that arrives before the first binding waits in `pendingRelease`. | Package integration API. It does not add a separately supported app control. |  |
-| [`createInstantTransitionController`](../navigation/store.d.ts) | Provides `createInstantTransitionController` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`createNavigationReleaseTrajectory`](../navigation/releaseTrajectory.d.ts) | Provides `createNavigationReleaseTrajectory` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`createNavigator`](../navigation/store.d.ts) | Provides `createNavigator` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`CreateNavigatorOptions`](../navigation/store.d.ts) | Defines the `CreateNavigatorOptions` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`createPushNotifications`](../push/notifications.d.ts) | Create once outside React. Only enable() requests permission, synchronously from a gesture. | Package integration API. It does not add a separately supported app control. |  |
-| [`createPushRelayAdapter`](../push/notifications.d.ts) | Obtain a user-scoped token at runtime. Never bundle the relay sender token. | Package integration API. It does not add a separately supported app control. |  |
-| [`createRenderSpecs`](../glass/renderSpecs.d.ts) | Provides `createRenderSpecs` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`createRouteCodec`](../navigation/routeCodec.d.ts) | Each route is independently versioned so updates keep the deepest valid ancestor. | Package integration API. It does not add a separately supported app control. |  |
-| [`createSceneRestoration`](../restoration/scene.d.ts) | Provides `createSceneRestoration` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`createScreenRegistry`](../navigation/registry.d.ts) | Provides `createScreenRegistry` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`createSurfaceClipPath`](../glass/renderSpecs.d.ts) | Provides `createSurfaceClipPath` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`decodePushRoute`](../push/routes.d.ts) | Provides `decodePushRoute` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`defineApp`](../app/definition.d.ts) | Provides `defineApp` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`defineDatabase`](../data/database.d.ts) | Opens the app's local database (IndexedDB), like a SwiftData `ModelContainer`. Each collection becomes a property of the result. Bump `version` with a migration whenever the schema changes. Export and import are built in, so offer them to the user. | Package integration API. It does not add a separately supported app control. |  |
-| [`defineScreen`](../navigation/registry.d.ts) | Provides `defineScreen` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`DetailList`](../navigation/DetailList.d.ts) | Regular-width grouped detail content beneath NavigatorHost's inline title. | Package integration API. It does not add a separately supported app control. |  |
-| [`DirectCanvasElements`](../glass/renderSpecs.d.ts) | Defines the `DirectCanvasElements` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`DisclosureIndicator`](../settings/DisclosureIndicator.d.ts) | Framework7 disclosure artwork; framework layout still owns the row aperture. | Package integration API. It does not add a separately supported app control. |  |
-| [`DisclosureIndicatorProps`](../settings/DisclosureIndicator.d.ts) | Defines the props accepted by `DisclosureIndicator`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`dismissKeyboard`](../keyboard/adapter.d.ts) | Provides `dismissKeyboard` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`DisplayCornerMetrics`](../safe-area/displayCorners.d.ts) | The screen's corner radius in points, with how sure Satin is of the model. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`DisplayGeometry`](../safe-area/displayCorners.d.ts) | Display geometry in CSS points. Supply the physical screen, not the app window. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`drawGlassBitmapBackdrop`](../glass/lens/bitmapBackdrop.d.ts) | Provides `drawGlassBitmapBackdrop` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`drawReferenceBackground`](../glass/lens/referenceBackground.d.ts) | Provides `drawReferenceBackground` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`EdgeInsets`](../safe-area/useSafeAreaMetrics.d.ts) | Insets in CSS pixels, by physical edge. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`encodePushRoute`](../push/routes.d.ts) | Provides `encodePushRoute` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`EntryTransition`](../navigation/types.d.ts) | Defines the `EntryTransition` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`estimateStorage`](../data/database.d.ts) | The app's storage usage and quota in bytes, when WebKit reports them. | Package integration API. It does not add a separately supported app control. |  |
-| [`evaluateTemporalSpline`](../glass/lens/liquidMotion.d.ts) | Provides `evaluateTemporalSpline` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`ExportDocument`](../data/database.d.ts) | The JSON document `exportJSON` writes and `importJSON` reads. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`finishStackTransition`](../navigation/stack.d.ts) | Provides `finishStackTransition` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`getGlassErrors`](../glass/errors.d.ts) | Provides `getGlassErrors` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`Glass`](../glass/regions.d.ts) | Immutable glass material values. RGBA channels use the range 0...1. | Package integration API. It does not add a separately supported app control. |  |
-| [`GLASS_BAR_EDGE_HIGHLIGHT_ALPHA`](../glass/tokens.d.ts) | Provides `GLASS_BAR_EDGE_HIGHLIGHT_ALPHA` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`GLASS_BAR_HEIGHT_PX`](../glass/tokens.d.ts) | Provides `GLASS_BAR_HEIGHT_PX` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`GLASS_BAR_SHADOW_ALPHA`](../glass/tokens.d.ts) | Provides `GLASS_BAR_SHADOW_ALPHA` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`GLASS_CIRCLE_INLINE_INSET_PX`](../glass/lens/Scene.d.ts) | Provides `GLASS_CIRCLE_INLINE_INSET_PX` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`GLASS_CIRCLE_SIZE_PX`](../glass/lens/Scene.d.ts) | Provides `GLASS_CIRCLE_SIZE_PX` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`GLASS_CIRCLE_TOP_PX`](../glass/lens/Scene.d.ts) | Provides `GLASS_CIRCLE_TOP_PX` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`GLASS_CLEAR_BRIGHTNESS`](../glass/tokens.d.ts) | Provides `GLASS_CLEAR_BRIGHTNESS` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`GLASS_CLEAR_SATURATION`](../glass/tokens.d.ts) | Provides `GLASS_CLEAR_SATURATION` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`GLASS_CLEAR_TINT_ALPHA`](../glass/tokens.d.ts) | Provides `GLASS_CLEAR_TINT_ALPHA` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`GLASS_CONTROL_SIZE_PX`](../glass/tokens.d.ts) | Provides `GLASS_CONTROL_SIZE_PX` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`GLASS_DOCK_BOTTOM_GAP_PX`](../glass/lens/Scene.d.ts) | Provides `GLASS_DOCK_BOTTOM_GAP_PX` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`GLASS_DOCK_HEIGHT_PX`](../glass/lens/Scene.d.ts) | Provides `GLASS_DOCK_HEIGHT_PX` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`GLASS_DOCK_RADIUS_PX`](../glass/lens/Scene.d.ts) | Provides `GLASS_DOCK_RADIUS_PX` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`GLASS_DOCK_SIDE_INSET_PX`](../glass/lens/Scene.d.ts) | Provides `GLASS_DOCK_SIDE_INSET_PX` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`GLASS_DOCK_WIDTH_PX`](../glass/lens/Scene.d.ts) | Provides `GLASS_DOCK_WIDTH_PX` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`GLASS_LENS_BLUR_PX`](../glass/tokens.d.ts) | Provides `GLASS_LENS_BLUR_PX` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`GLASS_LENS_CHROMATIC_ABERRATION`](../glass/tokens.d.ts) | Provides `GLASS_LENS_CHROMATIC_ABERRATION` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`GLASS_LENS_CURVATURE`](../glass/tokens.d.ts) | Provides `GLASS_LENS_CURVATURE` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`GLASS_LENS_DEPTH_PX`](../glass/tokens.d.ts) | Provides `GLASS_LENS_DEPTH_PX` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`GLASS_LENS_EDGE_EXPONENT`](../glass/tokens.d.ts) | Provides `GLASS_LENS_EDGE_EXPONENT` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`GLASS_LENS_EDGE_HIGHLIGHT`](../glass/tokens.d.ts) | Provides `GLASS_LENS_EDGE_HIGHLIGHT` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`GLASS_LENS_EDGE_WIDTH_PX`](../glass/tokens.d.ts) | Provides `GLASS_LENS_EDGE_WIDTH_PX` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`GLASS_LENS_GLOW`](../glass/tokens.d.ts) | Provides `GLASS_LENS_GLOW` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`GLASS_LENS_GLOW_EXPONENT`](../glass/tokens.d.ts) | Provides `GLASS_LENS_GLOW_EXPONENT` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`GLASS_LENS_GLOW_SPREAD`](../glass/tokens.d.ts) | Provides `GLASS_LENS_GLOW_SPREAD` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`GLASS_LENS_SPECULAR`](../glass/tokens.d.ts) | Provides `GLASS_LENS_SPECULAR` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`GLASS_LENS_SPECULAR_ANGLE_DEG`](../glass/tokens.d.ts) | Provides `GLASS_LENS_SPECULAR_ANGLE_DEG` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`GLASS_LENS_SPLAY`](../glass/tokens.d.ts) | Provides `GLASS_LENS_SPLAY` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`GLASS_LENS_STRENGTH`](../glass/tokens.d.ts) | Provides `GLASS_LENS_STRENGTH` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`GLASS_OVERSCAN_X_PX`](../glass/lens/Scene.d.ts) | Provides `GLASS_OVERSCAN_X_PX` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`GLASS_OVERSCAN_Y_PX`](../glass/lens/Scene.d.ts) | Provides `GLASS_OVERSCAN_Y_PX` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`GLASS_REGION_LIMIT`](../glass/regions.d.ts) | Provides `GLASS_REGION_LIMIT` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`GLASS_REGION_PIXEL_LIMIT`](../glass/regions.d.ts) | Provides `GLASS_REGION_PIXEL_LIMIT` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`GLASS_REGULAR_BRIGHTNESS`](../glass/tokens.d.ts) | Provides `GLASS_REGULAR_BRIGHTNESS` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`GLASS_REGULAR_SATURATION`](../glass/tokens.d.ts) | Provides `GLASS_REGULAR_SATURATION` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`GLASS_REGULAR_TINT_ALPHA`](../glass/tokens.d.ts) | Provides `GLASS_REGULAR_TINT_ALPHA` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`GLASS_RIM_HIGHLIGHT_ALPHA`](../glass/tokens.d.ts) | Provides `GLASS_RIM_HIGHLIGHT_ALPHA` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`GLASS_RIM_SHADOW_ALPHA`](../glass/tokens.d.ts) | Provides `GLASS_RIM_SHADOW_ALPHA` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`GLASS_SELECTION_DURATION_MS`](../glass/tokens.d.ts) | Provides `GLASS_SELECTION_DURATION_MS` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`GLASS_SELECTION_EASING`](../glass/tokens.d.ts) | Provides `GLASS_SELECTION_EASING` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`GLASS_TAB_BAR_BOTTOM_GAP_PX`](../glass/tokens.d.ts) | Provides `GLASS_TAB_BAR_BOTTOM_GAP_PX` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`GLASS_TAB_BAR_HEIGHT_PX`](../glass/tokens.d.ts) | Provides `GLASS_TAB_BAR_HEIGHT_PX` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`GLASS_TAB_BAR_INLINE_INSET_PX`](../glass/tokens.d.ts) | Provides `GLASS_TAB_BAR_INLINE_INSET_PX` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`GLASS_TINT_RGB`](../glass/tokens.d.ts) | Provides `GLASS_TINT_RGB` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`GlassAccessibilityPreferences`](../glass/capability.d.ts) | Defines the `GlassAccessibilityPreferences` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`GlassBackground`](../glass/GlassEffect.d.ts) | Framework chrome can keep its existing DOM geometry and transition refs. An `interactive` chrome button's glass (back, close, sidebar) takes the finger through the same contact path as every interactive glass, as a bar button: the touch anywhere on its button presses it. | Package integration API. It does not add a separately supported app control. |  |
-| [`GlassBar`](../glass/GlassBar.d.ts) | Provides `GlassBar` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`GlassBarProps`](../glass/GlassBar.d.ts) | Defines the props accepted by `GlassBar`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`glassBlendRadius`](../glass/fieldGeometry.d.ts) | Sequential native frames bracket contact at 4.50–5.04, 9.23–10.57, 18.53–20.94, 36.56–41.92 pt. See phase-morph-engine-notes.md. Polynomial smooth-min joins equal members at gap = k/2. | Package integration API. It does not add a separately supported app control. |  |
-| [`GlassButton`](../glass/GlassEffect.d.ts) | Provides `GlassButton` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`GlassCapabilityDecision`](../glass/capability.d.ts) | Defines the `GlassCapabilityDecision` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`GlassCapabilityState`](../glass/capability.d.ts) | Defines the `GlassCapabilityState` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`GlassConfusionReview`](../glass/GlassConfusionReview.d.ts) | Provides `GlassConfusionReview` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`GlassContainer`](../glass/GlassEffect.d.ts) | Provides `GlassContainer` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`GlassDisplacementPolicy`](../glass/GlassMaterialRoot.d.ts) | Defines the `GlassDisplacementPolicy` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`glassDockHeight`](../glass/lens/Scene.d.ts) | Provides `glassDockHeight` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`glassDockWidth`](../glass/lens/Scene.d.ts) | The tab platter's width: the one rule for the glass renderer and the tab slot it reads. | Package integration API. It does not add a separately supported app control. |  |
-| [`GlassEffect`](../glass/GlassEffect.d.ts) | Local content remains DOM-owned; only the material canvas is painted by reference. | Package integration API. It does not add a separately supported app control. | glass; refraction |
-| [`GlassEffectContainer`](../glass/GlassEffect.d.ts) | `GlassEffectContainer`: groups related glass outlines into one field. | Package integration API. It does not add a separately supported app control. |  |
-| [`GlassEffectProps`](../glass/GlassEffect.d.ts) | Defines the props accepted by `GlassEffect`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`GlassError`](../glass/errors.d.ts) | Defines the `GlassError` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`GlassErrorCode`](../glass/errors.d.ts) | Serializable across the renderer worker boundary. Release failures may select the fallback material. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`glassFieldDistance`](../glass/fieldGeometry.d.ts) | Returns the signed distance to the diagnostic glass union in points. | Package integration API. It does not add a separately supported app control. |  |
-| [`GlassFieldMember`](../glass/fieldGeometry.d.ts) | Geometry in frame-local CSS pixels; independent of any renderer. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`GlassFrameTrace`](../glass/renderSpecs.d.ts) | Defines the `GlassFrameTrace` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`GlassInteraction`](../glass/rendererContract.d.ts) | Defines the `GlassInteraction` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`GlassLayer`](../glass/GlassEffect.d.ts) | Place this inside the matching ScrollSurface for scroll attachment. | Package integration API. It does not add a separately supported app control. |  |
-| [`GlassLayerDescriptor`](../glass/regions.d.ts) | Serializable renderer contract. No DOM, Pixi, or GPU handles cross this boundary. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`GlassMaterial`](../glass/regions.d.ts) | Defines the `GlassMaterial` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`GlassMaterialDiagnostics`](../glass/context.d.ts) | Defines the `GlassMaterialDiagnostics` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`GlassMaterialResponse`](../glass/rendererContract.d.ts) | Defines the `GlassMaterialResponse` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`GlassOutlinePoint`](../glass/unionOutline.d.ts) | One point in a diagnostic glass outline, in field coordinates. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`GlassPresenter`](../glass/rendererContract.d.ts) | Defines the `GlassPresenter` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`GlassRegion`](../glass/regions.d.ts) | Defines the `GlassRegion` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`GlassRendererDiagnostics`](../glass/rendererContract.d.ts) | Defines the `GlassRendererDiagnostics` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`GlassRendererReply`](../glass/rendererContract.d.ts) | Worker failures must retain raw messages and device-loss reasons. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`GlassRendererRequest`](../glass/rendererContract.d.ts) | Defines the `GlassRendererRequest` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`GlassRenderTestState`](../glass/capability.d.ts) | Defines the `GlassRenderTestState` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`GlassSceneSnapshot`](../glass/regions.d.ts) | Each layer can own multiple presenters. WebGPU shares one device across canvases. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`GlassScrollSnapshot`](../glass/regions.d.ts) | Defines the `GlassScrollSnapshot` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`GlassSearchField`](../glass/GlassTextField.d.ts) | Provides `GlassSearchField` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`GlassShape`](../glass/regions.d.ts) | Defines the `GlassShape` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`GlassSource`](../glass/rendererContract.d.ts) | Defines the `GlassSource` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`GlassSpecimen`](../glass/GlassPresentation.d.ts) | Shared semantic DOM and runtime ownership. Probe controls are testing-only. | Package integration API. It does not add a separately supported app control. |  |
-| [`GlassTextField`](../glass/GlassTextField.d.ts) | Provides `GlassTextField` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`GlassTextFieldProps`](../glass/GlassTextField.d.ts) | Defines the props accepted by `GlassTextField`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`GlassTint`](../glass/regions.d.ts) | Normalized RGBA channels in 0...1. Glass.tintRGBA rejects nonfinite or out-of-range channels. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`glassTokens`](../glass/tokens.d.ts) | Provides `glassTokens` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`GlassTouchLight`](../glass/renderSpecs.d.ts) | A sampled light field, independent of the renderer and of row selection. Coordinates and radius are CSS pixels relative to the surface frame. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`GlassUnionFrame`](../glass/fieldGeometry.d.ts) | A diagnostic glass union outline and its bounds in field coordinates. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`glassUnionOutline`](../glass/unionOutline.d.ts) | Closed contours, including disconnected members. Coordinates use the frame's local CSS pixels. Diagnostic/export operation: never run it in the render loop. Marching triangles avoid ambiguous saddle cells; roots use the shader's field. | Package integration API. It does not add a separately supported app control. |  |
-| [`GlassVariant`](../glass/tokens.d.ts) | Defines the `GlassVariant` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ICON_GRADIENTS`](../glass/lens/theme.d.ts) | Provides `ICON_GRADIENTS` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`ICON_SVG`](../glass/lens/icons.d.ts) | Provides `ICON_SVG` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`InstallationDiagnostics`](../app/InstallationDiagnostics.d.ts) | Installation receipts for an optional Settings diagnostics screen. Use the app's scope. | Package integration API. It does not add a separately supported app control. |  |
-| [`InstallationFailure`](../app/installationFailure.d.ts) | A diagnostic installation failure recorded before app launch. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`installMotionProbe`](../motionProbe.d.ts) | Install once before app mount; dispose restores the original rAF function. | Package integration API. It does not add a separately supported app control. |  |
-| [`InteractivePopDiagnostic`](../navigation/interactivePopTypes.d.ts) | Defines the `InteractivePopDiagnostic` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`isBitmapBackdrop`](../glass/lens/bitmapBackdrop.d.ts) | Provides `isBitmapBackdrop` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`isCalibratedMaxLayout`](../glass/lens/Scene.d.ts) | Provides `isCalibratedMaxLayout` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`isTintBackgroundMode`](../glass/lens/referenceBackground.d.ts) | Provides `isTintBackgroundMode` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`KeyboardGeometry`](../keyboard/geometry.d.ts) | The keyboard overlap and viewport dimensions in points. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`lastUnstableMeasurement`](../glass/lens/Scene.d.ts) | Provides `lastUnstableMeasurement` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`LayoutClass`](../layout/layoutClass.d.ts) | Defines the `LayoutClass` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`LensMode`](../glass/renderSpecs.d.ts) | Defines the `LensMode` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`LIQUID_ENVELOPES`](../glass/lens/liquidMotion.d.ts) | Provides `LIQUID_ENVELOPES` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`LIQUID_PILL_BAR`](../glass/lens/liquidMotion.d.ts) | Provides `LIQUID_PILL_BAR` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`LIQUID_SCRIPT`](../glass/lens/liquidMotion.d.ts) | Provides `LIQUID_SCRIPT` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`liquidAnimationActive`](../glass/lens/liquidMotion.d.ts) | Provides `liquidAnimationActive` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`LiquidMotionMode`](../glass/lens/liquidMotion.d.ts) | Defines the `LiquidMotionMode` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`liquidScriptDuration`](../glass/lens/liquidMotion.d.ts) | Provides `liquidScriptDuration` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`List`](../list-form/ListForm.d.ts) | Provides `List` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. | list; rows; pull to refresh |
-| [`ListEngineProps`](../list-form/ListForm.d.ts) | Defines the props accepted by `ListEngine`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`makeReferenceBackgroundCanvas`](../glass/lens/referenceBackground.d.ts) | Provides `makeReferenceBackgroundCanvas` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`MARKER_INTERVAL_PX`](../glass/lens/mirrorConstants.d.ts) | Provides `MARKER_INTERVAL_PX` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`measureMirrorLayout`](../glass/lens/Scene.d.ts) | Provides `measureMirrorLayout` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`measureMirrorLayoutRelative`](../glass/lens/Scene.d.ts) | A host whose origin moves on every read (a route inside a running navigation transform) never passes the absolute-origin check. Its own layout is still stable: two consecutive snapshots with identical host-relative geometry are a consistent reading, whatever the origin did. Additive; measureMirrorLayout is unchanged. | Package integration API. It does not add a separately supported app control. |  |
-| [`Menu`](../glass/Menu.d.ts) | Provides `Menu` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`MENU_BUTTON`](../glass/lens/menuMotion.d.ts) | Provides `MENU_BUTTON` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`MENU_CADENCE`](../glass/lens/menuMotion.d.ts) | Provides `MENU_CADENCE` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`MENU_ENVELOPE`](../glass/lens/menuMotion.d.ts) | Provides `MENU_ENVELOPE` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`MENU_GESTURE_REST`](../menu/menuGesture.d.ts) | Provides `MENU_GESTURE_REST` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`MENU_ICON_SVG`](../glass/lens/icons.d.ts) | Provides `MENU_ICON_SVG` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`MENU_MOTION_DURATIONS`](../glass/lens/menuMotion.d.ts) | Provides `MENU_MOTION_DURATIONS` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`MENU_PANEL`](../glass/lens/menuMotion.d.ts) | Provides `MENU_PANEL` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`MENU_TAP_FEEDBACK_MS`](../menu/menuGesture.d.ts) | Provides `MENU_TAP_FEEDBACK_MS` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`menuCadenceDuration`](../glass/lens/menuMotion.d.ts) | Provides `menuCadenceDuration` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`MenuDirection`](../glass/lens/menuMotion.d.ts) | Defines the `MenuDirection` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`MenuGestureDecision`](../menu/menuGesture.d.ts) | Defines the `MenuGestureDecision` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`MenuGestureFrame`](../menu/menuGesture.d.ts) | Defines the `MenuGestureFrame` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`MenuGestureMotion`](../menu/menuGesture.d.ts) | Defines the `MenuGestureMotion` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`menuHighlightAttack`](../menu/menuGesture.d.ts) | Provides `menuHighlightAttack` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`MenuInteraction`](../menu/menuInteraction.d.ts) | Provides `MenuInteraction` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`MenuInteractionPhase`](../menu/menuInteraction.d.ts) | Synchronous ownership of a menu transition. React renders its snapshot; event handlers use this model so two events in one task cannot both submit. Completion tokens prevent an interrupted window's timer settling its successor. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`menuMaterialProgress`](../glass/lens/menuMotion.d.ts) | Provides `menuMaterialProgress` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`MenuMotionFrame`](../glass/lens/menuMotion.d.ts) | Defines the `MenuMotionFrame` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`MenuPanelBounds`](../menu/menuGesture.d.ts) | Defines the `MenuPanelBounds` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`menuPanelPull`](../menu/menuGesture.d.ts) | Fit to axis controls plus the held diagonal, with its origin in the panel's resting coordinate space. Over-pull begins outside the panel; the anchored right edge couples vertical stretch to horizontal displacement. | Package integration API. It does not add a separately supported app control. |  |
-| [`MenuProps`](../glass/menuPresenter.d.ts) | Defines the props accepted by `Menu`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`menuPull`](../glass/contactPhysics.d.ts) | Provides `menuPull` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`menuRetargetTime`](../glass/lens/menuMotion.d.ts) | Restart an interrupted transition near the current geometry, not at its opposite endpoint. This is an interruption policy, not a native timing fit. | Package integration API. It does not add a separately supported app control. |  |
-| [`menuReturn`](../glass/contactPhysics.d.ts) | Provides `menuReturn` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`MenuTriggerProps`](../glass/menuPresenter.d.ts) | Defines the props accepted by `MenuTrigger`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`MirrorCaptureRange`](../glass/lens/Scene.d.ts) | DOM geometry is authoritative. This function is only called after layout changes. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`MirrorLayout`](../glass/lens/Scene.d.ts) | Defines the `MirrorLayout` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`MirrorNode`](../glass/lens/Scene.d.ts) | Defines the `MirrorNode` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`MorphEllipsisArtwork`](../glass/MorphEllipsisArtwork.d.ts) | The enclosing control owns the accessible label. | Package integration API. It does not add a separately supported app control. |  |
-| [`MOTION_SPEC`](../glass/lens/motion.d.ts) | Provides `MOTION_SPEC` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`MotionRun`](../glass/lens/motion.d.ts) | Defines the `MotionRun` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`MotionSample`](../glass/lens/motion.d.ts) | Defines the `MotionSample` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`mountGlassWorkerExperiment`](../glass/worker/experiment.d.ts) | Provides `mountGlassWorkerExperiment` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`mountSatin`](../root/mountSatin.d.ts) | Mount once from the app entry point, after resolving its initial screen. The first commit runs in this task so installed WebKit cannot defer it behind its launch presentation. Later updates retain React's normal scheduling. Do not call from a component or an effect, or suspend the initial screen. | Package integration API. It does not add a separately supported app control. |  |
-| [`NATIVE_WIDGET_Y_REGISTRATION_PX`](../glass/lens/motion.d.ts) | Provides `NATIVE_WIDGET_Y_REGISTRATION_PX` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`NAVIGATION_CURRENT_SEGMENT_WEIGHT`](../navigation/releaseVelocity.d.ts) | Provides `NAVIGATION_CURRENT_SEGMENT_WEIGHT` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`NAVIGATION_DIM_OPACITY`](../navigation/motionTokens.d.ts) | Provides `NAVIGATION_DIM_OPACITY` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`NAVIGATION_DIRECTION_LOCK_PX`](../navigation/motionTokens.d.ts) | Provides `NAVIGATION_DIRECTION_LOCK_PX` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`NAVIGATION_DURATION_MS`](../navigation/motionTokens.d.ts) | Provides `NAVIGATION_DURATION_MS` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`NAVIGATION_EASING`](../navigation/motionTokens.d.ts) | Provides `NAVIGATION_EASING` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`NAVIGATION_EDGE_SHADOW_OPACITY`](../navigation/motionTokens.d.ts) | Provides `NAVIGATION_EDGE_SHADOW_OPACITY` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`NAVIGATION_EDGE_SHADOW_WIDTH_PX`](../navigation/motionTokens.d.ts) | Provides `NAVIGATION_EDGE_SHADOW_WIDTH_PX` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`NAVIGATION_HORIZONTAL_INTENT_PX`](../navigation/motionTokens.d.ts) | Provides `NAVIGATION_HORIZONTAL_INTENT_PX` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`NAVIGATION_PARALLAX_FRACTION`](../navigation/motionTokens.d.ts) | Provides `NAVIGATION_PARALLAX_FRACTION` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`NAVIGATION_POSITION_THRESHOLD`](../navigation/motionTokens.d.ts) | Provides `NAVIGATION_POSITION_THRESHOLD` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`NAVIGATION_PREVIOUS_SEGMENT_WEIGHT`](../navigation/releaseVelocity.d.ts) | Provides `NAVIGATION_PREVIOUS_SEGMENT_WEIGHT` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`NAVIGATION_RELEASE_SAMPLE_RATE_HZ`](../navigation/releaseTrajectory.d.ts) | Provides `NAVIGATION_RELEASE_SAMPLE_RATE_HZ` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`NAVIGATION_RELEASE_SPRING_DAMPING`](../navigation/releaseTrajectory.d.ts) | Provides `NAVIGATION_RELEASE_SPRING_DAMPING` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`NAVIGATION_RELEASE_SPRING_MASS`](../navigation/releaseTrajectory.d.ts) | Provides `NAVIGATION_RELEASE_SPRING_MASS` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`NAVIGATION_RELEASE_SPRING_STIFFNESS`](../navigation/releaseTrajectory.d.ts) | Provides `NAVIGATION_RELEASE_SPRING_STIFFNESS` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`NAVIGATION_VELOCITY_THRESHOLD_PX_PER_SECOND`](../navigation/motionTokens.d.ts) | Provides `NAVIGATION_VELOCITY_THRESHOLD_PX_PER_SECOND` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`NavigationBackButtonBehavior`](../navigation/types.d.ts) | Defines the `NavigationBackButtonBehavior` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`NavigationBarDefinition`](../navigation/types.d.ts) | Defines the `NavigationBarDefinition` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`navigationMotionTokens`](../navigation/motionTokens.d.ts) | Provides `navigationMotionTokens` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`NavigationReleaseSample`](../navigation/releaseTrajectory.d.ts) | Defines the `NavigationReleaseSample` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`NavigationReleaseTrajectory`](../navigation/releaseTrajectory.d.ts) | Defines the `NavigationReleaseTrajectory` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`NavigationRow`](../list-form/ListForm.d.ts) | Provides `NavigationRow` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`NavigatorActions`](../navigation/store.d.ts) | Defines the `NavigatorActions` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`NavigatorHost`](../navigation/NavigatorHost.d.ts) | Provides `NavigatorHost` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`NavigatorHostProps`](../navigation/NavigatorHost.d.ts) | Defines the props accepted by `NavigatorHost`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`NavigatorState`](../navigation/types.d.ts) | Defines the `NavigatorState` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`NavigatorStore`](../navigation/store.d.ts) | Defines the `NavigatorStore` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`newId`](../data/database.d.ts) | A new unique record id that sorts by creation time. | Package integration API. It does not add a separately supported app control. |  |
-| [`normalizeNavigationReleaseVelocity`](../navigation/releaseTrajectory.d.ts) | UIKit's convention: axis velocity divided by signed distance to target. | Package integration API. It does not add a separately supported app control. |  |
-| [`OfflinePresentation`](../reachability/react.d.ts) | Provides `OfflinePresentation` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`OfflinePresentationProps`](../reachability/react.d.ts) | Defines the props accepted by `OfflinePresentation`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`PALETTES`](../glass/lens/theme.d.ts) | Provides `PALETTES` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`PickerOptions`](../list-form/ListForm.d.ts) | Provides `PickerOptions` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`PickerRow`](../list-form/ListForm.d.ts) | Provides `PickerRow` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`PickerRowProps`](../list-form/ListForm.d.ts) | Defines the props accepted by `PickerRow`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`popStack`](../navigation/stack.d.ts) | Provides `popStack` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`popToRootStack`](../navigation/stack.d.ts) | Provides `popToRootStack` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`prepareGlassBitmapBackdrop`](../glass/lens/bitmapBackdrop.d.ts) | Provides `prepareGlassBitmapBackdrop` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`prepareSceneRoutes`](../restoration/routes.d.ts) | Call before mount. Explicit launch intent wins over the checkpoint. | Package integration API. It does not add a separately supported app control. |  |
-| [`PresentationDetent`](../presentation/model.d.ts) | `PresentationDetent`: a sheet's supported resting height. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`PresentationKind`](../navigation/types.d.ts) | Defines the `PresentationKind` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`PresentationProps`](../presentation/Presentation.d.ts) | The presentation binding, accessible title and dismissal callback shared by presentations. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`Pressable`](../press/Pressable.d.ts) | Provides `Pressable` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`PRESSABLE_PRESS_IN_DURATION_MS`](../press/tokens.d.ts) | Provides `PRESSABLE_PRESS_IN_DURATION_MS` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`PRESSABLE_PRESSED_OPACITY`](../press/tokens.d.ts) | Provides `PRESSABLE_PRESSED_OPACITY` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`PRESSABLE_RELEASE_DURATION_MS`](../press/tokens.d.ts) | Provides `PRESSABLE_RELEASE_DURATION_MS` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`PRESSABLE_RELEASE_EASING`](../press/tokens.d.ts) | Provides `PRESSABLE_RELEASE_EASING` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`PRESSABLE_RETENTION_OFFSET_PX`](../press/tokens.d.ts) | Provides `PRESSABLE_RETENTION_OFFSET_PX` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`PressableProps`](../press/Pressable.d.ts) | Defines the props accepted by `Pressable`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`pressableTokens`](../press/tokens.d.ts) | Provides `pressableTokens` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`PressState`](../press/stateMachine.d.ts) | Whether a press is idle, held or cancelled. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`previousTrace`](../glass/lens/trace.d.ts) | Provides `previousTrace` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`PushNotifications`](../push/notifications.d.ts) | Defines the `PushNotifications` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`PushNotificationsLifecycle`](../push/PushPermissionExplainer.d.ts) | Mount at the app root so renewals reconcile even when Settings is not visible. | Package integration API. It does not add a separately supported app control. |  |
-| [`PushNotificationState`](../push/notifications.d.ts) | Defines the `PushNotificationState` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`PushPermissionExplainer`](../push/PushPermissionExplainer.d.ts) | Provides `PushPermissionExplainer` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`PushRelayTokenField`](../push/PushPermissionExplainer.d.ts) | A runtime user credential, never a build-time VITE secret. Keep its value in memory. | Package integration API. It does not add a separately supported app control. |  |
-| [`PushRoute`](../push/routes.d.ts) | Shared, validated route codec. No navigation or browser history side effects. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`PushRouteRules`](../push/routes.d.ts) | Defines the `PushRouteRules` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`PushServerAdapter`](../push/notifications.d.ts) | Defines the `PushServerAdapter` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`pushStack`](../navigation/stack.d.ts) | Provides `pushStack` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`PushSubscriptionPayload`](../push/notifications.d.ts) | Defines the `PushSubscriptionPayload` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`Query`](../data/database.d.ts) | An immutable query over a collection: `index`, `keyRange`, `reverse`, `limit` and `filter` each return a new query. `useQuery` hands one to its configure callback. | Package integration API. It does not add a separately supported app control. |  |
-| [`readAppearanceDiagnostics`](../app/appearance.d.ts) | Provides `readAppearanceDiagnostics` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`readDisplayCornerMetrics`](../safe-area/displayCorners.d.ts) | Framework token for the screen containing this app. Display Zoom and unknown models fall back to zero. | Package integration API. It does not add a separately supported app control. |  |
-| [`readInstallationFailure`](../app/installationFailure.d.ts) | Reads the recorded installation failure for acceptance fixtures. | Package integration API. It does not add a separately supported app control. |  |
-| [`readSafeAreaMetrics`](../safe-area/useSafeAreaMetrics.d.ts) | Provides `readSafeAreaMetrics` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`readSceneValue`](../restoration/scene.d.ts) | Provides `readSceneValue` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`REFERENCE_CONTENT_HEIGHT_PX`](../glass/lens/referenceBackground.d.ts) | Provides `REFERENCE_CONTENT_HEIGHT_PX` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`ReferenceBackgroundMode`](../glass/lens/referenceBackground.d.ts) | Defines the `ReferenceBackgroundMode` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ReferenceBackgroundScene`](../glass/lens/Scene.d.ts) | Provides `ReferenceBackgroundScene` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`registerAppShell`](../sw/registerAppShell.d.ts) | Provides `registerAppShell` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`RegisterAppShellOptions`](../sw/registerAppShell.d.ts) | Defines the `RegisterAppShellOptions` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`registerGlassBitmapBackdrop`](../glass/lens/bitmapBackdrop.d.ts) | Provides `registerGlassBitmapBackdrop` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`RegistryScreenEntry`](../navigation/store.d.ts) | Defines the `RegistryScreenEntry` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`REGULAR_TRIGGER_MATERIAL`](../glass/regularTriggerMaterial.d.ts) | Provides `REGULAR_TRIGGER_MATERIAL` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`REGULAR_TRIGGER_MATERIAL_GLSL`](../glass/regularTriggerMaterial.d.ts) | Provides `REGULAR_TRIGGER_MATERIAL_GLSL` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`REGULAR_TRIGGER_RIM_CURVES`](../glass/regularTriggerRim.d.ts) | Provides `REGULAR_TRIGGER_RIM_CURVES` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`RegularMaterialContext`](../glass/regularMaterialContext.d.ts) | A retained source-image index. No DOM reads, GPU readbacks or canvas writes occur when an aperture moves. Disc rows are clipped and renormalized against the visible window, not extended by repeating the boundary pixel. | Package integration API. It does not add a separately supported app control. |  |
-| [`regularTriggerRegime`](../glass/regularTriggerMaterial.d.ts) | Provides `regularTriggerRegime` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`regularTriggerRimResponse`](../glass/regularTriggerRim.d.ts) | Provides `regularTriggerRimResponse` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`releaseWarmedAppImages`](../app/warmImage.d.ts) | Release URLs when the app document closes, or explicitly when its image set changes. | Package integration API. It does not add a separately supported app control. |  |
-| [`replaceStack`](../navigation/stack.d.ts) | Provides `replaceStack` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`reportGlassError`](../glass/errors.d.ts) | Provides `reportGlassError` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`requestPersistentStorage`](../data/database.d.ts) | Asks WebKit not to evict the app's data under storage pressure; true when granted. | Package integration API. It does not add a separately supported app control. |  |
-| [`resolveDisplayCornerMetrics`](../safe-area/displayCorners.d.ts) | Resolution is not a model identifier. Unknown and asymmetric displays use the scalar fallback. | Package integration API. It does not add a separately supported app control. |  |
-| [`ReturningMenuTrigger`](../glass/renderSpecs.d.ts) | Defines the `ReturningMenuTrigger` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`RouteSchema`](../navigation/routeCodec.d.ts) | Defines the `RouteSchema` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`Row`](../list-form/ListForm.d.ts) | Provides `Row` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`RowActions`](../actions/RowActions.d.ts) | A row's swipe actions and context menu. Inside an editable `List` item, the item owns the row's one gesture host (it adds swipe-to-delete), so the row hands its actions to the item instead of hosting a second recognizer. Swipe actions are unavailable while the list is editing, as in selection; the context menu stays. | Package integration API. It does not add a separately supported app control. |  |
-| [`RowActionsProps`](../actions/types.d.ts) | Row swipe actions and context-menu commands. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`RowIcon`](../list-form/ListForm.d.ts) | A Settings-style icon: a white symbol on a rounded colour tile, for a row's leading edge. | Package integration API. It does not add a separately supported app control. |  |
-| [`RowIconProps`](../list-form/ListForm.d.ts) | The symbol and its tile colour: a system colour name or any CSS colour. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`RowProps`](../list-form/ListForm.d.ts) | Defines the props accepted by `Row`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`runScriptedDrag`](../glass/lens/motion.d.ts) | Provides `runScriptedDrag` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`runScriptedScroll`](../glass/lens/motion.d.ts) | Provides `runScriptedScroll` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`RuntimeElements`](../glass/renderSpecs.d.ts) | Defines the `RuntimeElements` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`RuntimeGeometry`](../glass/renderSpecs.d.ts) | Defines the `RuntimeGeometry` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`RuntimeOptions`](../glass/renderSpecs.d.ts) | Defines the `RuntimeOptions` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`RuntimeSnapshot`](../glass/renderSpecs.d.ts) | Probe telemetry shape. The WebGPU runtime does not emit snapshots; GlassPresentation's probe panel still types against it. Fields typed by removed WebGL classes are `unknown`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`SafeAreaMetrics`](../safe-area/useSafeAreaMetrics.d.ts) | The full safe-area and viewport geometry Satin works from, including the diagnostic coordinate spaces installed-app fixtures compare. Apps want only `insets`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`SampledMotion`](../menu/sampledMotion.d.ts) | A document-timeline animation, submitted once per input or state transition. Sampling density controls interpolation error, not the display refresh rate. Keep accelerated properties in separate effects from paint-bound properties. | Package integration API. It does not add a separately supported app control. |  |
-| [`sampleLiquidShape`](../glass/lens/liquidMotion.d.ts) | Provides `sampleLiquidShape` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`sampleMenuCadence`](../glass/lens/menuMotion.d.ts) | Provides `sampleMenuCadence` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`sampleMenuMotion`](../glass/lens/menuMotion.d.ts) | Provides `sampleMenuMotion` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`sampleNavigationCurve`](../navigation/motionTokens.d.ts) | Provides `sampleNavigationCurve` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`SatinAppShellRegistration`](../sw/registerAppShell.d.ts) | Defines the `SatinAppShellRegistration` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`SatinRoot`](../root/SatinRoot.d.ts) | Provides `SatinRoot` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`SatinRootProps`](../root/SatinRoot.d.ts) | Defines the props accepted by `SatinRoot`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`SatinRuntime`](../root/runtimeContext.d.ts) | Defines the `SatinRuntime` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`Scenario`](../glass/renderSpecs.d.ts) | Defines the `Scenario` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ScenarioMetrics`](../glass/renderSpecs.d.ts) | Defines the `ScenarioMetrics` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`SCENE_STYLE`](../glass/lens/Scene.d.ts) | Provides `SCENE_STYLE` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`SceneRestoration`](../restoration/scene.d.ts) | Defines the `SceneRestoration` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ScreenContainer`](../navigation/ScreenContainer.d.ts) | Provides `ScreenContainer` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`ScreenContainerProps`](../navigation/ScreenContainer.d.ts) | Defines the props accepted by `ScreenContainer`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ScreenDefinition`](../navigation/types.d.ts) | Defines the `ScreenDefinition` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ScreenEntry`](../navigation/types.d.ts) | Defines the `ScreenEntry` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ScreenId`](../navigation/store.d.ts) | Defines the `ScreenId` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ScreenLifecycle`](../navigation/types.d.ts) | The lifecycle state of a retained navigation entry. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ScreenLifecycleCallbacks`](../navigation/types.d.ts) | Callbacks for a retained navigation entry appearing, being covered or disappearing. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ScreenParams`](../navigation/store.d.ts) | Defines the `ScreenParams` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ScreenRegistry`](../navigation/registry.d.ts) | Defines the `ScreenRegistry` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`scriptedDragFrames`](../glass/lens/motion.d.ts) | Provides `scriptedDragFrames` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`scriptedDragProgress`](../glass/lens/motion.d.ts) | Provides `scriptedDragProgress` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`ScriptedMotionMode`](../glass/lens/motion.d.ts) | Defines the `ScriptedMotionMode` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ScriptedScrollMode`](../glass/lens/motion.d.ts) | Defines the `ScriptedScrollMode` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`scriptedScrollOffset`](../glass/lens/motion.d.ts) | Provides `scriptedScrollOffset` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`ScrollAxis`](../scroll/types.d.ts) | The axis along which a scroll surface accepts scrolling. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ScrollDismissesKeyboardMode`](../keyboard/adapter.d.ts) | - `immediately`: a drag on the surface ends editing. - `interactively`: scrolling keeps the keyboard; a drag that reaches the keyboard ends editing. Native tracks the keyboard under the finger from there; WebKit's keyboard cannot follow a finger, so it leaves on its own curve (the bottom inset chain follows it). | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ScrollOffset`](../scroll/types.d.ts) | The scroll position in points along the physical x and y axes. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ScrollSnapshot`](../scroll/types.d.ts) | Defines the `ScrollSnapshot` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ScrollSurface`](../scroll/ScrollSurface.d.ts) | Provides `ScrollSurface` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`ScrollSurfaceHandle`](../scroll/ScrollSurface.d.ts) | Imperative scroll positioning for a named scroll view. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ScrollSurfaceProps`](../scroll/ScrollSurface.d.ts) | A scroll view's content, scroll binding and keyboard dismissal policy. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ScrollToTopOptions`](../scroll/types.d.ts) | Options for restoring a named scroll surface to its top. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`Section`](../list-form/ListForm.d.ts) | `Section`: a group of rows in a `List` or `Form`, with an optional header and footer. | Package integration API. It does not add a separately supported app control. |  |
-| [`SectionProps`](../list-form/ListForm.d.ts) | A section's rows and its optional header and footer. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`SecureField`](../text-input/TextField.d.ts) | Provides `SecureField` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`SecureFieldProps`](../text-input/TextField.d.ts) | Defines the props accepted by `SecureField`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`SegmentedControl`](../list-form/ListForm.d.ts) | Provides `SegmentedControl` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`Selectable`](../root/SatinRoot.d.ts) | `textSelection(.enabled)`: restores text selection and system callouts for user-authored content, which app chrome otherwise suppresses. | Package integration API. It does not add a separately supported app control. |  |
-| [`SelectableProps`](../root/SatinRoot.d.ts) | A content-role wrapper's children and plain div attributes. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`SerializedRoute`](../navigation/routeCodec.d.ts) | Defines the `SerializedRoute` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`setAppBadge`](../push/notifications.d.ts) | Provides `setAppBadge` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`SETTINGS_BACK_BUTTON_INLINE_INSET_PX`](../settings/tokens.d.ts) | Provides `SETTINGS_BACK_BUTTON_INLINE_INSET_PX` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`SETTINGS_BACK_BUTTON_SIZE_PX`](../settings/tokens.d.ts) | Provides `SETTINGS_BACK_BUTTON_SIZE_PX` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`SETTINGS_DETAIL_CONTENT_TOP_OFFSET_PX`](../settings/tokens.d.ts) | Provides `SETTINGS_DETAIL_CONTENT_TOP_OFFSET_PX` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`SETTINGS_DETAIL_INLINE_INSET_PX`](../settings/tokens.d.ts) | Provides `SETTINGS_DETAIL_INLINE_INSET_PX` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`SETTINGS_DETAIL_ROW_HEIGHT_PX`](../settings/tokens.d.ts) | Provides `SETTINGS_DETAIL_ROW_HEIGHT_PX` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`SETTINGS_DISCLOSURE_DARK_COLOR`](../settings/tokens.d.ts) | Provides `SETTINGS_DISCLOSURE_DARK_COLOR` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`SETTINGS_DISCLOSURE_HEIGHT_PX`](../settings/tokens.d.ts) | Provides `SETTINGS_DISCLOSURE_HEIGHT_PX` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`SETTINGS_DISCLOSURE_LIGHT_COLOR`](../settings/tokens.d.ts) | Provides `SETTINGS_DISCLOSURE_LIGHT_COLOR` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`SETTINGS_DISCLOSURE_OFFSET_X_PX`](../settings/tokens.d.ts) | Provides `SETTINGS_DISCLOSURE_OFFSET_X_PX` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`SETTINGS_DISCLOSURE_OFFSET_Y_PX`](../settings/tokens.d.ts) | Provides `SETTINGS_DISCLOSURE_OFFSET_Y_PX` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`SETTINGS_DISCLOSURE_WIDTH_PX`](../settings/tokens.d.ts) | Provides `SETTINGS_DISCLOSURE_WIDTH_PX` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`SETTINGS_GROUP_CORNER_RADIUS_PX`](../settings/tokens.d.ts) | Provides `SETTINGS_GROUP_CORNER_RADIUS_PX` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`SETTINGS_GROUP_SPACING_PX`](../settings/tokens.d.ts) | Provides `SETTINGS_GROUP_SPACING_PX` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`SETTINGS_LARGE_TITLE_FONT_SIZE_PX`](../settings/tokens.d.ts) | Provides `SETTINGS_LARGE_TITLE_FONT_SIZE_PX` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`SETTINGS_LARGE_TITLE_LINE_HEIGHT_PX`](../settings/tokens.d.ts) | Provides `SETTINGS_LARGE_TITLE_LINE_HEIGHT_PX` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`SETTINGS_NAVIGATION_BAR_HEIGHT_PX`](../settings/tokens.d.ts) | Provides `SETTINGS_NAVIGATION_BAR_HEIGHT_PX` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`SETTINGS_ROOT_INLINE_INSET_PX`](../settings/tokens.d.ts) | Provides `SETTINGS_ROOT_INLINE_INSET_PX` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`SETTINGS_ROOT_LARGE_TITLE_TOP_OFFSET_PX`](../settings/tokens.d.ts) | Provides `SETTINGS_ROOT_LARGE_TITLE_TOP_OFFSET_PX` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`SETTINGS_ROOT_PRO_MAX_INLINE_INSET_PX`](../settings/tokens.d.ts) | Provides `SETTINGS_ROOT_PRO_MAX_INLINE_INSET_PX` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`SETTINGS_ROOT_ROW_HEIGHT_PX`](../settings/tokens.d.ts) | Provides `SETTINGS_ROOT_ROW_HEIGHT_PX` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`SETTINGS_ROW_ICON_CORNER_RADIUS_PX`](../settings/tokens.d.ts) | Provides `SETTINGS_ROW_ICON_CORNER_RADIUS_PX` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`SETTINGS_ROW_ICON_SIZE_PX`](../settings/tokens.d.ts) | Provides `SETTINGS_ROW_ICON_SIZE_PX` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`SETTINGS_ROW_TRAILING_INSET_PX`](../settings/tokens.d.ts) | Provides `SETTINGS_ROW_TRAILING_INSET_PX` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`SETTINGS_SEPARATOR_HAIRLINE_PX`](../settings/tokens.d.ts) | Provides `SETTINGS_SEPARATOR_HAIRLINE_PX` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`SETTINGS_SEPARATOR_LEADING_INSET_PX`](../settings/tokens.d.ts) | Provides `SETTINGS_SEPARATOR_LEADING_INSET_PX` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`SETTINGS_SEPARATOR_OFFSET_Y_PX`](../settings/tokens.d.ts) | Provides `SETTINGS_SEPARATOR_OFFSET_Y_PX` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`SETTINGS_SEPARATOR_TRAILING_INSET_PX`](../settings/tokens.d.ts) | Provides `SETTINGS_SEPARATOR_TRAILING_INSET_PX` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`settingsChromeTokens`](../settings/tokens.d.ts) | Provides `settingsChromeTokens` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`SettingsDomScene`](../glass/lens/Scene.d.ts) | Provides `SettingsDomScene` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`SettingsPalette`](../glass/lens/theme.d.ts) | Defines the `SettingsPalette` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`settingsRootInlineInset`](../settings/tokens.d.ts) | Provides `settingsRootInlineInset` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`Sheet`](../presentation/Presentation.d.ts) | Provides `Sheet` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. | sheet; modal presentation |
-| [`SheetProps`](../presentation/Presentation.d.ts) | Defines the props accepted by `Sheet`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`shouldCompleteInteractivePop`](../navigation/motionTokens.d.ts) | Provides `shouldCompleteInteractivePop` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`Sidebar`](../navigation/Sidebar.d.ts) | Ordered sidebar destinations, sharing NavigatorHost's canonical detail selection. | Package integration API. It does not add a separately supported app control. |  |
-| [`SidebarEntry`](../navigation/Sidebar.d.ts) | Defines the `SidebarEntry` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`SidebarProps`](../navigation/Sidebar.d.ts) | Defines the props accepted by `Sidebar`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`SidebarSymbol`](../navigation/SidebarSymbol.d.ts) | Framework7 Icons (MIT), through the shared SymbolImage renderer. | Package integration API. It does not add a separately supported app control. |  |
-| [`sidebarTokens`](../settings/tokens.d.ts) | Provides `sidebarTokens` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`SplitSelection`](../navigation/splitContext.d.ts) | Defines the `SplitSelection` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`springStep`](../glass/lens/liquidMotion.d.ts) | Provides `springStep` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`stableTabSelection`](../glass/lens/tabSelectionMaterial.d.ts) | Provides `stableTabSelection` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`StateSchema`](../restoration/scene.d.ts) | Small UI checkpoints, read before mount and written in quiet tasks. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`StepperProps`](../list-form/ListForm.d.ts) | Defines the props accepted by `Stepper`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`StepperRow`](../list-form/ListForm.d.ts) | Provides `StepperRow` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`STRIPE_BACKGROUND_MODES`](../glass/lens/referenceBackground.d.ts) | Provides `STRIPE_BACKGROUND_MODES` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`SubmitLabel`](../text-input/kinds.d.ts) | `SubmitLabel`: the return key's title. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`subscribeGlassErrors`](../glass/errors.d.ts) | Provides `subscribeGlassErrors` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`summarize`](../glass/worker/experiment.d.ts) | Provides `summarize` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`SurfaceId`](../glass/renderSpecs.d.ts) | Defines the `SurfaceId` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`SurfaceRenderSpec`](../glass/renderSpecs.d.ts) | Defines the `SurfaceRenderSpec` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`SurfaceShape`](../glass/renderSpecs.d.ts) | Defines the `SurfaceShape` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`SwipeActions`](../actions/types.d.ts) | `swipeActions`: one or more edge configurations for a row. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`SwipeActionsConfiguration`](../actions/types.d.ts) | Swipe actions on one row edge. Full swipe is enabled unless explicitly disabled. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`Tab`](../tabs/TabView.d.ts) | Declaration consumed by TabView. Each tab owns its content and navigator. | Package integration API. It does not add a separately supported app control. |  |
-| [`TAB_BAR_BLUR_SIGMA`](../glass/lens/tabSelectionMaterial.d.ts) | Provides `TAB_BAR_BLUR_SIGMA` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`TAB_BAR_LOCAL_CENTRES`](../glass/lens/tabSelectionMaterial.d.ts) | Provides `TAB_BAR_LOCAL_CENTRES` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`TAB_ICON_SVG`](../glass/lens/icons.d.ts) | Provides `TAB_ICON_SVG` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`TAB_SELECTION_HEIGHT`](../glass/lens/tabSelectionMaterial.d.ts) | Provides `TAB_SELECTION_HEIGHT` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`TAB_SELECTION_WIDTH`](../glass/lens/tabSelectionMaterial.d.ts) | Provides `TAB_SELECTION_WIDTH` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`TabBar`](../glass/TabBar.d.ts) | Provides `TabBar` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`TabBarItem`](../glass/TabBar.d.ts) | Defines the `TabBarItem` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`TabBarProps`](../glass/TabBar.d.ts) | Defines the props accepted by `TabBar`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`tabGlyphStyle`](../glass/lens/tabGlyphColours.d.ts) | Provides `tabGlyphStyle` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`tabPresentation`](../glass/lens/tabPresentation.d.ts) | Backdrops change what is behind the tabs, not whether the tabs exist. Explicit optical probes can still request bare glass. The separate drag and liquid specimens retain their original presentation. | Package integration API. It does not add a separately supported app control. |  |
-| [`tabProbeOverride`](../glass/lens/tabPresentation.d.ts) | Provides `tabProbeOverride` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`TabProps`](../tabs/TabView.d.ts) | Defines the props accepted by `Tab`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`tabSelectionCapsule`](../glass/lens/tabSelectionMaterial.d.ts) | Provides `tabSelectionCapsule` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`TabSelectionShape`](../glass/renderSpecs.d.ts) | Defines the `TabSelectionShape` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`TabView`](../tabs/TabView.d.ts) | Lazy, retained tabs. Hidden app effects remain app-owned; Satin work pauses. | Package integration API. It does not add a separately supported app control. |  |
-| [`TabViewProps`](../tabs/TabView.d.ts) | Defines the props accepted by `TabView`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`TextEditor`](../text-input/TextEditor.d.ts) | Provides `TextEditor` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`TextEditorProps`](../text-input/TextEditor.d.ts) | Defines the props accepted by `TextEditor`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`TextField`](../text-input/TextField.d.ts) | Provides `TextField` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`TextFieldKind`](../text-input/kinds.d.ts) | What a field holds, setting its keyboard, autofill and autocorrection together. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`TextFieldProps`](../text-input/TextField.d.ts) | Defines the props accepted by `TextField`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`TINT_BACKGROUND_MODES`](../glass/lens/referenceBackground.d.ts) | Provides `TINT_BACKGROUND_MODES` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`TintBackgroundMode`](../glass/lens/referenceBackground.d.ts) | Defines the `TintBackgroundMode` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`TitleDisplayMode`](../navigation/types.d.ts) | `toolbarTitleDisplayMode`; `inlineLarge` draws the large title inside the bar row. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`Toggle`](../list-form/Toggle.d.ts) | Provides `Toggle` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`ToggleProps`](../list-form/Toggle.d.ts) | Defines the props accepted by `Toggle`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`ToggleRow`](../list-form/Toggle.d.ts) | Provides `ToggleRow` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`ToolbarGroup`](../glass/GlassEffect.d.ts) | A toolbar group is one glass button: pressing any item lifts the whole group (native). | Package integration API. It does not add a separately supported app control. |  |
-| [`ToolbarSpacer`](../glass/GlassEffect.d.ts) | Provides `ToolbarSpacer` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`trace`](../glass/lens/trace.d.ts) | Provides `trace` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`TransactionCollection`](../data/database.d.ts) | A collection as seen inside `db.transaction`: its writes commit together or not at all. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`TransitionBinding`](../navigation/types.d.ts) | Defines the `TransitionBinding` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`TransitionCompletion`](../navigation/types.d.ts) | Defines the `TransitionCompletion` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`TransitionController`](../navigation/types.d.ts) | Defines the `TransitionController` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`TransitionControllerContext`](../navigation/types.d.ts) | Defines the `TransitionControllerContext` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`TransitionControllerFactory`](../navigation/types.d.ts) | Defines the `TransitionControllerFactory` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`TransitionOperation`](../navigation/types.d.ts) | Defines the `TransitionOperation` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`TransitionPhase`](../navigation/types.d.ts) | The progress phase of a navigation transition. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`TypedRoute`](../navigation/routeCodec.d.ts) | Defines the `TypedRoute` type in `@satinhq/kit/internal`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`useFocusChain`](../text-input/focusChain.d.ts) | `@FocusState` for a form: the return key moves to the next field in `order` and the last one dismisses the keyboard. Spread `field(key)` onto each field. | Package integration API. It does not add a separately supported app control. |  |
-| [`useGlassMaterialDiagnostics`](../glass/context.d.ts) | Provides `useGlassMaterialDiagnostics` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`useKeyboardMetrics`](../keyboard/adapter.d.ts) | The software keyboard's live geometry. Most apps never need it: Satin keeps focused fields, bottom insets and bars above the keyboard. | Package integration API. It does not add a separately supported app control. |  |
-| [`useLayoutClass`](../root/runtimeContext.d.ts) | Classes follow the layout viewport; keyboard occlusion and zoom do not select panes. | Package integration API. It does not add a separately supported app control. |  |
-| [`useNavigator`](../navigation/navigationContext.d.ts) | Provides `useNavigator` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`useNavigatorState`](../navigation/navigationContext.d.ts) | Provides `useNavigatorState` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`useParams`](../navigation/navigationContext.d.ts) | Provides `useParams` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`usePushNotifications`](../push/notifications.d.ts) | Provides `usePushNotifications` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`useQuery`](../data/database.d.ts) | SwiftData `@Query`: a collection's records as `{ data, loading, error }`, kept live. Local writes show up synchronously, before they persist. | Package integration API. It does not add a separately supported app control. |  |
-| [`useReachability`](../reachability/react.d.ts) | The server status and visible offline presentation, with fetch and retry helpers. | Package integration API. It does not add a separately supported app control. |  |
-| [`useRecord`](../data/database.d.ts) | One record by key, kept live; `data` is undefined while loading and when no record exists. | Package integration API. It does not add a separately supported app control. |  |
-| [`useRestoredState`](../restoration/react.d.ts) | Application/scene values such as the selected tab. Declare schemas outside render. | Package integration API. It does not add a separately supported app control. |  |
-| [`useSafeAreaMetrics`](../safe-area/useSafeAreaMetrics.d.ts) | Full diagnostic geometry, including visual viewport changes. | Package integration API. It does not add a separately supported app control. |  |
-| [`useSatinRuntime`](../root/runtimeContext.d.ts) | Diagnostic readers receive every live coordinate space, independently of root layout. | Package integration API. It does not add a separately supported app control. |  |
-| [`useSceneStorage`](../restoration/react.d.ts) | Entry-scoped state: repeated pushes of the same screen keep independent drafts. | Package integration API. It does not add a separately supported app control. | restorable screen state |
-| [`useScreenLifecycle`](../navigation/navigationContext.d.ts) | `onAppear` and `onDisappear`: callbacks for a retained navigation entry's visible lifecycle. | Package integration API. It does not add a separately supported app control. |  |
-| [`useSplitSelection`](../navigation/splitContext.d.ts) | Entry identity owns navigation/scroll; identity is the registry's semantic row key. | Package integration API. It does not add a separately supported app control. |  |
-| [`useUnsavedChanges`](../root/runtimeContext.d.ts) | Register app-managed unsaved state while it exists. Native inputs are checked automatically. | Package integration API. It does not add a separately supported app control. |  |
-| [`validatePushRoute`](../push/routes.d.ts) | Provides `validatePushRoute` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`ValueRow`](../list-form/ListForm.d.ts) | Provides `ValueRow` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`warmAppImageWhenIdle`](../app/warmImage.d.ts) | Provides `warmAppImageWhenIdle` through the `@satinhq/kit/internal` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`Zoomable`](../zoom/Zoomable.d.ts) | A bounded image/map viewport. Pinch and pan belong only to this content role. Keyboard + / - zoom about the center; 0 resets. Supply an accessible label. | Package integration API. It does not add a separately supported app control. |  |
-| [`ZoomableProps`](../zoom/Zoomable.d.ts) | Zoomable's maximum scale and scale callback; Satin owns its pointer handlers. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
+| [`Action`](../actions/types.d.ts) | An entry in a menu, context menu or swipe action list: a command, a titled section of entries, or a submenu. |  |  |
+| [`ActionItem`](../actions/types.d.ts) | A single command with an id, a label, an optional symbol and role, and an `onPress` handler. Menus, swipe actions, alerts and confirmation dialogs all use it. |  |  |
+| [`Alert`](../presentation/Presentation.d.ts) | A centred alert with a title, an optional message, up to three actions and an optional text field. |  | alert; dialog; popup |
+| [`AlertProps`](../presentation/Presentation.d.ts) | An alert's presentation binding, title, message, actions and optional text field. |  |  |
+| [`AnyScreenDefinition`](../navigation/types.d.ts) |  |  |  |
+| [`AppDefinition`](../app/definition.d.ts) | A validated app definition, returned by `defineApp`. Pass it to `runApp` and to the Vite plugin. |  |  |
+| [`AppDeploymentInput`](../app/definition.d.ts) | Resolved app deployment fields, including local or server connectivity. |  |  |
+| [`Appearance`](../glass/lens/theme.d.ts) |  |  |  |
+| [`AppearanceEvent`](../app/appearanceStore.d.ts) | One entry in the appearance diagnostics log: what happened and the appearance seen then. |  |  |
+| [`AppShellBuildState`](../sw/registerAppShell.d.ts) |  |  |  |
+| [`AxisLayoutClass`](../layout/layoutClass.d.ts) |  |  |  |
+| [`bindMenuGestures`](../menu/menuGesture.d.ts) | One pointer owns a menu session, including the trigger-to-panel handoff. Native buttons retain their click/keyboard/assistive activation path. Hosts must declare touch-action:none on these gesture owners, never the document. |  |  |
+| [`BitmapBackdropMode`](../glass/lens/bitmapBackdrop.d.ts) | Measurement fixtures share a decoded bitmap between DOM and GPU sources. |  |  |
+| [`blendMenuFrames`](../glass/lens/menuMotion.d.ts) |  |  |  |
+| [`BridgeMode`](../glass/renderSpecs.d.ts) |  |  |  |
+| [`ButtonRow`](../list-form/ListForm.d.ts) |  |  |  |
+| [`cancelStackTransition`](../navigation/stack.d.ts) |  |  |  |
+| [`CapsuleShape`](../glass/renderSpecs.d.ts) |  |  |  |
+| [`Choice`](../list-form/ListForm.d.ts) | One option of a `Picker`. |  |  |
+| [`Chrome`](../root/SatinRoot.d.ts) | Re-enters app-chrome policy inside a Selectable region. |  |  |
+| [`ChromeBandSpec`](../glass/renderSpecs.d.ts) |  |  |  |
+| [`clampStepper`](../list-form/state.d.ts) |  |  |  |
+| [`collection`](../data/database.d.ts) | Declares a collection of records keyed by one unique string field. The curried form, `collection<Note>()({ key, indexes })`, infers index names. |  |  |
+| [`Collection`](../data/database.d.ts) | One collection of a database (`db.notes`). Once loaded, writes publish to memory at once, so `useQuery` sees them immediately; the returned promise settles after the durable commit. |  |  |
+| [`CollectionDefinition`](../data/database.d.ts) | A collection's record type, key and indexes, made by `collection` for `defineDatabase`. |  |  |
+| [`ConfirmationDialog`](../presentation/Presentation.d.ts) | A titled set of actions, such as Delete and Cancel, shown next to the control that opened it. |  | action sheet; delete confirmation |
+| [`ConfirmationDialogProps`](../presentation/Presentation.d.ts) | A confirmation dialog's presentation binding, title, message, actions and optional anchor. |  |  |
+| [`connectPushRoutes`](../push/urlProjection.d.ts) | Pending taps are acknowledged after acceptance and the optional durability gate. |  |  |
+| [`ContentPage`](../glass/lens/tabPresentation.d.ts) |  |  |  |
+| [`ContextMenu`](../actions/RowActions.d.ts) | Opens a menu of actions when the user long-presses its content, with an optional custom `preview`. Rows in a `List` take a `contextMenu` prop instead. |  | long press menu |
+| [`ContextMenuConfiguration`](../actions/types.d.ts) | The `contextMenu` prop of a row: a list of actions, or actions with a custom `preview`. |  |  |
+| [`createAnimatedTransitionController`](../navigation/motion.d.ts) | State, besides the lifecycle: - `interactionPhase` (interactive pops): 'held' while the finger owns the page, then 'completing' or 'cancelling' once released. A cancelling pop can be caught again (resumeInteractive) and returns to 'held'. - Who moves the page: a native scroll scrub (`scrollSource`, the private scroller drives scroll-timeline tracks), the frame loop (setProgress writes a pose), or the release and automatic tracks in `activeAnimations`. - `binding`: the elements of the screens it moves, bound after React commits them. A release that arrives before the first binding waits in `pendingRelease`. |  |  |
+| [`createInstantTransitionController`](../navigation/store.d.ts) |  |  |  |
+| [`createNavigationReleaseTrajectory`](../navigation/releaseTrajectory.d.ts) |  |  |  |
+| [`createNavigator`](../navigation/store.d.ts) |  |  |  |
+| [`CreateNavigatorOptions`](../navigation/store.d.ts) |  |  |  |
+| [`createPushNotifications`](../push/notifications.d.ts) | Create once outside React. Only enable() requests permission, synchronously from a gesture. |  |  |
+| [`createPushRelayAdapter`](../push/notifications.d.ts) | Obtain a user-scoped token at runtime. Never bundle the relay sender token. |  |  |
+| [`createRenderSpecs`](../glass/renderSpecs.d.ts) |  |  |  |
+| [`createRouteCodec`](../navigation/routeCodec.d.ts) | Each route is independently versioned so updates keep the deepest valid ancestor. |  |  |
+| [`createSceneRestoration`](../restoration/scene.d.ts) |  |  |  |
+| [`createScreenRegistry`](../navigation/registry.d.ts) |  |  |  |
+| [`createSurfaceClipPath`](../glass/renderSpecs.d.ts) |  |  |  |
+| [`decodePushRoute`](../push/routes.d.ts) |  |  |  |
+| [`defineApp`](../app/definition.d.ts) | Validates a full app definition and fills in its defaults. `defineApp` uses it; lab fixtures call it directly. |  | app manifest; app config |
+| [`defineDatabase`](../data/database.d.ts) | Opens the app's local database, stored in IndexedDB. Each collection becomes a property of the result. Bump `version` with a migration whenever the schema changes. Export and import are built in, so offer them to the user. |  | local database; offline storage; IndexedDB |
+| [`defineScreen`](../navigation/registry.d.ts) |  |  |  |
+| [`DetailList`](../navigation/DetailList.d.ts) | A grouped list of rows for a split view's detail column at regular width. |  |  |
+| [`DirectCanvasElements`](../glass/renderSpecs.d.ts) |  |  |  |
+| [`DisclosureIndicator`](../settings/DisclosureIndicator.d.ts) | Framework7 disclosure artwork; framework layout still owns the row aperture. |  |  |
+| [`DisclosureIndicatorProps`](../settings/DisclosureIndicator.d.ts) | Props for `DisclosureIndicator`. |  |  |
+| [`dismissKeyboard`](../keyboard/adapter.d.ts) |  |  |  |
+| [`DisplayCornerMetrics`](../safe-area/displayCorners.d.ts) | The screen's corner radius in points, with how sure Satin is of the model. |  |  |
+| [`DisplayGeometry`](../safe-area/displayCorners.d.ts) | Display geometry in CSS points. Supply the physical screen, not the app window. |  |  |
+| [`drawGlassBitmapBackdrop`](../glass/lens/bitmapBackdrop.d.ts) |  |  |  |
+| [`drawReferenceBackground`](../glass/lens/referenceBackground.d.ts) |  |  |  |
+| [`EdgeInsets`](../safe-area/useSafeAreaMetrics.d.ts) | Insets in CSS pixels, by physical edge. |  |  |
+| [`encodePushRoute`](../push/routes.d.ts) |  |  |  |
+| [`EntryTransition`](../navigation/types.d.ts) |  |  |  |
+| [`estimateStorage`](../data/database.d.ts) | The app's storage usage and quota in bytes, when WebKit reports them. |  |  |
+| [`evaluateTemporalSpline`](../glass/lens/liquidMotion.d.ts) |  |  |  |
+| [`ExportDocument`](../data/database.d.ts) | The JSON document `exportJSON` writes and `importJSON` reads. |  |  |
+| [`finishStackTransition`](../navigation/stack.d.ts) |  |  |  |
+| [`getGlassErrors`](../glass/errors.d.ts) |  |  |  |
+| [`Glass`](../glass/regions.d.ts) | Immutable glass material values. RGBA channels use the range 0...1. |  |  |
+| [`GLASS_BAR_EDGE_HIGHLIGHT_ALPHA`](../glass/tokens.d.ts) |  |  |  |
+| [`GLASS_BAR_HEIGHT_PX`](../glass/tokens.d.ts) |  |  |  |
+| [`GLASS_BAR_SHADOW_ALPHA`](../glass/tokens.d.ts) |  |  |  |
+| [`GLASS_CIRCLE_INLINE_INSET_PX`](../glass/lens/Scene.d.ts) |  |  |  |
+| [`GLASS_CIRCLE_SIZE_PX`](../glass/lens/Scene.d.ts) |  |  |  |
+| [`GLASS_CIRCLE_TOP_PX`](../glass/lens/Scene.d.ts) |  |  |  |
+| [`GLASS_CLEAR_BRIGHTNESS`](../glass/tokens.d.ts) |  |  |  |
+| [`GLASS_CLEAR_SATURATION`](../glass/tokens.d.ts) |  |  |  |
+| [`GLASS_CLEAR_TINT_ALPHA`](../glass/tokens.d.ts) |  |  |  |
+| [`GLASS_CONTROL_SIZE_PX`](../glass/tokens.d.ts) |  |  |  |
+| [`GLASS_DOCK_BOTTOM_GAP_PX`](../glass/lens/Scene.d.ts) |  |  |  |
+| [`GLASS_DOCK_HEIGHT_PX`](../glass/lens/Scene.d.ts) |  |  |  |
+| [`GLASS_DOCK_RADIUS_PX`](../glass/lens/Scene.d.ts) |  |  |  |
+| [`GLASS_DOCK_SIDE_INSET_PX`](../glass/lens/Scene.d.ts) |  |  |  |
+| [`GLASS_DOCK_WIDTH_PX`](../glass/lens/Scene.d.ts) |  |  |  |
+| [`GLASS_LENS_BLUR_PX`](../glass/tokens.d.ts) |  |  |  |
+| [`GLASS_LENS_CHROMATIC_ABERRATION`](../glass/tokens.d.ts) |  |  |  |
+| [`GLASS_LENS_CURVATURE`](../glass/tokens.d.ts) |  |  |  |
+| [`GLASS_LENS_DEPTH_PX`](../glass/tokens.d.ts) |  |  |  |
+| [`GLASS_LENS_EDGE_EXPONENT`](../glass/tokens.d.ts) |  |  |  |
+| [`GLASS_LENS_EDGE_HIGHLIGHT`](../glass/tokens.d.ts) |  |  |  |
+| [`GLASS_LENS_EDGE_WIDTH_PX`](../glass/tokens.d.ts) |  |  |  |
+| [`GLASS_LENS_GLOW`](../glass/tokens.d.ts) |  |  |  |
+| [`GLASS_LENS_GLOW_EXPONENT`](../glass/tokens.d.ts) |  |  |  |
+| [`GLASS_LENS_GLOW_SPREAD`](../glass/tokens.d.ts) |  |  |  |
+| [`GLASS_LENS_SPECULAR`](../glass/tokens.d.ts) |  |  |  |
+| [`GLASS_LENS_SPECULAR_ANGLE_DEG`](../glass/tokens.d.ts) |  |  |  |
+| [`GLASS_LENS_SPLAY`](../glass/tokens.d.ts) |  |  |  |
+| [`GLASS_LENS_STRENGTH`](../glass/tokens.d.ts) |  |  |  |
+| [`GLASS_OVERSCAN_X_PX`](../glass/lens/Scene.d.ts) |  |  |  |
+| [`GLASS_OVERSCAN_Y_PX`](../glass/lens/Scene.d.ts) |  |  |  |
+| [`GLASS_REGION_LIMIT`](../glass/regions.d.ts) | Provisional allocation guard, not a measured device performance promise. Two 440×894 sheets at 3× with 20pt sample margins need 8,069,760 pixels. The 12M guard permits that stack plus chrome; it is not a memory benchmark. |  |  |
+| [`GLASS_REGION_PIXEL_LIMIT`](../glass/regions.d.ts) |  |  |  |
+| [`GLASS_REGULAR_BRIGHTNESS`](../glass/tokens.d.ts) |  |  |  |
+| [`GLASS_REGULAR_SATURATION`](../glass/tokens.d.ts) |  |  |  |
+| [`GLASS_REGULAR_TINT_ALPHA`](../glass/tokens.d.ts) |  |  |  |
+| [`GLASS_RIM_HIGHLIGHT_ALPHA`](../glass/tokens.d.ts) |  |  |  |
+| [`GLASS_RIM_SHADOW_ALPHA`](../glass/tokens.d.ts) |  |  |  |
+| [`GLASS_SELECTION_DURATION_MS`](../glass/tokens.d.ts) |  |  |  |
+| [`GLASS_SELECTION_EASING`](../glass/tokens.d.ts) |  |  |  |
+| [`GLASS_TAB_BAR_BOTTOM_GAP_PX`](../glass/tokens.d.ts) |  |  |  |
+| [`GLASS_TAB_BAR_HEIGHT_PX`](../glass/tokens.d.ts) |  |  |  |
+| [`GLASS_TAB_BAR_INLINE_INSET_PX`](../glass/tokens.d.ts) |  |  |  |
+| [`GLASS_TINT_RGB`](../glass/tokens.d.ts) |  |  |  |
+| [`GlassAccessibilityPreferences`](../glass/capability.d.ts) |  |  |  |
+| [`GlassBackground`](../glass/GlassEffect.d.ts) | Framework chrome can keep its existing DOM geometry and transition refs. An `interactive` chrome button's glass (back, close, sidebar) takes the finger through the same contact path as every interactive glass, as a bar button: the touch anywhere on its button presses it. |  |  |
+| [`GlassBar`](../glass/GlassBar.d.ts) |  |  |  |
+| [`GlassBarProps`](../glass/GlassBar.d.ts) | Props for `GlassBar`. |  |  |
+| [`glassBlendRadius`](../glass/fieldGeometry.d.ts) | Sequential native frames bracket contact at 4.50–5.04, 9.23–10.57, 18.53–20.94, 36.56–41.92 pt. See phase-morph-engine-notes.md. Polynomial smooth-min joins equal members at gap = k/2. |  |  |
+| [`GlassButton`](../glass/GlassEffect.d.ts) |  |  |  |
+| [`GlassCapabilityDecision`](../glass/capability.d.ts) |  |  |  |
+| [`GlassCapabilityState`](../glass/capability.d.ts) |  |  |  |
+| [`GlassConfusionReview`](../glass/GlassConfusionReview.d.ts) |  |  |  |
+| [`GlassContainer`](../glass/GlassEffect.d.ts) |  |  |  |
+| [`GlassDisplacementPolicy`](../glass/GlassMaterialRoot.d.ts) |  |  |  |
+| [`glassDockHeight`](../glass/lens/Scene.d.ts) |  |  |  |
+| [`glassDockWidth`](../glass/lens/Scene.d.ts) | The tab platter's width: the one rule for the glass renderer and the tab slot it reads. |  |  |
+| [`GlassEffect`](../glass/GlassEffect.d.ts) | Local content remains DOM-owned; only the material canvas is painted by reference. |  | glass; refraction |
+| [`GlassEffectContainer`](../glass/GlassEffect.d.ts) | Groups nearby glass effects so they render together and blend or morph into one another. `spacing`, 20 pt by default, sets how close effects must be to merge. |  | glass morph; glass group |
+| [`GlassEffectProps`](../glass/GlassEffect.d.ts) | Props for `GlassEffect`. |  |  |
+| [`GlassError`](../glass/errors.d.ts) | One glass renderer failure: its code, message, the stage it happened in and when. |  |  |
+| [`GlassErrorCode`](../glass/errors.d.ts) | Why the glass renderer failed, such as `gpu-unavailable` or `device-lost`. In a release build a failure can switch glass to the fallback material. |  |  |
+| [`glassFieldDistance`](../glass/fieldGeometry.d.ts) | Returns the signed distance to the diagnostic glass union in points. |  |  |
+| [`GlassFieldMember`](../glass/fieldGeometry.d.ts) | Geometry in frame-local CSS pixels; independent of any renderer. |  |  |
+| [`GlassFrameTrace`](../glass/renderSpecs.d.ts) |  |  |  |
+| [`GlassInteraction`](../glass/rendererContract.d.ts) |  |  |  |
+| [`GlassLayer`](../glass/GlassEffect.d.ts) | Place this inside the matching ScrollSurface for scroll attachment. |  |  |
+| [`GlassLayerDescriptor`](../glass/regions.d.ts) | Serializable renderer contract. No DOM, Pixi, or GPU handles cross this boundary. |  |  |
+| [`GlassMaterial`](../glass/regions.d.ts) |  |  |  |
+| [`GlassMaterialDiagnostics`](../glass/context.d.ts) |  |  |  |
+| [`GlassMaterialResponse`](../glass/rendererContract.d.ts) |  |  |  |
+| [`GlassOutlinePoint`](../glass/unionOutline.d.ts) | One point in a diagnostic glass outline, in field coordinates. |  |  |
+| [`GlassPresenter`](../glass/rendererContract.d.ts) |  |  |  |
+| [`GlassRegion`](../glass/regions.d.ts) |  |  |  |
+| [`GlassRendererDiagnostics`](../glass/rendererContract.d.ts) |  |  |  |
+| [`GlassRendererReply`](../glass/rendererContract.d.ts) | Worker failures must retain raw messages and device-loss reasons. |  |  |
+| [`GlassRendererRequest`](../glass/rendererContract.d.ts) |  |  |  |
+| [`GlassRenderTestState`](../glass/capability.d.ts) |  |  |  |
+| [`GlassSceneSnapshot`](../glass/regions.d.ts) | Each layer can own multiple presenters. WebGPU shares one device across canvases. |  |  |
+| [`GlassScrollSnapshot`](../glass/regions.d.ts) |  |  |  |
+| [`GlassSearchField`](../glass/GlassTextField.d.ts) |  |  |  |
+| [`GlassShape`](../glass/regions.d.ts) |  |  |  |
+| [`GlassSource`](../glass/rendererContract.d.ts) |  |  |  |
+| [`GlassSpecimen`](../glass/GlassPresentation.d.ts) | Shared semantic DOM and runtime ownership. Probe controls are testing-only. |  |  |
+| [`GlassTextField`](../glass/GlassTextField.d.ts) | Shares the 12b editing/IME/keyboard-intent contract. Glass never captures field touches. |  |  |
+| [`GlassTextFieldProps`](../glass/GlassTextField.d.ts) | Props for `GlassTextField`. |  |  |
+| [`GlassTint`](../glass/regions.d.ts) | A glass tint as red, green, blue and alpha channels from 0 to 1. `Glass.tintRGBA` rejects values outside that range. |  |  |
+| [`glassTokens`](../glass/tokens.d.ts) |  |  |  |
+| [`GlassTouchLight`](../glass/renderSpecs.d.ts) | A sampled light field, independent of the renderer and of row selection. Coordinates and radius are CSS pixels relative to the surface frame. |  |  |
+| [`GlassUnionFrame`](../glass/fieldGeometry.d.ts) | A diagnostic glass union outline and its bounds in field coordinates. |  |  |
+| [`glassUnionOutline`](../glass/unionOutline.d.ts) | Closed contours, including disconnected members. Coordinates use the frame's local CSS pixels. Diagnostic/export operation: never run it in the render loop. Marching triangles avoid ambiguous saddle cells; roots use the shader's field. |  |  |
+| [`GlassVariant`](../glass/tokens.d.ts) |  |  |  |
+| [`ICON_GRADIENTS`](../glass/lens/theme.d.ts) |  |  |  |
+| [`ICON_SVG`](../glass/lens/icons.d.ts) |  |  |  |
+| [`InstallationDiagnostics`](../app/InstallationDiagnostics.d.ts) | Shows the app's installation receipts, for an optional diagnostics screen in Settings. Pass the app's scope. |  |  |
+| [`InstallationFailure`](../app/installationFailure.d.ts) | An installation failure recorded before the app launched: the build, the URL, the reason and whether the network failed. |  |  |
+| [`installMotionProbe`](../motionProbe.d.ts) | Install once before app mount; dispose restores the original rAF function. |  |  |
+| [`InteractivePopDiagnostic`](../navigation/interactivePopTypes.d.ts) |  |  |  |
+| [`isBitmapBackdrop`](../glass/lens/bitmapBackdrop.d.ts) |  |  |  |
+| [`isCalibratedMaxLayout`](../glass/lens/Scene.d.ts) |  |  |  |
+| [`isTintBackgroundMode`](../glass/lens/referenceBackground.d.ts) |  |  |  |
+| [`KeyboardGeometry`](../keyboard/geometry.d.ts) | How much the keyboard covers, whether it shows, and the viewport size, in points. |  |  |
+| [`lastUnstableMeasurement`](../glass/lens/Scene.d.ts) |  |  |  |
+| [`LayoutClass`](../layout/layoutClass.d.ts) |  |  |  |
+| [`LensMode`](../glass/renderSpecs.d.ts) |  |  |  |
+| [`LIQUID_ENVELOPES`](../glass/lens/liquidMotion.d.ts) |  |  |  |
+| [`LIQUID_PILL_BAR`](../glass/lens/liquidMotion.d.ts) |  |  |  |
+| [`LIQUID_SCRIPT`](../glass/lens/liquidMotion.d.ts) |  |  |  |
+| [`liquidAnimationActive`](../glass/lens/liquidMotion.d.ts) |  |  |  |
+| [`LiquidMotionMode`](../glass/lens/liquidMotion.d.ts) |  |  |  |
+| [`liquidScriptDuration`](../glass/lens/liquidMotion.d.ts) |  |  |  |
+| [`List`](../list-form/ListForm.d.ts) |  |  | list; rows; pull to refresh; swipe actions |
+| [`ListEngineProps`](../list-form/ListForm.d.ts) | Props for `ListEngine`. |  |  |
+| [`makeReferenceBackgroundCanvas`](../glass/lens/referenceBackground.d.ts) |  |  |  |
+| [`MARKER_INTERVAL_PX`](../glass/lens/mirrorConstants.d.ts) |  |  |  |
+| [`measureMirrorLayout`](../glass/lens/Scene.d.ts) |  |  |  |
+| [`measureMirrorLayoutRelative`](../glass/lens/Scene.d.ts) | A host whose origin moves on every read (a route inside a running navigation transform) never passes the absolute-origin check. Its own layout is still stable: two consecutive snapshots with identical host-relative geometry are a consistent reading, whatever the origin did. Additive; measureMirrorLayout is unchanged. |  |  |
+| [`Menu`](../glass/Menu.d.ts) |  |  | dropdown menu; more button |
+| [`MENU_BUTTON`](../glass/lens/menuMotion.d.ts) |  |  |  |
+| [`MENU_CADENCE`](../glass/lens/menuMotion.d.ts) |  |  |  |
+| [`MENU_ENVELOPE`](../glass/lens/menuMotion.d.ts) |  |  |  |
+| [`MENU_GESTURE_REST`](../menu/menuGesture.d.ts) |  |  |  |
+| [`MENU_ICON_SVG`](../glass/lens/icons.d.ts) |  |  |  |
+| [`MENU_MOTION_DURATIONS`](../glass/lens/menuMotion.d.ts) |  |  |  |
+| [`MENU_PANEL`](../glass/lens/menuMotion.d.ts) |  |  |  |
+| [`MENU_TAP_FEEDBACK_MS`](../menu/menuGesture.d.ts) |  |  |  |
+| [`menuCadenceDuration`](../glass/lens/menuMotion.d.ts) |  |  |  |
+| [`MenuDirection`](../glass/lens/menuMotion.d.ts) |  |  |  |
+| [`MenuGestureDecision`](../menu/menuGesture.d.ts) |  |  |  |
+| [`MenuGestureFrame`](../menu/menuGesture.d.ts) |  |  |  |
+| [`MenuGestureMotion`](../menu/menuGesture.d.ts) |  |  |  |
+| [`menuHighlightAttack`](../menu/menuGesture.d.ts) |  |  |  |
+| [`MenuInteraction`](../menu/menuInteraction.d.ts) |  |  |  |
+| [`MenuInteractionPhase`](../menu/menuInteraction.d.ts) | Synchronous ownership of a menu transition. React renders its snapshot; event handlers use this model so two events in one task cannot both submit. Completion tokens prevent an interrupted window's timer settling its successor. |  |  |
+| [`menuMaterialProgress`](../glass/lens/menuMotion.d.ts) |  |  |  |
+| [`MenuMotionFrame`](../glass/lens/menuMotion.d.ts) |  |  |  |
+| [`MenuPanelBounds`](../menu/menuGesture.d.ts) |  |  |  |
+| [`menuPanelPull`](../menu/menuGesture.d.ts) | Fit to axis controls plus the held diagonal, with its origin in the panel's resting coordinate space. Over-pull begins outside the panel; the anchored right edge couples vertical stretch to horizontal displacement. |  |  |
+| [`MenuProps`](../glass/menuPresenter.d.ts) | Props for `Menu`. |  |  |
+| [`menuPull`](../glass/contactPhysics.d.ts) |  |  |  |
+| [`menuRetargetTime`](../glass/lens/menuMotion.d.ts) | Restart an interrupted transition near the current geometry, not at its opposite endpoint. This is an interruption policy, not a native timing fit. |  |  |
+| [`menuReturn`](../glass/contactPhysics.d.ts) |  |  |  |
+| [`MenuTriggerProps`](../glass/menuPresenter.d.ts) | The props a custom `Menu` trigger receives. Forward all of them to the element that opens the menu. |  |  |
+| [`MirrorCaptureRange`](../glass/lens/Scene.d.ts) | DOM geometry is authoritative. This function is only called after layout changes. |  |  |
+| [`MirrorLayout`](../glass/lens/Scene.d.ts) |  |  |  |
+| [`MirrorNode`](../glass/lens/Scene.d.ts) |  |  |  |
+| [`MorphEllipsisArtwork`](../glass/MorphEllipsisArtwork.d.ts) | The enclosing control owns the accessible label. |  |  |
+| [`MOTION_SPEC`](../glass/lens/motion.d.ts) |  |  |  |
+| [`MotionRun`](../glass/lens/motion.d.ts) |  |  |  |
+| [`MotionSample`](../glass/lens/motion.d.ts) |  |  |  |
+| [`mountGlassWorkerExperiment`](../glass/worker/experiment.d.ts) |  |  |  |
+| [`mountSatin`](../root/mountSatin.d.ts) | Mount once from the app entry point, after resolving its initial screen. After managed styles load, the first commit runs synchronously so WebKit cannot defer it behind its launch presentation. Later updates retain React's normal scheduling. Do not call from a component or an effect, or suspend the initial screen. |  |  |
+| [`NATIVE_WIDGET_Y_REGISTRATION_PX`](../glass/lens/motion.d.ts) |  |  |  |
+| [`NAVIGATION_CURRENT_SEGMENT_WEIGHT`](../navigation/releaseVelocity.d.ts) |  |  |  |
+| [`NAVIGATION_DIM_OPACITY`](../navigation/motionTokens.d.ts) |  |  |  |
+| [`NAVIGATION_DIRECTION_LOCK_PX`](../navigation/motionTokens.d.ts) | Chosen inside UIKit's observed 10-12 point direction-lock window. |  |  |
+| [`NAVIGATION_DURATION_MS`](../navigation/motionTokens.d.ts) | Measured from the iOS 26.5 Settings app on iPhone 17 Pro. |  |  |
+| [`NAVIGATION_EASING`](../navigation/motionTokens.d.ts) |  |  |  |
+| [`NAVIGATION_EDGE_SHADOW_OPACITY`](../navigation/motionTokens.d.ts) |  |  |  |
+| [`NAVIGATION_EDGE_SHADOW_WIDTH_PX`](../navigation/motionTokens.d.ts) |  |  |  |
+| [`NAVIGATION_HORIZONTAL_INTENT_PX`](../navigation/motionTokens.d.ts) |  |  |  |
+| [`NAVIGATION_PARALLAX_FRACTION`](../navigation/motionTokens.d.ts) |  |  |  |
+| [`NAVIGATION_POSITION_THRESHOLD`](../navigation/motionTokens.d.ts) | Legacy non-touch fallback. Installed touch uses releaseDecision statistics. |  |  |
+| [`NAVIGATION_PREVIOUS_SEGMENT_WEIGHT`](../navigation/releaseVelocity.d.ts) |  |  |  |
+| [`NAVIGATION_RELEASE_SAMPLE_RATE_HZ`](../navigation/releaseTrajectory.d.ts) |  |  |  |
+| [`NAVIGATION_RELEASE_SPRING_DAMPING`](../navigation/releaseTrajectory.d.ts) |  |  |  |
+| [`NAVIGATION_RELEASE_SPRING_MASS`](../navigation/releaseTrajectory.d.ts) |  |  |  |
+| [`NAVIGATION_RELEASE_SPRING_STIFFNESS`](../navigation/releaseTrajectory.d.ts) | iOS 27 fluid parallax settings; recorded and independently fitted in 11d. |  |  |
+| [`NAVIGATION_VELOCITY_THRESHOLD_PX_PER_SECOND`](../navigation/motionTokens.d.ts) |  |  |  |
+| [`NavigationBackButtonBehavior`](../navigation/types.d.ts) | Whether a pushed screen shows its back button. `automatic` shows it; `hidden` removes it. |  |  |
+| [`NavigationBarDefinition`](../navigation/types.d.ts) |  |  |  |
+| [`navigationMotionTokens`](../navigation/motionTokens.d.ts) |  |  |  |
+| [`NavigationReleaseSample`](../navigation/releaseTrajectory.d.ts) |  |  |  |
+| [`NavigationReleaseTrajectory`](../navigation/releaseTrajectory.d.ts) |  |  |  |
+| [`NavigationRow`](../list-form/ListForm.d.ts) |  |  |  |
+| [`NavigatorActions`](../navigation/store.d.ts) |  |  |  |
+| [`NavigatorHost`](../navigation/NavigatorHost.d.ts) |  |  |  |
+| [`NavigatorHostProps`](../navigation/NavigatorHost.d.ts) | Props for `NavigatorHost`. |  |  |
+| [`NavigatorState`](../navigation/types.d.ts) |  |  |  |
+| [`NavigatorStore`](../navigation/store.d.ts) |  |  |  |
+| [`newId`](../data/database.d.ts) | A new unique record id that sorts by creation time. |  |  |
+| [`normalizeNavigationReleaseVelocity`](../navigation/releaseTrajectory.d.ts) | UIKit's convention: axis velocity divided by signed distance to target. |  |  |
+| [`OfflinePresentation`](../reachability/react.d.ts) |  |  |  |
+| [`OfflinePresentationProps`](../reachability/react.d.ts) | What the offline view shows: why the server is unavailable, how it is presented, and the recheck and back actions. |  |  |
+| [`PALETTES`](../glass/lens/theme.d.ts) |  |  |  |
+| [`PickerOptions`](../list-form/ListForm.d.ts) |  |  |  |
+| [`PickerRow`](../list-form/ListForm.d.ts) |  |  |  |
+| [`PickerRowProps`](../list-form/ListForm.d.ts) | Props for `PickerRow`. |  |  |
+| [`popStack`](../navigation/stack.d.ts) |  |  |  |
+| [`popToRootStack`](../navigation/stack.d.ts) |  |  |  |
+| [`prepareGlassBitmapBackdrop`](../glass/lens/bitmapBackdrop.d.ts) |  |  |  |
+| [`prepareSceneRoutes`](../restoration/routes.d.ts) | Call before mount. Explicit launch intent wins over the checkpoint. |  |  |
+| [`PresentationDetent`](../presentation/model.d.ts) | A height a sheet can rest at: `medium`, `large`, a fixed `height` in points or a `fraction` of the available height. |  |  |
+| [`PresentationKind`](../navigation/types.d.ts) |  |  |  |
+| [`PresentationProps`](../presentation/Presentation.d.ts) | The presentation binding, accessible title and dismissal callback shared by presentations. |  |  |
+| [`Pressable`](../press/Pressable.d.ts) | A plain tap target with no button chrome. It dims while pressed, and a touch that turns into a scroll does not fire `onPress`. Use it for custom tappable content. |  |  |
+| [`PRESSABLE_PRESS_IN_DURATION_MS`](../press/tokens.d.ts) | The first changed reference frame was already at the pressed plateau. |  |  |
+| [`PRESSABLE_PRESSED_OPACITY`](../press/tokens.d.ts) | Measured from PressableReference on iPhone 17 Pro / iOS 26.5. |  |  |
+| [`PRESSABLE_RELEASE_DURATION_MS`](../press/tokens.d.ts) | native reference release returned to rest in 400-418 ms at 60 Hz. |  |  |
+| [`PRESSABLE_RELEASE_EASING`](../press/tokens.d.ts) | Closest named curve to the measured decelerating release envelope. |  |  |
+| [`PRESSABLE_RETENTION_OFFSET_PX`](../press/tokens.d.ts) | Native plain-Button retention measured 69 points beyond the label bounds. |  |  |
+| [`PressableProps`](../press/Pressable.d.ts) | A pressable's `onPress` action, content and press feedback. An `iconOnly` pressable needs an `aria-label`. |  |  |
+| [`pressableTokens`](../press/tokens.d.ts) |  |  |  |
+| [`PressState`](../press/stateMachine.d.ts) | Whether a press is `idle`, held down (`pressed`) or cancelled (`deactivated`). |  |  |
+| [`previousTrace`](../glass/lens/trace.d.ts) |  |  |  |
+| [`PushNotifications`](../push/notifications.d.ts) |  |  |  |
+| [`PushNotificationsLifecycle`](../push/PushPermissionExplainer.d.ts) | Mount at the app root so renewals reconcile even when Settings is not visible. |  |  |
+| [`PushNotificationState`](../push/notifications.d.ts) |  |  |  |
+| [`PushPermissionExplainer`](../push/PushPermissionExplainer.d.ts) |  |  |  |
+| [`PushRelayTokenField`](../push/PushPermissionExplainer.d.ts) | A runtime user credential, never a build-time VITE secret. Keep its value in memory. |  |  |
+| [`PushRoute`](../push/routes.d.ts) | Shared, validated route codec. No navigation or browser history side effects. |  |  |
+| [`PushRouteRules`](../push/routes.d.ts) |  |  |  |
+| [`PushServerAdapter`](../push/notifications.d.ts) |  |  |  |
+| [`pushStack`](../navigation/stack.d.ts) |  |  |  |
+| [`PushSubscriptionPayload`](../push/notifications.d.ts) |  |  |  |
+| [`Query`](../data/database.d.ts) | An immutable query over a collection: `index`, `keyRange`, `reverse`, `limit` and `filter` each return a new query. `useQuery` hands one to its configure callback. |  |  |
+| [`readAppearanceDiagnostics`](../app/appearance.d.ts) | Returns a short log of appearance changes and lifecycle events, for diagnosing appearance after a resume. |  |  |
+| [`readDisplayCornerMetrics`](../safe-area/displayCorners.d.ts) | Framework token for the screen containing this app. Display Zoom and unknown models fall back to zero. |  |  |
+| [`readInstallationFailure`](../app/installationFailure.d.ts) | Reads the last recorded installation failure for an app scope, or null when there is none. |  |  |
+| [`readSafeAreaMetrics`](../safe-area/useSafeAreaMetrics.d.ts) |  |  |  |
+| [`readSceneValue`](../restoration/scene.d.ts) |  |  |  |
+| [`REFERENCE_CONTENT_HEIGHT_PX`](../glass/lens/referenceBackground.d.ts) |  |  |  |
+| [`ReferenceBackgroundMode`](../glass/lens/referenceBackground.d.ts) |  |  |  |
+| [`ReferenceBackgroundScene`](../glass/lens/Scene.d.ts) |  |  |  |
+| [`registerAppShell`](../sw/registerAppShell.d.ts) |  |  |  |
+| [`RegisterAppShellOptions`](../sw/registerAppShell.d.ts) |  |  |  |
+| [`registerGlassBitmapBackdrop`](../glass/lens/bitmapBackdrop.d.ts) |  |  |  |
+| [`RegistryScreenEntry`](../navigation/store.d.ts) |  |  |  |
+| [`REGULAR_TRIGGER_MATERIAL`](../glass/regularTriggerMaterial.d.ts) |  |  |  |
+| [`REGULAR_TRIGGER_MATERIAL_GLSL`](../glass/regularTriggerMaterial.d.ts) |  |  |  |
+| [`REGULAR_TRIGGER_RIM_CURVES`](../glass/regularTriggerRim.d.ts) |  |  |  |
+| [`RegularMaterialContext`](../glass/regularMaterialContext.d.ts) | A retained source-image index. No DOM reads, GPU readbacks or canvas writes occur when an aperture moves. Disc rows are clipped and renormalized against the visible window, not extended by repeating the boundary pixel. |  |  |
+| [`regularTriggerRegime`](../glass/regularTriggerMaterial.d.ts) |  |  |  |
+| [`regularTriggerRimResponse`](../glass/regularTriggerRim.d.ts) |  |  |  |
+| [`releaseWarmedAppImages`](../app/warmImage.d.ts) | Release URLs when the app document closes, or explicitly when its image set changes. |  |  |
+| [`replaceStack`](../navigation/stack.d.ts) |  |  |  |
+| [`reportGlassError`](../glass/errors.d.ts) |  |  |  |
+| [`requestPersistentStorage`](../data/database.d.ts) | Asks WebKit not to evict the app's data under storage pressure; true when granted. |  |  |
+| [`resolveDisplayCornerMetrics`](../safe-area/displayCorners.d.ts) | Resolution is not a model identifier. Unknown and asymmetric displays use the scalar fallback. |  |  |
+| [`ReturningMenuTrigger`](../glass/renderSpecs.d.ts) |  |  |  |
+| [`RouteSchema`](../navigation/routeCodec.d.ts) |  |  |  |
+| [`Row`](../list-form/ListForm.d.ts) |  |  |  |
+| [`RowActions`](../actions/RowActions.d.ts) | A row's swipe actions and context menu. Inside an editable `List` item, the item owns the row's one gesture host (it adds swipe-to-delete), so the row hands its actions to the item instead of hosting a second recognizer. Swipe actions are unavailable while the list is editing, as in selection; the context menu stays. |  |  |
+| [`RowActionsProps`](../actions/types.d.ts) | Row swipe actions and context-menu commands. |  |  |
+| [`RowIcon`](../list-form/ListForm.d.ts) | A Settings-style icon: a white symbol on a rounded colour tile, for a row's leading edge. |  | settings icon |
+| [`RowIconProps`](../list-form/ListForm.d.ts) | The symbol and its tile colour: a system colour name or any CSS colour. |  |  |
+| [`RowProps`](../list-form/ListForm.d.ts) | Props for `Row`. |  |  |
+| [`runScriptedDrag`](../glass/lens/motion.d.ts) |  |  |  |
+| [`runScriptedScroll`](../glass/lens/motion.d.ts) |  |  |  |
+| [`RuntimeElements`](../glass/renderSpecs.d.ts) |  |  |  |
+| [`RuntimeGeometry`](../glass/renderSpecs.d.ts) |  |  |  |
+| [`RuntimeOptions`](../glass/renderSpecs.d.ts) |  |  |  |
+| [`RuntimeSnapshot`](../glass/renderSpecs.d.ts) | Probe telemetry shape. The WebGPU runtime does not emit snapshots; GlassPresentation's probe panel still types against it. Fields typed by removed WebGL classes are `unknown`. |  |  |
+| [`SafeAreaMetrics`](../safe-area/useSafeAreaMetrics.d.ts) | The full safe-area and viewport geometry Satin works from, including the diagnostic coordinate spaces installed-app fixtures compare. Apps want only `insets`. |  |  |
+| [`SampledMotion`](../menu/sampledMotion.d.ts) | A document-timeline animation, submitted once per input or state transition. Sampling density controls interpolation error, not the display refresh rate. Keep accelerated properties in separate effects from paint-bound properties. |  |  |
+| [`sampleLiquidShape`](../glass/lens/liquidMotion.d.ts) |  |  |  |
+| [`sampleMenuCadence`](../glass/lens/menuMotion.d.ts) |  |  |  |
+| [`sampleMenuMotion`](../glass/lens/menuMotion.d.ts) |  |  |  |
+| [`sampleNavigationCurve`](../navigation/motionTokens.d.ts) |  |  |  |
+| [`SatinAppShellRegistration`](../sw/registerAppShell.d.ts) |  |  |  |
+| [`SatinRoot`](../root/SatinRoot.d.ts) |  |  |  |
+| [`SatinRootProps`](../root/SatinRoot.d.ts) | Props for `SatinRoot`. |  |  |
+| [`SatinRuntime`](../root/runtimeContext.d.ts) |  |  |  |
+| [`Scenario`](../glass/renderSpecs.d.ts) |  |  |  |
+| [`ScenarioMetrics`](../glass/renderSpecs.d.ts) |  |  |  |
+| [`SCENE_STYLE`](../glass/lens/Scene.d.ts) |  |  |  |
+| [`SceneRestoration`](../restoration/scene.d.ts) |  |  |  |
+| [`ScreenContainer`](../navigation/ScreenContainer.d.ts) |  |  |  |
+| [`ScreenContainerProps`](../navigation/ScreenContainer.d.ts) | Props for `ScreenContainer`. |  |  |
+| [`ScreenDefinition`](../navigation/types.d.ts) |  |  |  |
+| [`ScreenEntry`](../navigation/types.d.ts) |  |  |  |
+| [`ScreenId`](../navigation/store.d.ts) |  |  |  |
+| [`ScreenLifecycle`](../navigation/types.d.ts) | Whether a screen is covered by another, and the phase of its current transition. |  |  |
+| [`ScreenLifecycleCallbacks`](../navigation/types.d.ts) | The `appear` and `disappear` callbacks for `useScreenLifecycle`. |  |  |
+| [`ScreenParams`](../navigation/store.d.ts) |  |  |  |
+| [`ScreenRegistry`](../navigation/registry.d.ts) |  |  |  |
+| [`scriptedDragFrames`](../glass/lens/motion.d.ts) |  |  |  |
+| [`scriptedDragProgress`](../glass/lens/motion.d.ts) |  |  |  |
+| [`ScriptedMotionMode`](../glass/lens/motion.d.ts) |  |  |  |
+| [`ScriptedScrollMode`](../glass/lens/motion.d.ts) |  |  |  |
+| [`scriptedScrollOffset`](../glass/lens/motion.d.ts) |  |  |  |
+| [`ScrollAxis`](../scroll/types.d.ts) | The axis along which a scroll surface accepts scrolling. |  |  |
+| [`ScrollDismissesKeyboardMode`](../keyboard/adapter.d.ts) | When scrolling dismisses the keyboard: `never`; `immediately`, as soon as a drag on the surface starts; or `interactively`, when a drag reaches the keyboard. WebKit's keyboard cannot follow the finger, so it then slides away on its own curve and the bottom inset follows it. |  |  |
+| [`ScrollOffset`](../scroll/types.d.ts) | The scroll position in points along the physical x and y axes. |  |  |
+| [`ScrollSnapshot`](../scroll/types.d.ts) |  |  |  |
+| [`ScrollSurface`](../scroll/ScrollSurface.d.ts) | A named scroll surface whose position is retained by the framework. |  |  |
+| [`ScrollSurfaceHandle`](../scroll/ScrollSurface.d.ts) | Imperative scroll positioning for a named scroll view. |  |  |
+| [`ScrollSurfaceProps`](../scroll/ScrollSurface.d.ts) | A scroll view's content, scroll binding and keyboard dismissal policy. |  |  |
+| [`ScrollToTopOptions`](../scroll/types.d.ts) | Options for `scrollToTop`: whether to animate. |  |  |
+| [`Section`](../list-form/ListForm.d.ts) | A group of rows in a `List` or `Form`, with an optional header and footer. |  |  |
+| [`SectionProps`](../list-form/ListForm.d.ts) | A section's rows and its optional header and footer. |  |  |
+| [`SecureField`](../text-input/TextField.d.ts) |  |  | password field |
+| [`SecureFieldProps`](../text-input/TextField.d.ts) | Props for `SecureField`. |  |  |
+| [`SegmentedControl`](../list-form/ListForm.d.ts) |  |  |  |
+| [`Selectable`](../root/SatinRoot.d.ts) | Lets the user select and copy the text inside it. App chrome turns text selection off everywhere else, so wrap user-authored content such as notes or messages. |  | text selection; copy text |
+| [`SelectableProps`](../root/SatinRoot.d.ts) | The wrapped content and plain div attributes. |  |  |
+| [`SerializedRoute`](../navigation/routeCodec.d.ts) |  |  |  |
+| [`setAppBadge`](../push/notifications.d.ts) |  |  |  |
+| [`SETTINGS_BACK_BUTTON_INLINE_INSET_PX`](../settings/tokens.d.ts) |  |  |  |
+| [`SETTINGS_BACK_BUTTON_SIZE_PX`](../settings/tokens.d.ts) |  |  |  |
+| [`SETTINGS_DETAIL_CONTENT_TOP_OFFSET_PX`](../settings/tokens.d.ts) |  |  |  |
+| [`SETTINGS_DETAIL_INLINE_INSET_PX`](../settings/tokens.d.ts) |  |  |  |
+| [`SETTINGS_DETAIL_ROW_HEIGHT_PX`](../settings/tokens.d.ts) |  |  |  |
+| [`SETTINGS_DISCLOSURE_DARK_COLOR`](../settings/tokens.d.ts) |  |  |  |
+| [`SETTINGS_DISCLOSURE_HEIGHT_PX`](../settings/tokens.d.ts) |  |  |  |
+| [`SETTINGS_DISCLOSURE_LIGHT_COLOR`](../settings/tokens.d.ts) |  |  |  |
+| [`SETTINGS_DISCLOSURE_OFFSET_X_PX`](../settings/tokens.d.ts) |  |  |  |
+| [`SETTINGS_DISCLOSURE_OFFSET_Y_PX`](../settings/tokens.d.ts) |  |  |  |
+| [`SETTINGS_DISCLOSURE_WIDTH_PX`](../settings/tokens.d.ts) |  |  |  |
+| [`SETTINGS_GROUP_CORNER_RADIUS_PX`](../settings/tokens.d.ts) |  |  |  |
+| [`SETTINGS_GROUP_SPACING_PX`](../settings/tokens.d.ts) |  |  |  |
+| [`SETTINGS_LARGE_TITLE_FONT_SIZE_PX`](../settings/tokens.d.ts) |  |  |  |
+| [`SETTINGS_LARGE_TITLE_LINE_HEIGHT_PX`](../settings/tokens.d.ts) |  |  |  |
+| [`SETTINGS_NAVIGATION_BAR_HEIGHT_PX`](../settings/tokens.d.ts) |  |  |  |
+| [`SETTINGS_ROOT_INLINE_INSET_PX`](../settings/tokens.d.ts) |  |  |  |
+| [`SETTINGS_ROOT_LARGE_TITLE_TOP_OFFSET_PX`](../settings/tokens.d.ts) |  |  |  |
+| [`SETTINGS_ROOT_PRO_MAX_INLINE_INSET_PX`](../settings/tokens.d.ts) |  |  |  |
+| [`SETTINGS_ROOT_ROW_HEIGHT_PX`](../settings/tokens.d.ts) |  |  |  |
+| [`SETTINGS_ROW_ICON_CORNER_RADIUS_PX`](../settings/tokens.d.ts) |  |  |  |
+| [`SETTINGS_ROW_ICON_SIZE_PX`](../settings/tokens.d.ts) |  |  |  |
+| [`SETTINGS_ROW_TRAILING_INSET_PX`](../settings/tokens.d.ts) |  |  |  |
+| [`SETTINGS_SEPARATOR_HAIRLINE_PX`](../settings/tokens.d.ts) |  |  |  |
+| [`SETTINGS_SEPARATOR_LEADING_INSET_PX`](../settings/tokens.d.ts) |  |  |  |
+| [`SETTINGS_SEPARATOR_OFFSET_Y_PX`](../settings/tokens.d.ts) |  |  |  |
+| [`SETTINGS_SEPARATOR_TRAILING_INSET_PX`](../settings/tokens.d.ts) |  |  |  |
+| [`settingsChromeTokens`](../settings/tokens.d.ts) |  |  |  |
+| [`SettingsDomScene`](../glass/lens/Scene.d.ts) |  |  |  |
+| [`SettingsPalette`](../glass/lens/theme.d.ts) |  |  |  |
+| [`settingsRootInlineInset`](../settings/tokens.d.ts) |  |  |  |
+| [`Sheet`](../presentation/Presentation.d.ts) |  |  | sheet; modal presentation; bottom sheet |
+| [`SheetProps`](../presentation/Presentation.d.ts) | Props for `Sheet`. |  |  |
+| [`shouldCompleteInteractivePop`](../navigation/motionTokens.d.ts) |  |  |  |
+| [`Sidebar`](../navigation/Sidebar.d.ts) | A list of sidebar destinations. Selecting one shows it in the split view's detail column. |  |  |
+| [`SidebarEntry`](../navigation/Sidebar.d.ts) | One sidebar destination: its id, label, optional icon and disabled state. |  |  |
+| [`SidebarProps`](../navigation/Sidebar.d.ts) | The sidebar's entries, the selection callback and which entry starts selected. |  |  |
+| [`SidebarSymbol`](../navigation/SidebarSymbol.d.ts) | Draws the sidebar's `gearshape` or `sidebar.left` icon with `SymbolImage`. The artwork is from Framework7 Icons (MIT). |  |  |
+| [`sidebarTokens`](../settings/tokens.d.ts) |  |  |  |
+| [`SplitSelection`](../navigation/splitContext.d.ts) |  |  |  |
+| [`springStep`](../glass/lens/liquidMotion.d.ts) |  |  |  |
+| [`stableTabSelection`](../glass/lens/tabSelectionMaterial.d.ts) |  |  |  |
+| [`StateSchema`](../restoration/scene.d.ts) | Small UI checkpoints, read before mount and written in quiet tasks. |  |  |
+| [`StepperProps`](../list-form/ListForm.d.ts) | Props for `Stepper`. |  |  |
+| [`StepperRow`](../list-form/ListForm.d.ts) |  |  |  |
+| [`STRIPE_BACKGROUND_MODES`](../glass/lens/referenceBackground.d.ts) |  |  |  |
+| [`SubmitLabel`](../text-input/kinds.d.ts) | The return key's title: `done`, `go`, `next`, `search` or `send`. |  |  |
+| [`subscribeGlassErrors`](../glass/errors.d.ts) |  |  |  |
+| [`summarize`](../glass/worker/experiment.d.ts) |  |  |  |
+| [`SurfaceId`](../glass/renderSpecs.d.ts) |  |  |  |
+| [`SurfaceRenderSpec`](../glass/renderSpecs.d.ts) |  |  |  |
+| [`SurfaceShape`](../glass/renderSpecs.d.ts) |  |  |  |
+| [`SwipeActions`](../actions/types.d.ts) | The `swipeActions` prop of a row: actions for one edge, or a list with one entry per edge. |  | swipe actions; swipe to delete |
+| [`SwipeActionsConfiguration`](../actions/types.d.ts) | The swipe actions on one row edge, `trailing` by default. A full swipe runs the first action unless `allowsFullSwipe` is false. |  |  |
+| [`Tab`](../tabs/TabView.d.ts) | Declaration consumed by TabView. Each tab owns its content and navigator. |  |  |
+| [`TAB_BAR_BLUR_SIGMA`](../glass/lens/tabSelectionMaterial.d.ts) |  |  |  |
+| [`TAB_BAR_LOCAL_CENTRES`](../glass/lens/tabSelectionMaterial.d.ts) |  |  |  |
+| [`TAB_ICON_SVG`](../glass/lens/icons.d.ts) |  |  |  |
+| [`TAB_SELECTION_HEIGHT`](../glass/lens/tabSelectionMaterial.d.ts) |  |  |  |
+| [`TAB_SELECTION_WIDTH`](../glass/lens/tabSelectionMaterial.d.ts) |  |  |  |
+| [`TabBar`](../glass/TabBar.d.ts) |  |  |  |
+| [`TabBarItem`](../glass/TabBar.d.ts) |  |  |  |
+| [`TabBarProps`](../glass/TabBar.d.ts) | Props for `TabBar`. |  |  |
+| [`tabGlyphStyle`](../glass/lens/tabGlyphColours.d.ts) |  |  |  |
+| [`tabPresentation`](../glass/lens/tabPresentation.d.ts) | Backdrops change what is behind the tabs, not whether the tabs exist. Explicit optical probes can still request bare glass. The separate drag and liquid specimens retain their original presentation. |  |  |
+| [`tabProbeOverride`](../glass/lens/tabPresentation.d.ts) |  |  |  |
+| [`TabProps`](../tabs/TabView.d.ts) | Props for `Tab`. |  |  |
+| [`tabSelectionCapsule`](../glass/lens/tabSelectionMaterial.d.ts) |  |  |  |
+| [`TabSelectionShape`](../glass/renderSpecs.d.ts) |  |  |  |
+| [`TabView`](../tabs/TabView.d.ts) | Lazy, retained tabs. Hidden app effects remain app-owned; Satin work pauses. |  | tab bar; tabs |
+| [`TabViewProps`](../tabs/TabView.d.ts) | Props for `TabView`. |  |  |
+| [`TextEditor`](../text-input/TextEditor.d.ts) |  |  | multiline text; text area |
+| [`TextEditorProps`](../text-input/TextEditor.d.ts) | Props for `TextEditor`. |  |  |
+| [`TextField`](../text-input/TextField.d.ts) |  |  | text field; text input |
+| [`TextFieldKind`](../text-input/kinds.d.ts) | What a field holds, setting its keyboard, autofill and autocorrection together. |  |  |
+| [`TextFieldProps`](../text-input/TextField.d.ts) | Props for `TextField`. |  |  |
+| [`TINT_BACKGROUND_MODES`](../glass/lens/referenceBackground.d.ts) |  |  |  |
+| [`TintBackgroundMode`](../glass/lens/referenceBackground.d.ts) |  |  |  |
+| [`TitleDisplayMode`](../navigation/types.d.ts) | How a screen title is drawn: `inline` in the bar, `large` below it, `inlineLarge` large inside the bar row, or `none`. |  |  |
+| [`Toggle`](../list-form/Toggle.d.ts) |  |  | switch; checkbox |
+| [`ToggleProps`](../list-form/Toggle.d.ts) | Props for `Toggle`. |  |  |
+| [`ToggleRow`](../list-form/Toggle.d.ts) |  |  |  |
+| [`ToolbarGroup`](../glass/GlassEffect.d.ts) | A toolbar group is one glass button: pressing any item lifts the whole group (native). |  |  |
+| [`ToolbarSpacer`](../glass/GlassEffect.d.ts) |  |  |  |
+| [`trace`](../glass/lens/trace.d.ts) |  |  |  |
+| [`TransactionCollection`](../data/database.d.ts) | A collection as seen inside `db.transaction`: its writes commit together or not at all. |  |  |
+| [`TransitionBinding`](../navigation/types.d.ts) |  |  |  |
+| [`TransitionCompletion`](../navigation/types.d.ts) |  |  |  |
+| [`TransitionController`](../navigation/types.d.ts) |  |  |  |
+| [`TransitionControllerContext`](../navigation/types.d.ts) |  |  |  |
+| [`TransitionControllerFactory`](../navigation/types.d.ts) |  |  |  |
+| [`TransitionOperation`](../navigation/types.d.ts) |  |  |  |
+| [`TransitionPhase`](../navigation/types.d.ts) | Where a screen is in a navigation transition: `entering`, `exiting` or `settled`. |  |  |
+| [`TypedRoute`](../navigation/routeCodec.d.ts) |  |  |  |
+| [`useFocusChain`](../text-input/focusChain.d.ts) | Moves focus through a form's fields in `order`. The return key goes to the next field and the last one dismisses the keyboard. Disabled and unmounted fields are skipped. Spread `field(key)` onto each field. |  | next field; return key |
+| [`useGlassMaterialDiagnostics`](../glass/context.d.ts) |  |  |  |
+| [`useKeyboardMetrics`](../keyboard/adapter.d.ts) | The software keyboard's live geometry. Most apps never need it: Satin keeps focused fields, bottom insets and bars above the keyboard. |  | keyboard height |
+| [`useLayoutClass`](../root/runtimeContext.d.ts) | Classes follow the layout viewport; keyboard occlusion and zoom do not select panes. |  |  |
+| [`useNavigator`](../navigation/navigationContext.d.ts) |  |  |  |
+| [`useNavigatorState`](../navigation/navigationContext.d.ts) |  |  |  |
+| [`useParams`](../navigation/navigationContext.d.ts) |  |  |  |
+| [`usePushNotifications`](../push/notifications.d.ts) |  |  |  |
+| [`useQuery`](../data/database.d.ts) | Reads a collection's records as `{ data, loading, error }` and keeps them live. Local writes show up synchronously, before they persist. |  | live query |
+| [`useReachability`](../reachability/react.d.ts) | The app server's status and the offline view currently shown, with `fetch` and `recheck` helpers that feed the status. |  | offline; network status |
+| [`useRecord`](../data/database.d.ts) | One record by key, kept live; `data` is undefined while loading and when no record exists. |  |  |
+| [`useRestoredState`](../restoration/react.d.ts) | Application/scene values such as the selected tab. Declare schemas outside render. |  |  |
+| [`useSafeAreaMetrics`](../safe-area/useSafeAreaMetrics.d.ts) | Full diagnostic geometry, including visual viewport changes. |  |  |
+| [`useSatinRuntime`](../root/runtimeContext.d.ts) | Diagnostic readers receive every live coordinate space, independently of root layout. |  |  |
+| [`useSceneStorage`](../restoration/react.d.ts) | Entry-scoped state: repeated pushes of the same screen keep independent drafts. |  | restorable screen state; draft |
+| [`useScreenLifecycle`](../navigation/navigationContext.d.ts) | Runs `appear` and `disappear` callbacks as the screen is shown and covered or removed, and returns whether it is covered and its transition phase. |  |  |
+| [`useSplitSelection`](../navigation/splitContext.d.ts) | Returns the split view's mode and the entry shown in its detail column. It throws outside a split view. |  |  |
+| [`useUnsavedChanges`](../root/runtimeContext.d.ts) | Tells Satin the app has unsaved work while `unsaved` is true, so a pending app update waits instead of reloading over it. Edits in text fields are detected without this hook. |  | unsaved changes |
+| [`validatePushRoute`](../push/routes.d.ts) |  |  |  |
+| [`ValueRow`](../list-form/ListForm.d.ts) |  |  |  |
+| [`warmAppImageWhenIdle`](../app/warmImage.d.ts) |  |  |  |
+| [`Zoomable`](../zoom/Zoomable.d.ts) | A region the user can pinch to zoom and pan, such as a photo or a map. The + and - keys zoom about the centre and 0 resets. Give it an accessible label. |  | pinch to zoom |
+| [`ZoomableProps`](../zoom/Zoomable.d.ts) | The maximum zoom (4 by default) and a scale callback. Satin owns the pointer handlers. |  |  |
 
 ## internal vite API
 
 Module: `@satinhq/kit/internal/vite`
 
+Lower-level build tools for Satin tooling and tests. Apps use `satinApp` from `@satinhq/kit/vite`.
+
 | Satin export | Behavior | Limits | Also known as |
 | --- | --- | --- | --- |
-| [`AppFixture`](../app/head.d.ts) | Defines the `AppFixture` type in `@satinhq/kit/internal/vite`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`defineApp`](../public/definition.d.ts) | Declares app identity, install metadata and capabilities once. Pass the result to `runApp` and to the `@satinhq/kit/vite` plugin. Everything not given is defaulted and the whole definition is validated, so a bad id or icon fails at build time rather than after install. | Package integration API. It does not add a separately supported app control. |  |
-| [`defineAppFixture`](../app/definition.d.ts) | Provides `defineAppFixture` through the `@satinhq/kit/internal/vite` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`satinApp`](../app/vite.d.ts) | Provides `satinApp` through the `@satinhq/kit/internal/vite` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`satinAppFixtures`](../app/vite.d.ts) | Multi-install lab fixture only. Production apps use satinApp(app). | Package integration API. It does not add a separately supported app control. |  |
-| [`SatinAppOptions`](../app/vite.d.ts) | Defines the `SatinAppOptions` type in `@satinhq/kit/internal/vite`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`satinAppShell`](../sw/vite.d.ts) | Provides `satinAppShell` through the `@satinhq/kit/internal/vite` module. Read its linked declaration before use. | Package integration API. It does not add a separately supported app control. |  |
-| [`SatinAppShellPluginOptions`](../sw/vite.d.ts) | Defines the `SatinAppShellPluginOptions` type in `@satinhq/kit/internal/vite`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
+| [`AppFixture`](../app/head.d.ts) | One app definition in a multi-install lab build, chosen by exact query parameters. |  |  |
+| [`defineApp`](../public/definition.d.ts) | Declares app identity, install metadata and capabilities once. Pass the result to `runApp` and to the `@satinhq/kit/vite` plugin. Everything not given is defaulted and the whole definition is validated, so a bad id or icon fails at build time rather than after install. |  | app manifest; app config |
+| [`defineAppFixture`](../app/definition.d.ts) | Validates a full app definition and fills in its defaults. `defineApp` uses it; lab fixtures call it directly. |  |  |
+| [`satinApp`](../app/vite.d.ts) | Generates the app shell and loads framework CSS once, before app styles. The stylesheet participates in Vite CSS HMR and builds; pre-launch paints independently. |  |  |
+| [`satinAppFixtures`](../app/vite.d.ts) | Multi-install lab fixture only. Production apps use satinApp(app). |  |  |
+| [`SatinAppOptions`](../app/vite.d.ts) | Build options for `satinApp`: a custom install page, strict glass, the development menu and a media probe. |  |  |
+| [`satinAppShell`](../sw/vite.d.ts) | The Vite build plugin that generates the app's service worker and precache list. `satinApp` includes it; use it directly only in Satin tooling. |  |  |
+| [`SatinAppShellPluginOptions`](../sw/vite.d.ts) | Options for the service worker build plugin: extra files to precache, public routes, legacy cache names and diagnostic headers. |  |  |
 
 ## server API
 
 Module: `@satinhq/kit/server`
 
+Node helpers for serving a built app. Keep them out of the browser bundle.
+
 | Satin export | Behavior | Limits | Also known as |
 | --- | --- | --- | --- |
-| [`serveStaticFile`](../server.d.ts) | Node static adapter. Stream GET/HEAD with single byte ranges, no cache or compression. A fallback is used only for missing extensionless routes. Other methods are left to the caller. Root and every file must resolve inside the same real directory, including symlink targets. | Package integration API. It does not add a separately supported app control. |  |
+| [`serveStaticFile`](../server.d.ts) | Serves a built app's static files from Node. It streams GET and HEAD requests and supports single byte ranges, with no caching or compression. The `fallback` file answers only missing extensionless routes; other methods are left to the caller. The root and every file, symlink targets included, must resolve inside the same real directory. |  |  |
 
 ## testing API
 
 Module: `@satinhq/kit/testing`
 
+Helpers for app tests. They do not prove real touches or notification delivery.
+
 | Satin export | Behavior | Limits | Also known as |
 | --- | --- | --- | --- |
-| [`assertNavigation`](../testing.d.ts) | App-test assertion without exposing navigation engine objects. | Package integration API. It does not add a separately supported app control. |  |
-| [`sendTestNotification`](../testing.d.ts) | Explicit diagnostic action. The token is requested at call time and never persisted. | Package integration API. It does not add a separately supported app control. |  |
+| [`assertNavigation`](../testing.d.ts) | Throws unless the visible screen in `container` is the route `screen`. For app tests. |  |  |
+| [`sendTestNotification`](../testing.d.ts) | Sends a test notification through a push relay and returns how many devices accepted it. The token is requested when called and never stored. |  |  |
 
 ## unstable API
 
 Module: `@satinhq/kit/unstable`
 
+Experimental API. Its contract may change between beta releases.
+
 | Satin export | Behavior | Limits | Also known as |
 | --- | --- | --- | --- |
-| [`Animation`](../motion/animationValue.d.ts) | An opaque spring timing value for `withAnimation`. Use a named value or `Animation.spring`. | Experimental API; its contract may change between beta releases. |  |
-| [`concentricRadius`](../safe-area/displayCorners.d.ts) | Radius for a shape inset equally from a rounded container. Insets consume, never invert, corners. | Experimental API; its contract may change between beta releases. |  |
-| [`DetailList`](../navigation/DetailList.d.ts) | Regular-width grouped detail content beneath NavigatorHost's inline title. | Experimental API; its contract may change between beta releases. |  |
-| [`DragGesture`](../gestures/gesture.d.ts) | Provides `DragGesture` through the `@satinhq/kit/unstable` module. Read its linked declaration before use. | Experimental API; its contract may change between beta releases. |  |
-| [`DragGestureOptions`](../gestures/gesture.d.ts) | Defines the `DragGestureOptions` type in `@satinhq/kit/unstable`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`DragGestureValue`](../gestures/gesture.d.ts) | Defines the `DragGestureValue` type in `@satinhq/kit/unstable`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`Gesture`](../gestures/gesture.d.ts) | Defines the `Gesture` type in `@satinhq/kit/unstable`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`GesturePoint`](../gestures/gesture.d.ts) | Defines the `GesturePoint` type in `@satinhq/kit/unstable`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`GestureState`](../gestures/gesture.d.ts) | Defines the `GestureState` type in `@satinhq/kit/unstable`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`GestureView`](../gestures/GestureView.d.ts) | A scoped gesture region. Scroll and navigation retain their own ownership. | Experimental API; its contract may change between beta releases. |  |
-| [`GestureViewProps`](../gestures/GestureView.d.ts) | Defines the props accepted by `GestureView`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`LongPressGesture`](../gestures/gesture.d.ts) | Provides `LongPressGesture` through the `@satinhq/kit/unstable` module. Read its linked declaration before use. | Experimental API; its contract may change between beta releases. |  |
-| [`LongPressGestureOptions`](../gestures/gesture.d.ts) | Defines the `LongPressGestureOptions` type in `@satinhq/kit/unstable`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`MagnifyGesture`](../gestures/gesture.d.ts) | Provides `MagnifyGesture` through the `@satinhq/kit/unstable` module. Read its linked declaration before use. | Experimental API; its contract may change between beta releases. |  |
-| [`MagnifyGestureOptions`](../gestures/gesture.d.ts) | Defines the `MagnifyGestureOptions` type in `@satinhq/kit/unstable`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`MagnifyGestureValue`](../gestures/gesture.d.ts) | Defines the `MagnifyGestureValue` type in `@satinhq/kit/unstable`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`MatchedGeometryEffect`](../motion/matchedGeometry.d.ts) | When a `withAnimation` change removes this view and inserts another with the same id, the new one moves from the old one's frame to its own while the two cross-fade. A view that only moves or resizes animates from where it was. A matched view with no partner fades in or out. Wrap one element that has no transform of its own. Changes made outside `withAnimation` apply at once. | Experimental API; its contract may change between beta releases. |  |
-| [`MatchedGeometryEffectProps`](../motion/matchedGeometry.d.ts) | Props of `MatchedGeometryEffect`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`Sidebar`](../navigation/Sidebar.d.ts) | Ordered sidebar destinations, sharing NavigatorHost's canonical detail selection. | Experimental API; its contract may change between beta releases. |  |
-| [`SidebarEntry`](../navigation/Sidebar.d.ts) | Defines the `SidebarEntry` type in `@satinhq/kit/unstable`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`SidebarProps`](../navigation/Sidebar.d.ts) | Defines the props accepted by `Sidebar`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`SidebarSymbol`](../navigation/SidebarSymbol.d.ts) | Framework7 Icons (MIT), through the shared SymbolImage renderer. | Experimental API; its contract may change between beta releases. |  |
-| [`SpringOptions`](../motion/animationValue.d.ts) | Options for a spring defined by duration and bounce. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`TapGesture`](../gestures/gesture.d.ts) | Provides `TapGesture` through the `@satinhq/kit/unstable` module. Read its linked declaration before use. | Experimental API; its contract may change between beta releases. |  |
-| [`TapGestureOptions`](../gestures/gesture.d.ts) | Defines the `TapGestureOptions` type in `@satinhq/kit/unstable`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`Transition`](../motion/transition.d.ts) | Immutable insertion and removal effects. Timing belongs to withAnimation. | Experimental API; its contract may change between beta releases. |  |
-| [`TransitionEdge`](../motion/transition.d.ts) | The edge a view moves through, resolved against its own layout direction. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`TransitionView`](../motion/TransitionView.d.ts) | Keep this boundary mounted; change visible inside withAnimation. Removed content stays mounted and inert until its exit finishes. Initial content does not animate. | Experimental API; its contract may change between beta releases. |  |
-| [`TransitionViewProps`](../motion/TransitionView.d.ts) | Defines the props accepted by `TransitionView`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
-| [`useDisplayCornerRadius`](../safe-area/displayCorners.d.ts) | Updates after rotation, window moves and DPR changes announced by a resize. | Experimental API; its contract may change between beta releases. |  |
-| [`useGestureState`](../gestures/gesture.d.ts) | A React value plus a gesture-owned update/reset binding. Cancellation and release restore the initial value; no mutable proxy is exposed to application code. | Experimental API; its contract may change between beta releases. |  |
-| [`useSplitSelection`](../navigation/splitContext.d.ts) | Entry identity owns navigation/scroll; identity is the registry's semantic row key. | Experimental API; its contract may change between beta releases. |  |
-| [`withAnimation`](../motion/matchedGeometry.d.ts) | Applies the state changes in `update`, then animates the `MatchedGeometryEffect` views they move, insert or remove. Call it from an event handler. Keyed List rows also move to their new positions. Other views take their new layout at once. Returns the callback result and propagates errors. Only synchronous updates participate. Nested calls share the outer List transaction; per-update nested timing is not supported. | Experimental API; its contract may change between beta releases. | animated state update |
+| [`Animation`](../motion/animationValue.d.ts) | An opaque spring timing value for `withAnimation`. Use a named value or `Animation.spring`. |  |  |
+| [`concentricRadius`](../safe-area/displayCorners.d.ts) | The corner radius for a shape inset evenly inside a rounded container, so the two corners stay concentric. The result never goes below 0; a negative or non-finite argument throws. |  |  |
+| [`DetailList`](../navigation/DetailList.d.ts) | A grouped list of rows for a split view's detail column at regular width. |  |  |
+| [`DragGesture`](../gestures/gesture.d.ts) | A drag that starts after the finger moves `minimumDistance` along the accepted axis. |  |  |
+| [`DragGestureOptions`](../gestures/gesture.d.ts) | A drag's callbacks and state, the distance it must travel before it starts (10 by default) and the axis it accepts. |  |  |
+| [`DragGestureValue`](../gestures/gesture.d.ts) | A drag's current and start locations, its translation and its velocity. |  |  |
+| [`Gesture`](../gestures/gesture.d.ts) | A gesture made by `DragGesture`, `LongPressGesture`, `TapGesture` or `MagnifyGesture`, for a `GestureView`. |  |  |
+| [`GesturePoint`](../gestures/gesture.d.ts) | A point in CSS pixels. |  |  |
+| [`GestureState`](../gestures/gesture.d.ts) | The binding `useGestureState` returns. A gesture updates it while active and resets it when it ends. |  |  |
+| [`GestureView`](../gestures/GestureView.d.ts) | A region that recognizes custom gestures on its children. Scrolling and the back swipe still win the touches they own. |  |  |
+| [`GestureViewProps`](../gestures/GestureView.d.ts) | The gestures a `GestureView` recognizes: a normal, a simultaneous and a high-priority gesture. |  |  |
+| [`LongPressGesture`](../gestures/gesture.d.ts) | A press held for `minimumDurationMs` without moving more than `maximumDistance`. |  |  |
+| [`LongPressGestureOptions`](../gestures/gesture.d.ts) | A long press's callbacks and state, how long it must be held (500 ms by default) and how far the finger may move (10 by default). |  |  |
+| [`MagnifyGesture`](../gestures/gesture.d.ts) | A two-finger pinch that starts once the scale changes by `minimumScaleDelta`. |  |  |
+| [`MagnifyGestureOptions`](../gestures/gesture.d.ts) | A pinch's callbacks and state, and how far the scale must change before it starts (0.01 by default). |  |  |
+| [`MagnifyGestureValue`](../gestures/gesture.d.ts) | A pinch's scale relative to its start, and the point it started around. |  |  |
+| [`MatchedGeometryEffect`](../motion/matchedGeometry.d.ts) | When a `withAnimation` change removes this view and inserts another with the same id, the new one moves from the old one's frame to its own while the two cross-fade. A view that only moves or resizes animates from where it was. A matched view with no partner fades in or out. Wrap one element that has no transform of its own. Changes made outside `withAnimation` apply at once. |  |  |
+| [`MatchedGeometryEffectProps`](../motion/matchedGeometry.d.ts) | The effect's id and namespace, whether it is the source, and the one element it wraps. |  |  |
+| [`Sidebar`](../navigation/Sidebar.d.ts) | A list of sidebar destinations. Selecting one shows it in the split view's detail column. |  |  |
+| [`SidebarEntry`](../navigation/Sidebar.d.ts) | One sidebar destination: its id, label, optional icon and disabled state. |  |  |
+| [`SidebarProps`](../navigation/Sidebar.d.ts) | The sidebar's entries, the selection callback and which entry starts selected. |  |  |
+| [`SidebarSymbol`](../navigation/SidebarSymbol.d.ts) | Draws the sidebar's `gearshape` or `sidebar.left` icon with `SymbolImage`. The artwork is from Framework7 Icons (MIT). |  |  |
+| [`SpringOptions`](../motion/animationValue.d.ts) | A spring's duration in milliseconds and its bounce, for `Animation.spring`. |  |  |
+| [`TapGesture`](../gestures/gesture.d.ts) | A tap, or `count` taps, that ends without moving more than `maximumDistance`. It reports where the finger lifted. |  |  |
+| [`TapGestureOptions`](../gestures/gesture.d.ts) | A tap's callbacks and state, the number of taps (1 by default) and how far the finger may move (10 by default). |  |  |
+| [`Transition`](../motion/transition.d.ts) | How a view enters and leaves: opacity, scale and move effects. `withAnimation` sets the timing. |  |  |
+| [`TransitionEdge`](../motion/transition.d.ts) | The edge a view moves through, resolved against its own layout direction. |  |  |
+| [`TransitionView`](../motion/TransitionView.d.ts) | Shows or hides its content with a transition when `visible` changes inside `withAnimation`. Keep the view itself mounted. Hidden content stays mounted and inert until its exit finishes, and the first render does not animate. |  |  |
+| [`TransitionViewProps`](../motion/TransitionView.d.ts) | Whether the content is visible, the transition to use and the content. |  |  |
+| [`useDisplayCornerRadius`](../safe-area/displayCorners.d.ts) | The corner radius of the device screen in points, or 0 when the model is unknown. It updates after rotation, window moves and pixel-ratio changes that fire a resize. |  |  |
+| [`useGestureState`](../gestures/gesture.d.ts) | Returns a value that a gesture drives, and the binding to pass as the gesture's `state`. The value goes back to `initialValue` when the gesture ends or is cancelled. |  |  |
+| [`useSplitSelection`](../navigation/splitContext.d.ts) | Returns the split view's mode and the entry shown in its detail column. It throws outside a split view. |  |  |
+| [`withAnimation`](../motion/matchedGeometry.d.ts) | Applies the state changes in `update`, then animates the `MatchedGeometryEffect` views they move, insert or remove. Call it from an event handler. Keyed List rows also move to their new positions. Other views take their new layout at once. Returns the callback result and passes errors through. Only synchronous updates take part, and nested calls join the outer one. |  | animated state update |
 
 ## vite API
 
 Module: `@satinhq/kit/vite`
 
+The Vite plugin that builds the app, its install page and its service worker.
+
 | Satin export | Behavior | Limits | Also known as |
 | --- | --- | --- | --- |
-| [`defineApp`](../public/definition.d.ts) | Declares app identity, install metadata and capabilities once. Pass the result to `runApp` and to the `@satinhq/kit/vite` plugin. Everything not given is defaulted and the whole definition is validated, so a bad id or icon fails at build time rather than after install. | Vite build integration only; this module does not render a control. |  |
-| [`satinApp`](../app/vite.d.ts) | Provides `satinApp` through the `@satinhq/kit/vite` module. Read its linked declaration before use. | Vite build integration only; this module does not render a control. |  |
-| [`SatinAppOptions`](../app/vite.d.ts) | Defines the `SatinAppOptions` type in `@satinhq/kit/vite`. | Compile-time contract only. The linked declaration lists its fields, unions and constraints. |  |
+| [`defineApp`](../public/definition.d.ts) | Declares app identity, install metadata and capabilities once. Pass the result to `runApp` and to the `@satinhq/kit/vite` plugin. Everything not given is defaulted and the whole definition is validated, so a bad id or icon fails at build time rather than after install. |  | app manifest; app config |
+| [`satinApp`](../app/vite.d.ts) | Generates the app shell and loads framework CSS once, before app styles. The stylesheet participates in Vite CSS HMR and builds; pre-launch paints independently. |  |  |
+| [`SatinAppOptions`](../app/vite.d.ts) | Build options for `satinApp`: a custom install page, strict glass, the development menu and a media probe. |  |  |
 
 ## Unsupported capabilities
 
@@ -1020,17 +1038,17 @@ These capabilities have no public export. The listed alternatives describe suppo
 
 | Capability | Supported alternative | Limits |
 | --- | --- | --- |
-| custom hit shapes | Use existing Pressable rectangular hit geometry. | Unsupported. Hit-only shapes must preserve painted content, underlying targets and gesture arbitration. |
-| custom toolbar backgrounds | Existing navigation chrome retains its current background policy. | Unsupported. No toolbar background preference or material override is exposed. |
-| custom container backgrounds | Navigation and Sheet retain their existing container backgrounds. | Unsupported. Navigation/sheet placement needs container ownership. WidgetKit placements are outside the installed-PWA target. |
-| multiple-date selection | No multiple-date selection control is shipped. | DatePicker selects one Date. |
+| custom hit shapes | Use Pressable, which responds across its rectangle. | Unsupported. Hit areas are rectangles. |
+| custom toolbar backgrounds | Navigation bars keep their standard background. | Unsupported. There is no toolbar background or material override. |
+| custom container backgrounds | Navigation stacks and sheets keep their standard backgrounds. | Unsupported. Their backgrounds belong to the containers. |
+| multiple-date selection | No multiple-date selection control is shipped. | DatePicker selects one date. |
 | collapsible disclosure groups | Keep sections visible until the framework expander is implemented. | Unsupported. No disclosure expander is exported. |
-| video playback and audio route selection | Use MediaPlayer only for the supported audio queue transport. | No public video, AirPlay route-picker, fullscreen or Picture-in-Picture contract at this revision. |
-| gauge indicators | ProgressView provides linear progress only. | No Gauge styles are shipped. |
-| navigation subtitles and custom title sizing | Use the available Screen title and toolbar contracts. | No navigationSubtitle prop promise. Principal sizing defects require framework correction. |
-| background work and scheduled local notifications | Use an authenticated server scheduler and Web Push for scheduled reminders. | Suspended WebKit cannot execute arbitrary timers or guaranteed background work. |
-| additional reactive state primitives | Use React state, props and the exported framework providers and hooks. | Use the declared providers and hooks; arbitrary environment keys are unsupported. |
-| arbitrary transitions and gesture modifiers | Use withAnimation with MatchedGeometryEffect, or the motion already owned by framework navigation, controls and presentations. | No generic transition, implicit animation or gesture modifier API. Framework springs must retain measured parameters. |
+| video playback and audio route selection | Use MediaPlayer only for the supported audio queue. | No video, AirPlay route picker, fullscreen or Picture-in-Picture support yet. |
+| gauge indicators | Use ProgressView for linear or circular progress. | No gauge styles are shipped. |
+| custom title sizing | Use the Screen title and subtitle and the toolbar title placements. | Title sizes are fixed; there is no custom title font. |
+| background work and scheduled local notifications | Use an authenticated server scheduler and Web Push for scheduled reminders. | A suspended web app cannot run timers or background work. |
+| additional reactive state primitives | Use React state, props and the exported framework providers and hooks. | Arbitrary environment keys are unsupported; use React context. |
+| arbitrary transitions and gesture modifiers | Use withAnimation with MatchedGeometryEffect, or the motion already built into navigation, controls and presentations. | No general transition, implicit animation or gesture modifier. Framework springs keep their measured values. |
 
 See [application recipes](app-recipes.md), [local data](data.md), [geometry tokens](tokens.md) and [messaging scroll](messaging-scroll.md) for supported compositions.
 
@@ -1855,16 +1873,16 @@ The declarations below have no dedicated reviewed behavior metadata. Type-only d
 
 ## Declaration graph fingerprints
 
-- `@satinhq/kit:9a6da9b1ea576e75a5dd991a866768a262eb56a7cdbbd3fe6108836cfb6684cf`
-- `@satinhq/kit/vite:63ab5323f1fdbfe3425716de812e63889353f0a7252fdb379ddd29f0113c6c7b`
-- `@satinhq/kit/install:85c36af3f6d918e999f65db362675d8982468350930a540177d3d9809c88ca01`
-- `@satinhq/kit/internal:3510d0c2f211973c1612ea4e175c751ee3916e9e2201afd7555f351fb350b32d`
-- `@satinhq/kit/unstable:10455e7f77ca3285b77714e673e9d7b936265a0d5bde60927f99fdbd034b2315`
-- `@satinhq/kit/server:1b9db029ea048edc062313e7116510843dab71d9a5630842f778bc45736e3990`
-- `@satinhq/kit/testing:cb9036de4e4b3df41671c759c0fc123b059bd412849ac0796479ead545fa8728`
-- `@satinhq/kit/diagnostics:900cab5f712b8a118f361f434848f6a8508b44bc884b9dabcc4687c042d5b79d`
-- `@satinhq/kit/internal/vite:a6f1c9264605c2c98fa7816f7e1bf80ad74ae5f8ca8e562b2a1e1bd083a6f502`
+- `@satinhq/kit:751c878892f1b84d237adb15aba705fae1b0bab4094036e54aa10ca6115e2a7e`
+- `@satinhq/kit/vite:aae491af836b19471a7306a4f2fec9e5eb8cd68184ce26ec6aeea033e593a15e`
+- `@satinhq/kit/install:e080a0874c9490077cf9cbb117e03d5d58252226e9424d84101be7ee4454a422`
+- `@satinhq/kit/internal:ef9f8b828d9a5f3d775c7cf72cccbdeb98b919ec55379941f2f3d08ce6c4ac41`
+- `@satinhq/kit/unstable:59f001f3090a2b56ad18df3b0ef8b7d4546c5c7ccbbfc4f793da98d1ad27bf34`
+- `@satinhq/kit/server:7d2b996d9541bd82fd0936e0482554f3182ffe004be56928e590ad4c4c8c79bd`
+- `@satinhq/kit/testing:04a86ddf0741e53228777bd599cbd00ff503b9e216a1f86a9791fdbee1bd5e12`
+- `@satinhq/kit/diagnostics:05327eaa9f5a55ab73834d5abaeaeffd98cfc6294fa5af5d3ba03a8609463eac`
+- `@satinhq/kit/internal/vite:127e9845619cf9939e4200986696109e5412492394afa432c1ae9c9cde98121b`
 
 ## Framework source fingerprint
 
-SHA-256 of sorted TS/TSX/CSS source paths and bytes, excluding tests: 4250b3652ac13e3dbc75b457b66903680f1e77c38089e19536e8f05ff945d1e2
+SHA-256 of sorted TS/TSX/CSS source paths and bytes, excluding tests: 40d2340c8fd86ac09bd15e68f837c5ebd212c0b2e0b8c2cda725e13a156e65f0

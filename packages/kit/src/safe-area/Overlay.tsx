@@ -6,14 +6,15 @@ import { BottomInsetContext } from './SafeAreaInset.tsx'
 // only their own local insets and inherit the parent's keyboard transform.
 const CONTENT_SCOPE = { consumed: true }
 
-/** `overlay(alignment:content:)`: children determine the frame; content respects its safe area. */
+/** The layered `content` and its alignment. The children set the frame. */
 export type OverlayProps = Omit<HTMLAttributes<HTMLDivElement>, 'content'> &
   Readonly<{
     alignment?: ContentAlignment
     content: ReactNode
   }>
 
-/** An overlay in SafeAreaInset shares its reduced safe area and keyboard carrier with the composer. */
+/** Layers `content` over its children without changing their frame. Inside a `SafeAreaInset`, the
+ * overlay keeps to the reduced safe area and moves with the keyboard, like the composer. */
 export function Overlay({ alignment = 'center', content, children, ...props }: OverlayProps) {
   const { geometry, consumed } = useContext(BottomInsetContext)
   const layer = useRef<HTMLDivElement>(null)

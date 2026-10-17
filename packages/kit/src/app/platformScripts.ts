@@ -34,6 +34,16 @@ export function gateAppScripts(html: string) {
       html.slice(firstScript.index, gate.index) +
       html.slice(gate.index + gate[0].length)
   }
+  // Fetch app styles without blocking the independent head environment. The
+  // head's capture listener activates each stylesheet only after it loads.
+  html = html.replace(/<link\b[^>]*>/gi, tag => {
+    const attributes = scriptAttributes(tag.slice(5, -1))
+    if (attributes.get('rel')?.value !== 'stylesheet') return tag
+    const media = attributes.get('media')?.value ?? 'all'
+    return tag
+      .replace(/\smedia\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/i, '')
+      .replace(/>$/, ` media="not all" data-satin-style="${media.replaceAll('"', '&quot;')}">`)
+  })
   return html.replace(scriptPattern, (original, attributes: string | undefined) => {
     if (attributes === undefined) return original
     // Parse whole values so neither data-id nor quoted text can impersonate

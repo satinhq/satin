@@ -1,11 +1,11 @@
 import { registerEarlyWorker } from './earlyWorker.ts'
 import { deploymentExpectation } from './deployment.ts'
 import { installLaunchWatchdog } from './launchWatchdog.ts'
-import { installLaunchScreenRuntime } from './launchScreenRuntime.ts'
+import { installLaunchScreenRuntime, resumeAppliedUpdate } from './launchScreenRuntime.ts'
 import { GLASS_LAUNCH_BUDGET_MS } from './launchReadiness.ts'
 import { appManifestHrefExpression, isIOSWebKit, installRouteForBase } from './install.ts'
 import { resolvePlatformGate } from './platformPolicy.ts'
-import { launchScreenCSS } from './launchScreen.ts'
+import { launchScreenMarkup, prelaunchCSS } from './launchScreen.ts'
 import { installAppearanceStore } from './appearanceStore.ts'
 import { ADAPTIVE_LAYOUT_POLICY } from '../layout/layoutClass.ts'
 import { SATIN_VIEWPORT, resolveViewportFit } from './viewportValue.ts'
@@ -14,6 +14,7 @@ import type { AppDefinition } from './definition.ts'
 import { appManifestStem } from './manifests.ts'
 export { appManifestStem, appManifestFiles } from './manifests.ts'
 
+/** One app definition in a multi-install lab build, chosen by exact query parameters. */
 export interface AppFixture {
   /** Legacy display-mode capability rig only, never a production option. */
   readonly display?: 'standalone' | 'fullscreen' | 'minimal-ui'
@@ -27,6 +28,8 @@ export function generateAppHead(
   base: string,
   production = true,
   devServer = false,
+  covers: ReadonlyMap<string, string> = new Map(),
+  buildId?: string,
 ) {
   const appearance = fixtures[0]?.app.appearance
   const lightBackground = appearance?.background ?? '#ffffff'
@@ -37,6 +40,7 @@ export function generateAppHead(
   const data = JSON.stringify(
     fixtures.map(({ app, query }) => ({
       app,
+      cover: covers.get(app.id) ?? launchScreenMarkup(app),
       query,
       installRoute: installRouteForBase(app, base),
       startupStem: appManifestStem(app),
@@ -45,7 +49,7 @@ export function generateAppHead(
   ).replaceAll('<', '\\u003c')
   // A cached navigation must paint its launch surface even before head scripts
   // run. Match the manifest's two backgrounds, including match-light apps.
-  return `<style id="satin-launch-paint">:root{--satin-launch-background:${lightBackground};--satin-launch-ink:#1c1c1e;--satin-background:${lightBackground}}@media(prefers-color-scheme:dark){:root{--satin-launch-background:${darkBackground};--satin-launch-ink:${appearance?.darkLaunch === 'match-light' ? '#1c1c1e' : '#ffffff'};--satin-background:${darkBackground}}}${launchScreenCSS}html,body{background:var(--satin-background);margin:0} [data-satin-root][data-satin-launch]:not([data-satin-launch="ready"]){opacity:0;pointer-events:none}</style>
+  return `<style id="satin-launch-paint">:root{--satin-launch-background:${lightBackground};--satin-launch-ink:#1c1c1e;--satin-background:${lightBackground}}@media(prefers-color-scheme:dark){:root{--satin-launch-background:${darkBackground};--satin-launch-ink:${appearance?.darkLaunch === 'match-light' ? '#1c1c1e' : '#ffffff'};--satin-background:${darkBackground}}}html,body{background:var(--satin-background);margin:0} [data-satin-root][data-satin-launch]:not([data-satin-launch="ready"]){opacity:0;pointer-events:none}</style>
 <script id="satin-platform-gate">(() => {
  performance.mark('satin-document-head');
  const fixtures = ${data};
@@ -86,7 +90,13 @@ export function generateAppHead(
  const fit = (${resolveViewportFit.toString()})(app.viewportFit || 'adaptive', navigator.userAgent, navigator.platform, navigator.maxTouchPoints, innerWidth, innerHeight, ${ADAPTIVE_LAYOUT_POLICY.horizontal.regularMinimum}, ${ADAPTIVE_LAYOUT_POLICY.vertical.regularMinimum});
  document.querySelector('meta[name="viewport"]').content = ${JSON.stringify(SATIN_VIEWPORT)}.replace('viewport-fit=cover', 'viewport-fit=' + fit);
  document.documentElement.dataset.satinViewportFit = fit;
- (${installLaunchScreenRuntime.toString()})();
+ (${installLaunchScreenRuntime.toString()})({
+  markup: selected.cover, css: ${JSON.stringify(prelaunchCSS)}, scope: app.scope,
+  background: app.appearance.background,
+  darkBackground: app.appearance.darkLaunch === 'match-light' ? app.appearance.background : app.appearance.darkLaunch.background,
+  darkInk: app.appearance.darkLaunch === 'match-light' ? '#1c1c1e' : '#ffffff'
+ });
+ (${resumeAppliedUpdate.toString()})(app.scope, app.updateProfile === 'release' ? ${JSON.stringify(buildId)} : undefined);
  (${installLaunchWatchdog.toString()})(${Math.max(10_000, GLASS_LAUNCH_BUDGET_MS)});
  // First installation can overlap module loading. Existing registrations,
  // with active or waiting versions, remain under the normal launch/update policy.
@@ -107,18 +117,7 @@ export function generateAppHead(
  const darkBackground = app.appearance.darkLaunch === 'match-light' ? app.appearance.background : app.appearance.darkLaunch.background;
  // CSS can select the cold background before the controller runs. Once
  // installed, the shared controller owns every root color, in every session.
- const field = document.createElement('style');
  const darkInk = app.appearance.darkLaunch === 'match-light' ? '#1c1c1e' : '#ffffff';
- field.textContent = [
-  ':root{--satin-launch-background:' + app.appearance.background + ';--satin-launch-ink:#1c1c1e}',
-  '@media(prefers-color-scheme:dark){:root:not([data-satin-appearance]){',
-  '--satin-launch-background:' + darkBackground + ';--satin-launch-ink:' + darkInk + '}}',
-  ':root[data-satin-appearance="light"]{--satin-launch-background:' + app.appearance.background,
-  ';--satin-launch-ink:#1c1c1e}',
-  ':root[data-satin-appearance="dark"]{--satin-launch-background:' + darkBackground,
-  ';--satin-launch-ink:' + darkInk + '}',
- ].join('');
- document.head.appendChild(field);
  const store = (${installAppearanceStore.toString()})();
  const apply = () => {
   const dark = store.getSnapshot().dark;
@@ -127,6 +126,7 @@ export function generateAppHead(
   document.documentElement.style.setProperty('--satin-launch-background', appearance.background);
   document.documentElement.style.setProperty('--satin-launch-ink', dark ? darkInk : '#1c1c1e');
   document.documentElement.style.setProperty('--satin-background', appearance.background);
+  window.__SATIN_PRELAUNCH__.appearance(appearance.background, dark ? darkInk : '#1c1c1e');
   document.getElementById('satin-theme-color').content = appearance.background;
   document.getElementById('satin-manifest').href = ${appManifestHrefExpression('selected.manifest')};
  };

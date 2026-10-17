@@ -33,7 +33,8 @@ export function MediaPlayerRoot({
   return <MediaContext value={store}>{children}</MediaContext>
 }
 
-/** Subscribe to the root-owned audio queue and system media commands. Video playback is not supported. */
+/** Returns the app's audio player: its commands and its live state. The system's Lock Screen
+ * media controls drive the same player. Audio only; there is no video playback. */
 export function useMediaPlayer(): MediaPlayer {
   const store = useContext(MediaContext)
   if (!store) throw new Error('useMediaPlayer must be called inside SatinRoot.')

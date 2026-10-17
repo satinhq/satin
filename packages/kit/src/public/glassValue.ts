@@ -1,9 +1,8 @@
 import { Glass as Material, type GlassTint } from '../glass/regions.ts'
 const materials = new WeakMap<Glass, Material>()
 /**
- * `Glass`: the material intent for a `GlassEffect`. Start from `Glass.regular` or
- * `Glass.clear` and refine it; each call returns a new value. The renderer's treatment stays
- * internal.
+ * The glass material for a `GlassEffect`. Start from `Glass.regular` or `Glass.clear` and refine
+ * it with a tint or `interactive()`; each call returns a new value.
  *
  * @example
  * Glass.regular.tintRGBA([0, 0.48, 1, 0.2]).interactive()
@@ -19,7 +18,7 @@ export class Glass {
   tintRGBA(color?: GlassTint): Glass {
     return new Glass(resolveGlass(this).tint(color))
   }
-  /** `interactive()`: the glass responds to touch. */
+  /** Makes the glass respond to touch. */
   interactive(enabled = true): Glass {
     return new Glass(resolveGlass(this).interactive(enabled))
   }

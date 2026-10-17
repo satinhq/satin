@@ -1,8 +1,9 @@
-/** `ToolbarMinimizationBehavior`: when a toolbar may minimize. */
+/** When the navigation bar minimizes: `onScrollDown`, `onScrollUp` or `never`. */
 export type ToolbarMinimizationBehavior = 'onScrollDown' | 'onScrollUp' | 'never'
-/** The interaction that restores a minimized toolbar. */
+/** What brings back a minimized bar: `automatic`, or only reaching the scroll edge
+ * (`atScrollEdge`). */
 export type ToolbarMinimizationRestoration = 'automatic' | 'atScrollEdge'
-/** Whether toolbar minimization changes its reserved content inset. */
+/** Whether the content inset shrinks when the bar minimizes. */
 export type ToolbarMinimizationSafeAreaAdjustment = 'automatic' | 'enabled' | 'disabled'
 
 /* Settled policy from the iOS 27 music-scroll native reference. Motion fitting remains pending. */

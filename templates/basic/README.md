@@ -41,8 +41,8 @@ reload while developing. Keep important data backed up.
 - `src/styles.css` contains optional app typography and spacing.
 
 Use `Button` for actions, `NavigationLink` for navigation and `Selectable` for
-prose. Import application components from `@satinhq/kit`, styles from
-`@satinhq/kit/styles.css` and build integration from `@satinhq/kit/vite`. Diagnostics and
+prose. Import application components from `@satinhq/kit` and build integration
+from `@satinhq/kit/vite`. `satinApp()` includes framework styles before app CSS. Diagnostics and
 internal imports are not needed by this starter.
 
 ## Data and notifications

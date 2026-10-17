@@ -29,8 +29,7 @@ import {
 export type ScreenProps = {
   children: ReactNode
   title?: string
-  /** `navigationSubtitle`: inline, a 12 pt line under a 15 pt title; large, an 11 pt line
-   * under the large title. */
+  /** A line under the title: 12 pt under an inline 15 pt title, 11 pt under a large title. */
   subtitle?: string
   titleDisplay?: 'large' | 'inline' | 'inlineLarge' | 'none'
   backButton?: 'automatic' | 'hidden'
@@ -40,12 +39,11 @@ export type ScreenProps = {
   toolbarMinimizationBehavior?: ToolbarMinimizationBehavior
   toolbarMinimizationRestoration?: ToolbarMinimizationRestoration
   toolbarMinimizationSafeAreaAdjustment?: ToolbarMinimizationSafeAreaAdjustment
-  /** `toolbar`: `ToolbarItem`, `ToolbarItemGroup` and `ToolbarSpacer` elements. */
+  /** The screen's `ToolbarItem`, `ToolbarItemGroup` and `ToolbarSpacer` elements. */
   toolbar?: ReactNode
-  /** `searchable`: a search field in the navigation bar drawer of this screen's primary
-   * scroll view. */
+  /** A search field for this screen, placed in the navigation bar drawer or the bottom toolbar. */
   searchable?: Searchable
-  /** `navigationTransition`: how this screen arrives when pushed and leaves when popped.
+  /** How this screen arrives when pushed and leaves when popped.
    * `NavigationTransition.zoom(...)` grows it out of a `MatchedTransitionSource`. */
   navigationTransition?: NavigationTransition
 }

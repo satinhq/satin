@@ -1,8 +1,7 @@
 import { Link, useOpenURL, type OpenURLAction } from '../web/openURL.tsx'
+import { frameworkStyleDeclarations } from '../../test/domStyles.ts'
 import { ScreenContentContext } from './screenChrome.tsx'
 import { Section } from '../list-form/ListForm.tsx'
-import { readFileSync } from 'node:fs'
-import { URL as NodeURL } from 'node:url'
 import { generateSatinManifestJson } from '../app/definition.ts'
 import { ControlStyleProvider } from './controlStyle.tsx'
 import { Label } from './Label.tsx'
@@ -1232,9 +1231,7 @@ it('keeps nullable app storage synchronized across consumers, functional writes 
 
 it('draws standalone press controls as plain native labels: no UA chrome, inherited tint, authored color wins', () => {
   const style = document.createElement('style')
-  style.textContent =
-    readFileSync(new NodeURL('../styles.css', import.meta.url), 'utf8') +
-    '.authored-link { color: rgb(255, 0, 0); }'
+  style.textContent = frameworkStyleDeclarations() + '.authored-link { color: rgb(255, 0, 0); }'
   document.head.append(style)
   function Home() {
     return (
@@ -1794,7 +1791,7 @@ it('presents bottom search above the keyboard: the bar and compose give way, Clo
 
 it('keeps authored titles and titleDisplay none in a screen-bounded primary scroll view', () => {
   const style = document.createElement('style')
-  style.textContent = readFileSync(new NodeURL('../styles.css', import.meta.url), 'utf8')
+  style.textContent = frameworkStyleDeclarations()
   document.head.append(style)
   function Home() {
     return (
@@ -1856,7 +1853,7 @@ it('selects top-edge visibility independently and refuses an unrenderable hard s
 
 it('retains initial section spacing inside a bar-less plain List without moving its sticky boundary', () => {
   const style = document.createElement('style')
-  style.textContent = readFileSync(new NodeURL('../styles.css', import.meta.url), 'utf8')
+  style.textContent = frameworkStyleDeclarations()
   document.head.append(style)
   function Home() {
     return (

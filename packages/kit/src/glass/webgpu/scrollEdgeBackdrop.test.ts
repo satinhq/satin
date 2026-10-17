@@ -1,6 +1,5 @@
 // @vitest-environment happy-dom
-import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { frameworkStyleDeclarations } from '../../../test/domStyles.ts'
 import { afterEach, expect, it, vi } from 'vitest'
 import {
   SCROLL_EDGE_CAP_FADE_PT,
@@ -10,7 +9,7 @@ import {
 } from './scrollEdgeBackdrop.ts'
 import { edgesUnderSurface } from './edgePass.ts'
 
-const css = readFileSync(resolve(process.cwd(), 'src/styles.css'), 'utf8')
+const css = frameworkStyleDeclarations()
 afterEach(() => {
   document.body.replaceChildren()
   vi.restoreAllMocks()
@@ -18,8 +17,14 @@ afterEach(() => {
 
 it('mirrors the CSS scroll-edge material the canvas cannot sample', () => {
   const rule = (selector: string) => {
-    const start = css.indexOf(selector + ' {')
-    return css.slice(start, css.indexOf('\n}', start))
+    const escaped = selector
+      .trim()
+      .split(/\s+/)
+      .map(part => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+      .join('\\s+')
+    const match = css.match(new RegExp(`(?:^|\\n)\\s*${escaped}\\s*\\{([^}]+)\\}`))
+    expect(match, selector).not.toBeNull()
+    return match![1]!
   }
   const light = rule('[data-satin-scroll-edge]')
   const dark = rule("html[data-satin-appearance='dark'] [data-satin-scroll-edge]")

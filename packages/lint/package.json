@@ -1,6 +1,6 @@
 {
   "name": "@satinhq/lint",
-  "version": "0.1.0-beta.3",
+  "version": "0.1.0-beta.4",
   "type": "module",
   "description": "Fidelity lint preset for Satin apps: bans the web idioms that break the native illusion.",
   "exports": {

@@ -79,7 +79,8 @@ export function useScreenScrollRegistry(): ScrollSurfaceRegistry {
   return standalone.current
 }
 
-/** `onAppear` and `onDisappear`: callbacks for a retained navigation entry's visible lifecycle. */
+/** Runs `appear` and `disappear` callbacks as the screen is shown and covered or removed, and
+ * returns whether it is covered and its transition phase. */
 export function useScreenLifecycle(
   callbacks: ScreenLifecycleCallbacks = EMPTY_LIFECYCLE_CALLBACKS,
 ): ScreenLifecycle {

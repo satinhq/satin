@@ -4,7 +4,7 @@ export const ScrollTargetContext = createContext<
   ((id: string, element: HTMLDivElement | null) => void) | null
 >(null)
 
-/** A stable identity in a vertical ScrollView's normal-flow target layout. */
+/** Marks content a vertical `ScrollView` can scroll to by `id`. */
 export function ScrollTarget({ id, ...props }: HTMLAttributes<HTMLDivElement> & { id: string }) {
   const register = useContext(ScrollTargetContext)
   if (!register)

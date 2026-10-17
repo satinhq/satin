@@ -1,12 +1,12 @@
 // @vitest-environment happy-dom
-import { readFileSync } from 'node:fs'
+import { frameworkStyleDeclarations } from '../../test/domStyles.ts'
 import { expect, it } from 'vitest'
 
 it('keeps an icon-only glass button a centred 44 pt circle at every control size', () => {
   // `buttonStyle="glass" controlSize="large" iconOnly symbol="plus"` drew its glyph
   // 8 pt right and 3 pt low. The large label padding (15/20) applied inside the fixed circle.
   const style = document.createElement('style')
-  style.textContent = readFileSync('src/styles.css', 'utf8')
+  style.textContent = frameworkStyleDeclarations()
   document.head.append(style)
   try {
     for (const size of ['mini', 'small', 'regular', 'large', 'extraLarge']) {

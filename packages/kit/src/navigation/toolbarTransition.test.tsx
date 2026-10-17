@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { readFileSync } from 'node:fs'
+import { frameworkStyleDeclarations } from '../../test/domStyles.ts'
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
@@ -25,8 +25,7 @@ beforeEach(() => {
   document.body.append(host)
   stylesheet = document.createElement('style')
   // Include the UA hidden rule: an inline display declaration must never override it.
-  stylesheet.textContent =
-    '[hidden] { display: none !important; }' + readFileSync('src/styles.css', 'utf8')
+  stylesheet.textContent = '[hidden] { display: none !important; }' + frameworkStyleDeclarations()
   document.head.append(stylesheet)
   root = createRoot(host)
 })

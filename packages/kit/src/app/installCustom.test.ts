@@ -1,3 +1,4 @@
+import { setupPrelaunch, prelaunchDOM } from './prelaunch.test-helper.ts'
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { defineSatinApp } from './definition.ts'
@@ -38,6 +39,7 @@ const expected = {
 }
 
 beforeEach(() => {
+  setupPrelaunch()
   vi.stubGlobal('location', {
     origin: 'https://test.example',
     href: 'https://test.example/install',
@@ -90,7 +92,7 @@ it('never loads the author page when the deployment check fails', async () => {
   const check = vi.fn(async () => [{ reason: 'Missing', url: '/app/sw.js', fix: 'Deploy it.' }])
   await installPageCheck(expected, check, 4000, installCustomMount.bind(null, entry))
   expect(authorScripts()).toEqual([])
-  expect(document.getElementById('satin-install-check')!.dataset.error).toBe('true')
+  expect(prelaunchDOM.getElementById('satin-launch-error')!.hidden).toBe(false)
   expect(document.getElementById('satin-install-guide')!.hidden).toBe(true)
 })
 
@@ -103,7 +105,7 @@ it('loads the author page once after the check passes, including after a retry',
     .mockResolvedValue([])
   await installPageCheck(expected, check, 4000, installCustomMount.bind(null, entry))
   expect(authorScripts()).toEqual([])
-  document.querySelector<HTMLButtonElement>('#satin-install-check button')!.click()
+  prelaunchDOM.querySelector<HTMLButtonElement>('button')!.click()
   await vi.waitFor(() => expect(authorScripts()).toEqual([entry]))
   installCustomMount(entry)
   expect(authorScripts()).toEqual([entry])

@@ -1,5 +1,5 @@
 import { createPushRelayAdapter } from './push/notifications.ts'
-/** App-test assertion without exposing navigation engine objects. */
+/** Throws unless the visible screen in `container` is the route `screen`. For app tests. */
 export function assertNavigation(container: ParentNode, screen: string) {
   const active = container.querySelector(
     '[data-satin-screen-container][data-satin-covered="false"]',
@@ -8,7 +8,8 @@ export function assertNavigation(container: ParentNode, screen: string) {
     throw new Error(`Expected active route ${screen}`)
 }
 
-/** Explicit diagnostic action. The token is requested at call time and never persisted. */
+/** Sends a test notification through a push relay and returns how many devices accepted it. The
+ * token is requested when called and never stored. */
 export function sendTestNotification(relay: {
   url: string
   token: () => string | Promise<string>

@@ -1,4 +1,4 @@
-/** The keyboard overlap and viewport dimensions in points. */
+/** How much the keyboard covers, whether it shows, and the viewport size, in points. */
 export type KeyboardGeometry = Readonly<{
   height: number
   visible: boolean

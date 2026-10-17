@@ -1,10 +1,10 @@
 // @vitest-environment happy-dom
-import { readFileSync } from 'node:fs'
+import { frameworkStyleDeclarations } from '../../test/domStyles.ts'
 import { expect, it } from 'vitest'
 
 it('keeps the TabView dock at the system bottom while its content avoids the keyboard', () => {
   const style = document.createElement('style')
-  style.textContent = readFileSync('src/styles.css', 'utf8')
+  style.textContent = frameworkStyleDeclarations()
   const tabs = document.createElement('div')
   tabs.dataset.satinTabView = 'true'
   tabs.style.cssText =

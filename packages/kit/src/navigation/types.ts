@@ -6,17 +6,19 @@ declare const screenParamsType: unique symbol
 
 export type PresentationKind = 'push'
 
-/** The progress phase of a navigation transition. */
+/** Where a screen is in a navigation transition: `entering`, `exiting` or `settled`. */
 export type TransitionPhase = 'settled' | 'entering' | 'exiting'
 
 export type TransitionOperation = 'pop' | 'popToRoot' | 'push' | 'replace'
 
+/** Whether a pushed screen shows its back button. `automatic` shows it; `hidden` removes it. */
 export type NavigationBackButtonBehavior = 'automatic' | 'hidden'
 
-/** `toolbarTitleDisplayMode`; `inlineLarge` draws the large title inside the bar row. */
+/** How a screen title is drawn: `inline` in the bar, `large` below it, `inlineLarge` large inside
+ * the bar row, or `none`. */
 export type TitleDisplayMode = 'inline' | 'large' | 'inlineLarge' | 'none'
 
-/** `toolbarVisibility(_:for: .navigationBar)`: a hidden bar reserves no row. */
+/** Whether the navigation bar shows. A hidden bar reserves no row. */
 export type Visibility = 'automatic' | 'visible' | 'hidden'
 
 export type NavigationBarDefinition<Params = unknown> = Readonly<{
@@ -147,13 +149,13 @@ export type NavigatorState<Entry extends ScreenEntry = ScreenEntry> = Readonly<{
   entries: readonly Entry[]
 }>
 
-/** The lifecycle state of a retained navigation entry. */
+/** Whether a screen is covered by another, and the phase of its current transition. */
 export type ScreenLifecycle = Readonly<{
   isCovered: boolean
   phase: TransitionPhase
 }>
 
-/** Callbacks for a retained navigation entry appearing, being covered or disappearing. */
+/** The `appear` and `disappear` callbacks for `useScreenLifecycle`. */
 export type ScreenLifecycleCallbacks = Readonly<{
   appear?: () => void
   disappear?: () => void

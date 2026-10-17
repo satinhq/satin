@@ -1,3 +1,4 @@
+import { capturePrelaunch, prelaunchDOM } from './prelaunch.test-helper.ts'
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { defineSatinApp } from './definition.ts'
@@ -25,6 +26,15 @@ let workers: EventTarget
 
 beforeEach(() => {
   vi.useFakeTimers()
+  vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) =>
+    setTimeout(() => callback(performance.now()), 16),
+  )
+  vi.spyOn(Element.prototype, 'animate').mockReturnValue({
+    finished: Promise.resolve(),
+    cancel: vi.fn(),
+    pause: vi.fn(),
+    play: vi.fn(),
+  } as unknown as Animation)
   vi.spyOn(performance, 'now').mockImplementation(() => Date.now())
   vi.spyOn(performance, 'getEntriesByType').mockReturnValue([])
   vi.spyOn(console, 'error').mockImplementation(() => {})
@@ -39,6 +49,7 @@ beforeEach(() => {
     maxTouchPoints: navigator.maxTouchPoints,
     serviceWorker: workers,
   })
+  capturePrelaunch()
   delete window.__SATIN_APPEARANCE__
   document.head.innerHTML = generateAppHead([{ app, query: {} }], '/')
   document.body.innerHTML = '<div id="satin-launch-screen"></div>'
@@ -72,49 +83,50 @@ it('keeps delayed bootstrap covered while real worker messages advance', () => {
   for (let loaded = 1; loaded <= 4; loaded++) {
     vi.advanceTimersByTime(9_000)
     deliverProgress(loaded)
-    expect(document.getElementById('satin-launch-error')).toBeNull()
-    expect(document.getElementById('satin-launch-screen')?.hidden).toBe(false)
+    expect(prelaunchDOM.getElementById('satin-launch-error')).toBeNull()
+    expect(prelaunchDOM.getElementById('satin-launch-screen')?.hidden).toBe(false)
   }
   window.dispatchEvent(new Event('satin-launch-revealed'))
   vi.advanceTimersByTime(20_000)
-  expect(document.getElementById('satin-launch-error')).toBeNull()
+  expect(prelaunchDOM.getElementById('satin-launch-error')).toBeNull()
   // Readiness starts retirement; only the launch runtime may finish hiding the cover.
-  expect(document.getElementById('satin-launch-screen')?.hidden).toBe(false)
+  expect(prelaunchDOM.getElementById('satin-launch-screen')?.hidden).toBe(false)
 })
 
-it('removes the stalled overlay when real worker delivery resumes before bootstrap', () => {
+it('removes the stalled overlay when real worker delivery resumes before bootstrap', async () => {
   vi.advanceTimersByTime(9_000)
   deliverProgress(1)
   vi.advanceTimersByTime(10_000)
-  expect(document.getElementById('satin-launch-error')?.textContent).toContain(
+  expect(prelaunchDOM.getElementById('satin-launch-error')?.textContent).toContain(
     'stopped making progress',
   )
-  expect(document.getElementById('satin-launch-screen')?.hidden).toBe(true)
+  await vi.advanceTimersByTimeAsync(2500)
+  expect(prelaunchDOM.getElementById('satin-launch-screen')?.hidden).toBe(true)
   deliverProgress(2)
-  expect(document.getElementById('satin-launch-error')).toBeNull()
-  expect(document.getElementById('satin-launch-screen')?.hidden).toBe(false)
+  expect(prelaunchDOM.getElementById('satin-launch-error')).toBeNull()
+  expect(prelaunchDOM.getElementById('satin-launch-screen')?.hidden).toBe(false)
   vi.advanceTimersByTime(9_000)
-  expect(document.getElementById('satin-launch-error')).toBeNull()
+  expect(prelaunchDOM.getElementById('satin-launch-error')).toBeNull()
   window.dispatchEvent(new Event('satin-launch-revealed'))
-  expect(document.getElementById('satin-launch-screen')?.hidden).toBe(false)
+  expect(prelaunchDOM.getElementById('satin-launch-screen')?.hidden).toBe(false)
 })
 
 it('does not count another app worker or repeated bytes as resumed progress', () => {
   deliverProgress(1)
   vi.advanceTimersByTime(10_000)
-  expect(document.getElementById('satin-launch-error')).not.toBeNull()
+  expect(prelaunchDOM.getElementById('satin-launch-error')).not.toBeNull()
   deliverProgress(2, new URL('/other/sw.js', location.href).href)
   deliverProgress(1)
-  expect(document.getElementById('satin-launch-error')).not.toBeNull()
+  expect(prelaunchDOM.getElementById('satin-launch-error')).not.toBeNull()
   deliverProgress(2)
-  expect(document.getElementById('satin-launch-error')).toBeNull()
+  expect(prelaunchDOM.getElementById('satin-launch-error')).toBeNull()
 })
 
 it('supersedes failed installation diagnostics only on a successful build installation', () => {
   localStorage.clear()
   window.dispatchEvent(new Event('satin-launch-revealed'))
   // Model completed runtime retirement before a background replacement fails.
-  document.getElementById('satin-launch-screen')!.hidden = true
+  prelaunchDOM.getElementById('satin-launch-screen')!.hidden = true
   const deliver = (data: unknown) =>
     workers.dispatchEvent(
       new MessageEvent('message', {
@@ -131,8 +143,8 @@ it('supersedes failed installation diagnostics only on a successful build instal
   }
   deliver(failure)
   expect(console.error).toHaveBeenCalledWith('[Satin installation]', '/secondary.js', 'HTTP 404')
-  expect(document.getElementById('satin-launch-error')).toBeNull()
-  expect(document.getElementById('satin-launch-screen')?.hidden).toBe(true)
+  expect(prelaunchDOM.getElementById('satin-launch-error')).toBeNull()
+  expect(prelaunchDOM.getElementById('satin-launch-screen')?.hidden).toBe(true)
   expect(JSON.parse(localStorage.getItem('satin-install-failure:/')!)).toMatchObject(failure)
   deliver({
     type: 'SATIN_DOWNLOAD_PROGRESS',
@@ -206,9 +218,9 @@ it('orders success and a later failure within the same clock tick', () => {
 
 it('paints first-install bytes before modules load, but not an update behind a controlling worker', () => {
   const progress = vi.fn()
-  const host = window as unknown as { __SATIN_LAUNCH_SCREEN__: { progress: typeof progress } }
-  const previous = host.__SATIN_LAUNCH_SCREEN__
-  host.__SATIN_LAUNCH_SCREEN__ = { progress }
+  const host = window as unknown as { __SATIN_PRELAUNCH__: { progress: typeof progress } }
+  const previous = host.__SATIN_PRELAUNCH__
+  host.__SATIN_PRELAUNCH__ = { ...previous, progress }
   try {
     deliverProgress(25)
     expect(progress).toHaveBeenCalledWith(expect.objectContaining({ loaded: 25, total: 100 }))
@@ -216,6 +228,6 @@ it('paints first-install bytes before modules load, but not an update behind a c
     deliverProgress(50)
     expect(progress).toHaveBeenCalledTimes(1)
   } finally {
-    host.__SATIN_LAUNCH_SCREEN__ = previous
+    host.__SATIN_PRELAUNCH__ = previous
   }
 })

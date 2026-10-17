@@ -1,3 +1,4 @@
+import { setupPrelaunch, prelaunchDOM } from './prelaunch.test-helper.ts'
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { installLaunchWatchdog } from './launchWatchdog.ts'
@@ -7,7 +8,7 @@ beforeEach(() => {
   vi.resetModules()
   localStorage.clear()
   sessionStorage.clear()
-  delete (window as Window & { __SATIN_LAUNCH_SCREEN__?: unknown }).__SATIN_LAUNCH_SCREEN__
+  delete (window as Window & { __SATIN_PRELAUNCH__?: unknown }).__SATIN_PRELAUNCH__
   vi.spyOn(performance, 'now').mockImplementation(() => Date.now())
   vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) =>
     setTimeout(() => callback(performance.now()), 16),
@@ -17,6 +18,7 @@ beforeEach(() => {
     <div id="satin-launch-screen">
       <svg id="satin-launch-progress" hidden><circle stroke-dashoffset="100" /></svg>
     </div>`
+  setupPrelaunch()
 })
 
 afterEach(() => {
@@ -29,8 +31,8 @@ afterEach(() => {
 
 it('shows an applied-update ring for 800 ms and completes it before revealing the new app', async () => {
   const { showAppliedUpdate, setLaunchScreen } = await import('./launchScreenRuntime.ts')
-  const cover = document.getElementById('satin-launch-screen')!
-  const ring = document.getElementById('satin-launch-progress')!
+  const cover = prelaunchDOM.getElementById('satin-launch-screen')!
+  const ring = prelaunchDOM.getElementById('satin-launch-progress')!
   let finish!: () => void
   const finished = new Promise<void>(resolve => {
     finish = resolve
@@ -72,7 +74,7 @@ it('shows an applied-update ring for 800 ms and completes it before revealing th
 it.each([undefined, 0])(
   'continues the parser-started ring through React mount (ringStart=%s)',
   async ringStart => {
-    const { installLaunchScreenRuntime, resumeAppliedUpdate, showAppliedUpdate, setLaunchScreen } =
+    const { prelaunchController, resumeAppliedUpdate, showAppliedUpdate, setLaunchScreen } =
       await import('./launchScreenRuntime.ts')
     sessionStorage.setItem(
       'satin:just-updated:v1:/app/',
@@ -95,9 +97,9 @@ it.each([undefined, 0])(
     const animate = vi
       .spyOn(Element.prototype, 'animate')
       .mockReturnValue(animation as unknown as Animation)
-    installLaunchScreenRuntime()
+    prelaunchController()
     resumeAppliedUpdate('/app/')
-    const ring = document.getElementById('satin-launch-progress')!
+    const ring = prelaunchDOM.getElementById('satin-launch-progress')!
     expect(ring.hasAttribute('hidden')).toBe(false)
     const offset = ringStart === 0 ? '100' : '0'
     expect(ring.querySelector('circle')?.getAttribute('stroke-dashoffset')).toBe(offset)
@@ -116,7 +118,7 @@ it.each([undefined, 0])(
 )
 
 it('confirms a new document build when a worker activated without a reload marker', async () => {
-  const { installLaunchScreenRuntime, resumeAppliedUpdate, completeLaunchProgress } =
+  const { prelaunchController, resumeAppliedUpdate, completeLaunchProgress } =
     await import('./launchScreenRuntime.ts')
   localStorage.setItem('satin:revealed-build:v1:/app/', 'build-a')
   let finish!: () => void
@@ -128,9 +130,9 @@ it('confirms a new document build when a worker activated without a reload marke
     play: vi.fn(),
     cancel: vi.fn(),
   } as unknown as Animation)
-  installLaunchScreenRuntime()
+  prelaunchController()
   resumeAppliedUpdate('/app/', 'build-b')
-  expect(document.getElementById('satin-launch-progress')!.hasAttribute('hidden')).toBe(false)
+  expect(prelaunchDOM.getElementById('satin-launch-progress')!.hasAttribute('hidden')).toBe(false)
   expect(localStorage.getItem('satin:revealed-build:v1:/app/')).toBe('build-a')
   let ready = false
   const completion = completeLaunchProgress().then(() => {
@@ -180,11 +182,11 @@ it.each([null, 'build-a'])(
     setLaunchScreen(true)
     if (previous) localStorage.setItem('satin:revealed-build:v1:/app/', previous)
     resumeAppliedUpdate('/app/', 'build-a')
-    expect(document.getElementById('satin-launch-progress')!.hasAttribute('hidden')).toBe(true)
+    expect(prelaunchDOM.getElementById('satin-launch-progress')!.hasAttribute('hidden')).toBe(true)
     setLaunchScreen(false)
     await vi.advanceTimersByTimeAsync(0)
-    expect(document.getElementById('satin-launch-screen')!.hidden).toBe(true)
-    expect(document.getElementById('satin-launch-progress')!.hasAttribute('hidden')).toBe(true)
+    expect(prelaunchDOM.getElementById('satin-launch-screen')!.hidden).toBe(true)
+    expect(prelaunchDOM.getElementById('satin-launch-progress')!.hasAttribute('hidden')).toBe(true)
   },
 )
 
@@ -192,8 +194,8 @@ it.each([false, true])(
   'keeps the cover visible through completed progress, ring fade and cover fade (recovery=%s)',
   async recoverFromFailure => {
     const { setLaunchProgress, setLaunchScreen } = await import('./launchScreenRuntime.ts')
-    const cover = document.getElementById('satin-launch-screen')!
-    const ring = document.getElementById('satin-launch-progress')!
+    const cover = prelaunchDOM.getElementById('satin-launch-screen')!
+    const ring = prelaunchDOM.getElementById('satin-launch-progress')!
     const circle = ring.querySelector('circle')!
     const fades: { element: Element; finish: () => void }[] = []
     vi.spyOn(Element.prototype, 'animate').mockImplementation(function (this: Element) {
@@ -207,7 +209,7 @@ it.each([false, true])(
     installLaunchWatchdog(1000)
     if (recoverFromFailure) {
       vi.advanceTimersByTime(1000)
-      expect(document.getElementById('satin-launch-error')).not.toBeNull()
+      expect(prelaunchDOM.getElementById('satin-launch-error')).not.toBeNull()
       expect(cover.hidden).toBe(true)
     }
     setLaunchProgress({ loaded: 35, total: 100 })
@@ -215,7 +217,7 @@ it.each([false, true])(
     setLaunchProgress(null)
     setLaunchScreen(false)
     expect(cover.hidden).toBe(false)
-    expect(document.getElementById('satin-launch-error')).toBeNull()
+    expect(prelaunchDOM.getElementById('satin-launch-error')).toBeNull()
     expect(fades).toHaveLength(0)
     await vi.advanceTimersByTimeAsync(3000)
     expect(Number(circle.getAttribute('stroke-dashoffset'))).toBeCloseTo(0, 2)
@@ -233,25 +235,25 @@ it.each([false, true])(
     setLaunchProgress({ loaded: 200, total: 200 })
     await vi.advanceTimersByTimeAsync(3000)
     expect(cover.hidden).toBe(true)
-    expect(document.getElementById('satin-launch-error')).toBeNull()
+    expect(prelaunchDOM.getElementById('satin-launch-error')).toBeNull()
   },
 )
 
 it('restores a stalled launch only after genuine progress and can detect a second stall', () => {
   installLaunchWatchdog(1000)
   vi.advanceTimersByTime(1000)
-  expect(document.getElementById('satin-launch-screen')!.hidden).toBe(true)
+  expect(prelaunchDOM.getElementById('satin-launch-screen')!.hidden).toBe(true)
   window.dispatchEvent(new CustomEvent('satin-launch-progress', { detail: { loaded: 1 } }))
-  expect(document.getElementById('satin-launch-error')).toBeNull()
-  expect(document.getElementById('satin-launch-screen')!.hidden).toBe(false)
+  expect(prelaunchDOM.getElementById('satin-launch-error')).toBeNull()
+  expect(prelaunchDOM.getElementById('satin-launch-screen')!.hidden).toBe(false)
   vi.advanceTimersByTime(1000)
-  expect(document.getElementById('satin-launch-error')).not.toBeNull()
+  expect(prelaunchDOM.getElementById('satin-launch-error')).not.toBeNull()
 })
 
 it('completes a visible partial ring before a watchdog error replaces the cover', async () => {
   const { setLaunchProgress, completeLaunchProgress } = await import('./launchScreenRuntime.ts')
-  const cover = document.getElementById('satin-launch-screen')!
-  const ring = document.getElementById('satin-launch-progress')!
+  const cover = prelaunchDOM.getElementById('satin-launch-screen')!
+  const ring = prelaunchDOM.getElementById('satin-launch-progress')!
   const circle = ring.querySelector('circle')!
   const fades: { element: Element; finish: () => void }[] = []
   vi.spyOn(Element.prototype, 'animate').mockImplementation(function (this: Element) {
@@ -271,7 +273,7 @@ it('completes a visible partial ring before a watchdog error replaces the cover'
     }),
   )
   expect(cover.hidden).toBe(false)
-  const error = document.getElementById('satin-launch-error')!
+  const error = prelaunchDOM.getElementById('satin-launch-error')!
   expect(Number(error.style.zIndex)).toBeLessThan(20000)
   await vi.advanceTimersByTimeAsync(3000)
   expect(Number(circle.getAttribute('stroke-dashoffset'))).toBe(0)
@@ -281,12 +283,12 @@ it('completes a visible partial ring before a watchdog error replaces the cover'
   fades[1]!.finish()
   await vi.advanceTimersByTimeAsync(0)
   expect(cover.hidden).toBe(true)
-  expect(Number(error.style.zIndex)).toBeGreaterThan(20000)
+  expect(error.getRootNode()).toBe(cover.getRootNode())
   expect(error.textContent).toContain('readiness-timeout')
   setLaunchProgress({ loaded: 50, total: 100 })
   await vi.advanceTimersByTimeAsync(1500)
   expect(cover.hidden).toBe(false)
-  expect(document.getElementById('satin-launch-error')).toBeNull()
+  expect(prelaunchDOM.getElementById('satin-launch-error')).toBeNull()
   expect(Number(circle.getAttribute('stroke-dashoffset'))).toBeCloseTo(50, 2)
   // A recovery interrupts a pending document replacement too.
   const completing = completeLaunchProgress()
@@ -313,10 +315,11 @@ it.each([
     vi.stubGlobal('innerWidth', geometry.width)
     vi.stubGlobal('innerHeight', geometry.viewport)
     Object.defineProperty(navigator, 'standalone', { configurable: true, value: true })
-    const { installLaunchScreenRuntime } = await import('./launchScreenRuntime.ts')
-    installLaunchScreenRuntime()
+    window.dispatchEvent(new Event('resize'))
     const top = Number.parseFloat(
-      document.documentElement.style.getPropertyValue('--satin-launch-excluded-top'),
+      (document.querySelector('satin-prelaunch') as HTMLElement).style.getPropertyValue(
+        '--satin-launch-excluded-top',
+      ),
     )
     expect(top).toBe(geometry.excluded)
     // The viewport origin is below the excluded system strip. The extended
@@ -325,3 +328,15 @@ it.each([
     delete (navigator as Navigator & { standalone?: boolean }).standalone
   },
 )
+
+it('owns its ring before progress arrives and never reads app DOM', async () => {
+  const { setLaunchProgress } = await import('./launchScreenRuntime.ts')
+  document.body.replaceChildren()
+  setLaunchProgress({ loaded: 40, total: 100 })
+  setLaunchProgress({ loaded: 100, total: 100 })
+  setLaunchProgress(null)
+  await vi.advanceTimersByTimeAsync(2000)
+  expect(prelaunchDOM.getElementById('satin-launch-progress')!.hasAttribute('hidden')).toBe(false)
+  expect(prelaunchDOM.querySelector('circle')!.getAttribute('stroke-dashoffset')).toBe('0')
+  expect(document.querySelector('satin-prelaunch')!.shadowRoot).toBeNull()
+})

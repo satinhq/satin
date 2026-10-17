@@ -95,7 +95,8 @@ export function sheetCornerShape(
   }
 }
 
-/** `PresentationDetent`: a sheet's supported resting height. */
+/** A height a sheet can rest at: `medium`, `large`, a fixed `height` in points or a `fraction` of
+ * the available height. */
 export type PresentationDetent =
   'medium' | 'large' | Readonly<{ height: number }> | Readonly<{ fraction: number }>
 

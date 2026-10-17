@@ -1,4 +1,10 @@
+import { usePadSearchFieldMotion } from './usePadSearchFieldMotion.ts'
+import {
+  PadSearchPresentationContext,
+  PadSearchTabContext,
+} from './PadSearchPresentationContext.tsx'
 import { useContext, useLayoutEffect, useRef, useSyncExternalStore, type RefObject } from 'react'
+import { readDeviceIdiom } from '../layout/deviceIdiom.ts'
 import { createPortal } from 'react-dom'
 import { GlassBackground } from '../glass/GlassEffect.tsx'
 import { MaterialEffectContext } from '../glass/liquidContext.ts'
@@ -12,6 +18,7 @@ import {
 import { focusFromFramework } from '../focus/programmaticFocus.ts'
 import { SymbolImage } from '../symbols/Symbol.tsx'
 import { TextField } from '../text-input/TextField.tsx'
+import { SearchSuggestionsPopover } from './SearchSuggestionsPopover.tsx'
 import { SearchScopesBar } from './SearchScopesBar.tsx'
 import type { Searchable } from './searchable.ts'
 import { navigationChromeOf, ownBarParts, stackedOver, subscribeNever } from './searchChrome.ts'
@@ -34,12 +41,17 @@ export function SearchToolbarField({
   scroller,
   host,
   navigation = false,
+  drawer = false,
 }: {
   configuration: Searchable
   scroller: RefObject<HTMLDivElement | null>
   host: HTMLElement
   navigation?: boolean
+  drawer?: boolean
 }) {
+  const tabSearch = useContext(PadSearchPresentationContext)
+  const searchTab = useContext(PadSearchTabContext)
+  const setSearchOwner = tabSearch?.setOwner
   const liquid = useContext(MaterialEffectContext)
   const navigator = useContext(NavigatorContext)
   const screenKey = useContext(ScreenContext)?.key
@@ -48,14 +60,21 @@ export function SearchToolbarField({
   )
   const inputRef = useRef<HTMLInputElement>(null)
   const rowRef = useRef<HTMLDivElement>(null)
-  const search = useSearchPresentation(configuration, inputRef)
+  const pad = navigation && readDeviceIdiom() === 'pad'
+  const search = useSearchPresentation(configuration, inputRef, pad)
   const { presented } = search
+  usePadSearchFieldMotion(rowRef, pad && !drawer, presented, searchTab !== null, liquid?.regions)
+  useLayoutEffect(() => {
+    if (!pad || !searchTab || !setSearchOwner || !presented || stacked) return
+    setSearchOwner(searchTab)
+    return () => setSearchOwner(null)
+  }, [pad, searchTab, setSearchOwner, presented, stacked])
 
   // The bar's title and items give way while search is presented; its back control too, unless a
   // screen is stacked over this one (as the drawer, SearchDrawer.tsx).
   useLayoutEffect(() => {
     const element = scroller.current
-    if (!element || navigation) return
+    if (!element || (navigation && !drawer)) return
     element.toggleAttribute('data-satin-search-presented', presented)
     const { header } = navigationChromeOf(element)
     const parts = ownBarParts(header, screenKey)
@@ -70,7 +89,7 @@ export function SearchToolbarField({
       for (const part of parts) part.removeAttribute('data-satin-search-presented')
       header?.removeAttribute('data-satin-search-presented')
     }
-  }, [presented, scroller, screenKey, stacked, navigation])
+  }, [presented, scroller, screenKey, stacked, navigation, drawer])
 
   // The field moves with the keyboard on the keyboard's own curve (styles.css). Glass regions
   // follow a moving element only when told: refresh them while it moves.
@@ -112,6 +131,7 @@ export function SearchToolbarField({
       role="search"
       data-satin-search-toolbar=""
       data-satin-search-navigation={navigation || undefined}
+      data-satin-search-pad={pad || undefined}
       data-satin-search-toolbar-presented={presented || undefined}
     >
       <div data-satin-search-toolbar-field="">
@@ -132,6 +152,7 @@ export function SearchToolbarField({
           value={configuration.text}
           onChange={search.change}
           onFocus={search.present}
+          onBlur={pad ? search.resign : undefined}
           onSubmit={search.submit}
           onKeyDown={event => {
             if (event.key !== 'Escape' || event.nativeEvent.isComposing) return
@@ -145,6 +166,10 @@ export function SearchToolbarField({
             aria-label="Clear text"
             data-satin-search-toolbar-clear=""
             onPress={() => {
+              if (pad && searchTab) {
+                search.dismiss()
+                return
+              }
               search.change('')
               if (inputRef.current) focusFromFramework(inputRef.current)
             }}
@@ -153,7 +178,7 @@ export function SearchToolbarField({
           </Pressable>
         )}
       </div>
-      {presented && (
+      {presented && !pad && (
         <Pressable
           iconOnly
           aria-label="Close"
@@ -174,30 +199,47 @@ export function SearchToolbarField({
       )}
     </div>
   )
+  const suggestions = search.suggestions.map(suggestion => (
+    <Pressable
+      key={suggestion.id}
+      role="listitem"
+      feedback="row"
+      data-satin-search-suggestion=""
+      onPress={() => search.complete(suggestion)}
+    >
+      {suggestion.label ?? suggestion.text}
+    </Pressable>
+  ))
   return (
     <>
-      {createPortal(ownsItem ? <div data-satin-toolbar-item="search">{row}</div> : row, host)}
-      {navigation && configuration.scopes && presented && (
+      {createPortal(
+        ownsItem ? (
+          <div
+            data-satin-toolbar-item="search"
+            data-satin-search-pad-item={pad || undefined}
+            data-satin-search-expanded={(pad && presented) || undefined}
+          >
+            {row}
+          </div>
+        ) : (
+          row
+        ),
+        host,
+      )}
+      {navigation && (!pad || drawer) && configuration.scopes && presented && (
         <div data-satin-search-navigation-scopes="" data-satin-search-presented="">
           <SearchScopesBar scopes={configuration.scopes} presented={presented} />
         </div>
       )}
       {/* Mounted only while shown: the content's first-child geometry rules stay intact. */}
-      {search.suggestions.length > 0 && (
-        <div data-satin-search-suggestions="" role="list" aria-label="Suggestions">
-          {search.suggestions.map(suggestion => (
-            <Pressable
-              key={suggestion.id}
-              role="listitem"
-              feedback="row"
-              data-satin-search-suggestion=""
-              onPress={() => search.complete(suggestion)}
-            >
-              {suggestion.label ?? suggestion.text}
-            </Pressable>
-          ))}
-        </div>
-      )}
+      {search.suggestions.length > 0 &&
+        (pad ? (
+          <SearchSuggestionsPopover anchor={rowRef}>{suggestions}</SearchSuggestionsPopover>
+        ) : (
+          <div data-satin-search-suggestions="" role="list" aria-label="Suggestions">
+            {suggestions}
+          </div>
+        ))}
     </>
   )
 }

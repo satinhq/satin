@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs'
+import { frameworkStyleDeclarations } from '../../test/domStyles.ts'
 import { Row, Toggle } from '../list-form/ListForm.tsx'
 // @vitest-environment happy-dom
 import { act, useState, type ReactNode } from 'react'
@@ -32,7 +32,7 @@ let root: Root, element: HTMLDivElement, frames: FrameRequestCallback[], now: nu
 beforeEach(() => {
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
   stylesheet = document.createElement('style')
-  stylesheet.textContent = readFileSync('src/styles.css', 'utf8')
+  stylesheet.textContent = frameworkStyleDeclarations()
   document.head.append(stylesheet)
   frames = []
   now = 1_000

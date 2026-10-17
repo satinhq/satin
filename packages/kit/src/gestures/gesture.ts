@@ -7,14 +7,19 @@ import {
   type GestureRecognizerContext,
 } from './arena.ts'
 
+/** A point in CSS pixels. */
 export type GesturePoint = Readonly<{ x: number; y: number }>
+/** A drag's current and start locations, its translation and its velocity. */
 export type DragGestureValue = Readonly<{
   location: GesturePoint
   startLocation: GesturePoint
   translation: GesturePoint
   velocity: GesturePoint
 }>
+/** A pinch's scale relative to its start, and the point it started around. */
 export type MagnifyGestureValue = Readonly<{ magnification: number; startAnchor: GesturePoint }>
+/** The binding `useGestureState` returns. A gesture updates it while active and resets it when it
+ * ends. */
 export type GestureState<Value> = Readonly<{ update(value: Value): void; reset(): void }>
 type Callbacks<Value> = Readonly<{
   onChanged?: (value: Value) => void
@@ -26,6 +31,8 @@ export type GestureSample = Readonly<{
   drag: DragGestureValue
   magnify: MagnifyGestureValue | undefined
 }>
+/** A gesture made by `DragGesture`, `LongPressGesture`, `TapGesture` or `MagnifyGesture`, for a
+ * `GestureView`. */
 export type Gesture = Readonly<{
   kind: 'drag' | 'longPress' | 'tap' | 'magnify'
   axis: 'horizontal' | 'vertical' | 'any'
@@ -37,8 +44,8 @@ export type Gesture = Readonly<{
   cancelled(): void
 }>
 
-/** A React value plus a gesture-owned update/reset binding. Cancellation and release
- * restore the initial value; no mutable proxy is exposed to application code. */
+/** Returns a value that a gesture drives, and the binding to pass as the gesture's `state`. The
+ * value goes back to `initialValue` when the gesture ends or is cancelled. */
 export function useGestureState<Value>(initialValue: Value): readonly [Value, GestureState<Value>] {
   const [value, setValue] = useState(initialValue)
   const initial = useRef(initialValue)
@@ -73,8 +80,11 @@ function distance(value: number, name: string) {
     throw new Error(`${name} must be finite and non-negative.`)
   return value
 }
+/** A drag's callbacks and state, the distance it must travel before it starts (10 by default) and
+ * the axis it accepts. */
 export type DragGestureOptions = Callbacks<DragGestureValue> &
   Readonly<{ minimumDistance?: number; axis?: Gesture['axis'] }>
+/** A drag that starts after the finger moves `minimumDistance` along the accepted axis. */
 export function DragGesture({
   minimumDistance = 10,
   axis = 'any',
@@ -96,8 +106,11 @@ export function DragGesture({
     },
   })
 }
+/** A long press's callbacks and state, how long it must be held (500 ms by default) and how far
+ * the finger may move (10 by default). */
 export type LongPressGestureOptions = Callbacks<boolean> &
   Readonly<{ minimumDurationMs?: number; maximumDistance?: number }>
+/** A press held for `minimumDurationMs` without moving more than `maximumDistance`. */
 export function LongPressGesture({
   minimumDurationMs = 500,
   maximumDistance = 10,
@@ -122,8 +135,12 @@ export function LongPressGesture({
     },
   })
 }
+/** A tap's callbacks and state, the number of taps (1 by default) and how far the finger may
+ * move (10 by default). */
 export type TapGestureOptions = Callbacks<GesturePoint> &
   Readonly<{ count?: number; maximumDistance?: number }>
+/** A tap, or `count` taps, that ends without moving more than `maximumDistance`. It reports where
+ * the finger lifted. */
 export function TapGesture({
   count = 1,
   maximumDistance = 10,
@@ -144,8 +161,11 @@ export function TapGesture({
     },
   })
 }
+/** A pinch's callbacks and state, and how far the scale must change before it starts (0.01 by
+ * default). */
 export type MagnifyGestureOptions = Callbacks<MagnifyGestureValue> &
   Readonly<{ minimumScaleDelta?: number }>
+/** A two-finger pinch that starts once the scale changes by `minimumScaleDelta`. */
 export function MagnifyGesture({
   minimumScaleDelta = 0.01,
   ...options

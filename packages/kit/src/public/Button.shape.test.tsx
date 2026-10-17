@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { readFileSync } from 'node:fs'
+import { frameworkStyleDeclarations } from '../../test/domStyles.ts'
 import { expect, it } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { Button } from './controls.tsx'
@@ -77,7 +77,7 @@ it('keeps fixed clipping inside a glass container content wrapper', () => {
 
 it('gives a large content plus the native composer allocation without changing toolbar circles', () => {
   const style = document.createElement('style')
-  style.textContent = readFileSync('src/styles.css', 'utf8')
+  style.textContent = frameworkStyleDeclarations()
   const host = document.createElement('div')
   host.innerHTML = renderToStaticMarkup(
     <>

@@ -217,9 +217,8 @@ export function NavigationStack<R extends Routes = RegisteredRoutes, D = Registe
 }
 /** Selects which declared primary stack the split view renders; inside a `Tab`, its own. */
 export type NavigationSplitViewProps<D = RegisteredNavigation> = { tab?: TabId<D> }
-/** `NavigationSplitView`: the declared root becomes the sidebar and pushes become the
- * retained detail stack. It collapses to a plain stack at compact width. A `NavigationStack` never
- * splits by itself. */
+/** Shows the declared root as a sidebar and pushes into a retained detail column. At compact
+ * width it collapses to a plain stack. A `NavigationStack` never splits by itself. */
 export function NavigationSplitView<D = RegisteredNavigation>(props: NavigationSplitViewProps<D>) {
   if ('root' in props || 'params' in props || 'modal' in props)
     throw new Error('NavigationSplitView uses a declared primary sidebar root')
@@ -286,7 +285,8 @@ function ModalStack({ root, params }: { root: string; params?: unknown }) {
 
 /** The typed parameter tuple accepted by push and replace. */
 export type NavigationArguments<P> = {} extends P ? [params?: P] : [params: P]
-/** The current stack's typed navigation actions. */
+/** The actions `useNavigation` returns: `push`, `replace`, `pop`, `popToRoot` and
+ * `showAcknowledgements`, typed against the routes. */
 export interface Navigation<R extends Routes> {
   /** Opens the built-in credit and bundled licenses. Returns false when opted out or while a back gesture owns navigation. */
   showAcknowledgements(): boolean
@@ -350,7 +350,8 @@ export type TabViewProps<D = RegisteredNavigation> = {
 }
 /** Names the declared tab to render. */
 export type TabProps<D = RegisteredNavigation> = { id: TabId<D> }
-/** Render one declared tab's content; identities and root stacks come from defineNavigation. */
+/** Renders one declared tab inside a `TabView`. Its id, label and root stack come from
+ * `defineNavigation`. */
 export function Tab<D = RegisteredNavigation>({ id }: TabProps<D>) {
   return <DeclaredTab id={id} />
 }
@@ -364,9 +365,9 @@ function DeclaredTab({ id }: { id: string }) {
   )
 }
 /**
- * `TabView`: renders the tabs from `defineNavigation`, each retaining its own stack, and
- * restores the selected tab with the scene. Pass `selection` and `onSelectionChange` to control it;
- * a controlled tab press only requests the change.
+ * Renders the tabs from `defineNavigation`. Each tab keeps its own stack, and the selected tab is
+ * restored with the scene. Pass `selection` and `onSelectionChange` to control it; a controlled
+ * tab press only requests the change.
  */
 export function TabView<D = RegisteredNavigation>(props: TabViewProps<D>) {
   return <DeclaredTabView {...(props as EngineTabViewProps<string>)} />

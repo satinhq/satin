@@ -1,8 +1,8 @@
-/** `Edge`: a logical edge of a scroll view. */
+/** A logical edge of a scroll view. */
 export type ScrollEdge = 'top' | 'bottom' | 'leading' | 'trailing'
 /** One or more scroll edges, or all edges. */
 export type ScrollEdgeSelection = ScrollEdge | 'all' | readonly ScrollEdge[]
-/** `ScrollEdgeEffectStyle`: the requested edge material treatment. */
+/** The material under bars at a scroll view's edge: `soft`, `hard` or `automatic`. */
 export type ScrollEdgeEffectStyle = 'soft' | 'hard' | 'automatic'
 /** Whether to hide scroll edge material, optionally for specific edges. */
 export type ScrollEdgeEffectHidden = boolean | { hidden: boolean; edges: ScrollEdgeSelection }

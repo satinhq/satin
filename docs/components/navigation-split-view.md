@@ -29,7 +29,6 @@ import {
   runApp,
   type RouteParameters,
 } from '@satinhq/kit'
-import '@satinhq/kit/styles.css'
 import { app as appInput } from './app'
 
 const destinationParams = { name: param.string() }

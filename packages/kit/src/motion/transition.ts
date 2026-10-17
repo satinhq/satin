@@ -4,7 +4,8 @@ type Effect = Readonly<
   { kind: 'opacity' } | { kind: 'scale'; scale: number } | { kind: 'move'; edge: TransitionEdge }
 >
 
-/** Immutable insertion and removal effects. Timing belongs to withAnimation. */
+/** How a view enters and leaves: opacity, scale and move effects. `withAnimation` sets the
+ * timing. */
 export type Transition = Readonly<{ insertion: readonly Effect[]; removal: readonly Effect[] }>
 
 function effects(insertion: readonly Effect[], removal = insertion): Transition {
@@ -31,6 +32,8 @@ function combined(...transitions: readonly Transition[]): Transition {
   )
 }
 const opacity = effects([{ kind: 'opacity' }])
+/** Builds transitions: `identity`, `opacity`, `move`, `scale`, `slide`, `push` and their
+ * combinations. Each returns a new value. */
 export const Transition = Object.freeze({
   identity: effects([]),
   opacity,

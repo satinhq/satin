@@ -1,3 +1,4 @@
+import { setupPrelaunch, prelaunchDOM } from './prelaunch.test-helper.ts'
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { installPageCheck } from './installCheck.ts'
@@ -18,6 +19,7 @@ const expected: DeploymentExpectation = {
   launchColors: { light: '#ffffff', dark: '#ffffff' },
 }
 beforeEach(() => {
+  setupPrelaunch()
   vi.stubGlobal('location', {
     origin: 'https://test.example',
     href: 'https://test.example/install',
@@ -128,7 +130,9 @@ it('replaces the guide with the failure when the deployment is broken', async ()
     ]),
   )
   expect(document.getElementById('satin-install-guide')!.hidden).toBe(true)
-  expect(document.getElementById('satin-install-check')!.textContent).toContain('Manifest HTTP 404')
+  expect(prelaunchDOM.getElementById('satin-launch-error')!.textContent).toContain(
+    'Manifest HTTP 404',
+  )
 })
 it('detects a root build served below a subpath', async () => {
   vi.stubGlobal('location', {
@@ -140,7 +144,7 @@ it('detects a root build served below a subpath', async () => {
     expected,
     vi.fn(async () => []),
   )
-  expect(document.getElementById('satin-install-check')!.textContent).toContain(
+  expect(prelaunchDOM.getElementById('satin-launch-error')!.textContent).toContain(
     'Built for / but served at /fixed/.',
   )
 })
@@ -150,7 +154,9 @@ it('explains why a standalone install-page icon must be replaced', async () => {
     expected,
     vi.fn(async () => []),
   )
-  expect(document.getElementById('satin-install-check')!.textContent).toContain('Delete this icon')
+  expect(prelaunchDOM.getElementById('satin-launch-error')!.textContent).toContain(
+    'Reinstall from Safari',
+  )
   expect(document.getElementById('satin-install-guide')!.hidden).toBe(true)
 })
 
@@ -161,7 +167,7 @@ it('rejects a manifest link on another origin', async () => {
     vi.fn(async () => []),
   )
   expect(document.getElementById('satin-install-guide')!.hidden).toBe(true)
-  expect(document.getElementById('satin-install-check')!.textContent).toContain('Manifest link')
+  expect(prelaunchDOM.getElementById('satin-launch-error')!.textContent).toContain('Manifest link')
 })
 
 it('states one base fix for several failed checks', async () => {
@@ -189,11 +195,13 @@ it('states one base fix for several failed checks', async () => {
       },
     ]),
   )
-  const status = document.getElementById('satin-install-check')!
+  const status = prelaunchDOM.getElementById('satin-launch-error')!
   expect(status.textContent).not.toContain('Repeated fix')
   expect(status.textContent!.match(/rebuild/g)).toHaveLength(1)
-  expect(status.querySelectorAll('li')).toHaveLength(2)
-  expect(status.querySelector('li')!.textContent).toBe('Manifest → /app.webmanifest → HTTP 404')
+  expect(status.querySelector('.detail')!.textContent!.split('\n')).toHaveLength(2)
+  expect(status.querySelector('.detail')!.textContent).toContain(
+    'Manifest → /app.webmanifest → HTTP 404',
+  )
 })
 
 it('keeps standalone recovery to one explanation and one action', async () => {
@@ -208,11 +216,11 @@ it('keeps standalone recovery to one explanation and one action', async () => {
       },
     ]),
   )
-  const status = document.getElementById('satin-install-check')!
-  expect(status.querySelectorAll('p')).toHaveLength(3)
-  expect(status.textContent!.match(/Delete this icon/g)).toHaveLength(1)
+  const status = prelaunchDOM.getElementById('satin-launch-error')!
+  expect(status.querySelectorAll('p')).toHaveLength(2)
+  expect(status.textContent!.match(/Reinstall from Safari/g)).toHaveLength(1)
   expect(status.querySelectorAll('li')).toHaveLength(0)
-  expect(status.querySelector('.install-error-detail')!.textContent).toBe(location.href)
+  expect(status.querySelector('.detail')!.textContent).toBe(location.href)
 })
 
 it('shows standalone and insecure errors before waiting for network checks', async () => {
@@ -220,7 +228,7 @@ it('shows standalone and insecure errors before waiting for network checks', asy
   const check = vi.fn(() => new Promise<never>(() => {}))
   await installPageCheck(expected, check)
   expect(check).not.toHaveBeenCalled()
-  expect(document.body.textContent).toContain('Wrong Home Screen icon')
+  expect(prelaunchDOM.textContent).toContain('Wrong Home Screen icon')
   vi.stubGlobal('matchMedia', () => ({ matches: false }))
   vi.stubGlobal('location', {
     href: 'http://test.example/install',
@@ -229,7 +237,7 @@ it('shows standalone and insecure errors before waiting for network checks', asy
   })
   await installPageCheck(expected, check)
   expect(check).not.toHaveBeenCalled()
-  expect(document.body.textContent).toContain('trusted HTTPS')
+  expect(prelaunchDOM.textContent).toContain('trusted HTTPS')
 })
 
 it('offers Retry for a slow or offline probe without calling it misconfiguration', async () => {
@@ -237,9 +245,9 @@ it('offers Retry for a slow or offline probe without calling it misconfiguration
     { reason: 'Timed out', url: '/app/sw.js', fix: 'Retry', transient: true },
   ])
   await installPageCheck(expected, check)
-  expect(document.body.textContent).toContain("Can't reach the app right now")
-  expect(document.body.textContent).not.toContain('misconfigured')
-  document.querySelector('button')!.click()
+  expect(prelaunchDOM.textContent).toContain("Can't reach the app right now")
+  expect(prelaunchDOM.textContent).not.toContain('misconfigured')
+  prelaunchDOM.querySelector('button')!.click()
   await Promise.resolve()
   expect(check).toHaveBeenCalledTimes(2)
   expect((check.mock.calls as unknown[][])[1]?.[5]).toBe(30_000)
@@ -253,13 +261,13 @@ it('removes the error presentation when Retry succeeds', async () => {
     ])
     .mockResolvedValueOnce([])
   await installPageCheck(expected, check)
-  const status = document.getElementById('satin-install-check')!
-  expect(getComputedStyle(status).display).toBe('grid')
-  document.querySelector<HTMLButtonElement>('button')!.click()
+  const status = prelaunchDOM.getElementById('satin-launch-error')!
+  expect(status.hidden).toBe(false)
+  prelaunchDOM.querySelector<HTMLButtonElement>('button')!.click()
   await vi.waitFor(() => expect(document.getElementById('satin-install-guide')!.hidden).toBe(false))
-  expect(getComputedStyle(status).display).toBe('none')
+  expect(status.isConnected).toBe(false)
   expect(getComputedStyle(document.getElementById('satin-install-guide')!).display).not.toBe('none')
-  expect(status.textContent).toBe('')
+  expect(prelaunchDOM.getElementById('satin-launch-error')).toBeNull()
 })
 
 it.each(['/help/index.html', '/help/', '/help'])(
@@ -275,7 +283,7 @@ it.each(['/help/index.html', '/help/', '/help'])(
       vi.fn(async () => []),
     )
     expect(document.getElementById('satin-install-guide')!.hidden).toBe(false)
-    expect(document.body.textContent).not.toContain('This app is misconfigured')
+    expect(prelaunchDOM.textContent).not.toContain('This app is misconfigured')
   },
 )
 
@@ -313,8 +321,8 @@ it('shows the guide after Retry when a healthy resource consistently takes five 
   await vi.advanceTimersByTimeAsync(4001)
   await initial
   expect(document.querySelector('#satin-install-guide')?.hasAttribute('hidden')).toBe(true)
-  expect(document.body.textContent).not.toContain('misconfigured')
-  const retry = document.querySelector<HTMLButtonElement>('button')!
+  expect(prelaunchDOM.textContent).not.toContain('misconfigured')
+  const retry = prelaunchDOM.querySelector<HTMLButtonElement>('button')!
   retry.click()
   await vi.advanceTimersByTimeAsync(5001)
   expect(document.querySelector('#satin-install-guide')?.hasAttribute('hidden')).toBe(false)
@@ -328,11 +336,11 @@ it('keeps transient outages calm and retries without duplicate requests', async 
     ])
     .mockResolvedValue([])
   await installPageCheck(expected, check)
-  expect(document.body.textContent).toContain("Can't reach the app right now")
-  expect(document.body.textContent).not.toContain('misconfigured')
-  expect(document.body.textContent).not.toContain('Deploy')
-  document.querySelector('button')!.click()
-  document.querySelector('button')!.click()
+  expect(prelaunchDOM.textContent).toContain("Can't reach the app right now")
+  expect(prelaunchDOM.textContent).not.toContain('misconfigured')
+  expect(prelaunchDOM.textContent).not.toContain('Deploy')
+  prelaunchDOM.querySelector('button')!.click()
+  prelaunchDOM.querySelector('button')!.click()
   await Promise.resolve()
   expect(check).toHaveBeenCalledTimes(2)
   expect(document.getElementById('satin-install-guide')!.hidden).toBe(false)

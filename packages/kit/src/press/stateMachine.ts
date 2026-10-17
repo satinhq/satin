@@ -1,4 +1,4 @@
-/** Whether a press is idle, held or cancelled. */
+/** Whether a press is `idle`, held down (`pressed`) or cancelled (`deactivated`). */
 export type PressState = 'idle' | 'pressed' | 'deactivated'
 
 export interface PressBounds {

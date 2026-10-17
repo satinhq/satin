@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { readFileSync } from 'node:fs'
+import { frameworkStyleDeclarations } from '../../test/domStyles.ts'
 import { afterEach, expect, it } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
 import {
@@ -20,7 +20,7 @@ afterEach(() => {
 })
 it('centers vertical scroll content while preserving fill and explicit stack alignment', () => {
   const style = document.createElement('style')
-  style.textContent = readFileSync('src/styles.css', 'utf8').replaceAll('\n', ' ')
+  style.textContent = frameworkStyleDeclarations().replaceAll('\n', ' ')
   document.head.append(style)
   const content = (
     <VStack alignment="trailing" frame={{ maxWidth: 'infinity', alignment: 'leading' }}>
@@ -60,7 +60,7 @@ it.each([VStack, HStack, ZStack, LazyVStack, LazyHStack])(
   '%s passes its proposal to a nested fill frame',
   Stack => {
     const style = document.createElement('style')
-    style.textContent = readFileSync('src/styles.css', 'utf8').replaceAll('\n', ' ')
+    style.textContent = frameworkStyleDeclarations().replaceAll('\n', ' ')
     document.head.append(style)
     document.body.innerHTML = renderToStaticMarkup(
       <Stack frame={{ maxWidth: 'infinity' }}>
@@ -98,7 +98,7 @@ it.each([VStack, HStack, ZStack, LazyVStack, LazyHStack])(
   '%s offers arbitrary content the same width as a fill frame',
   Stack => {
     const style = document.createElement('style')
-    style.textContent = readFileSync('src/styles.css', 'utf8').replaceAll('\n', ' ')
+    style.textContent = frameworkStyleDeclarations().replaceAll('\n', ' ')
     document.head.append(style)
     document.body.innerHTML = renderToStaticMarkup(
       <Stack frame={{ maxWidth: 'infinity' }}>
@@ -117,7 +117,7 @@ it.each([VStack, HStack, ZStack, LazyVStack, LazyHStack])(
 
 it('allocates remaining HStack width to a fill frame without shrinking its bounded sibling', () => {
   const style = document.createElement('style')
-  style.textContent = readFileSync('src/styles.css', 'utf8').replaceAll('\n', ' ')
+  style.textContent = frameworkStyleDeclarations().replaceAll('\n', ' ')
   document.head.append(style)
   document.body.innerHTML = renderToStaticMarkup(
     <HStack>

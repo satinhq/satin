@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs'
+import { frameworkStyleDeclarations } from '../../test/domStyles.ts'
 import { presentationGlassMotion } from './glassMotion.ts'
 // @vitest-environment happy-dom
 import { RestoredScreenMountContext } from '../public/presentationContext.ts'
@@ -3145,7 +3145,7 @@ it('a control contact belongs to the control while ordinary sheet content still 
 // Docs preview exposed inherited left alignment on every Alert action role.
 it('centres alert action labels without changing ordinary pressables', () => {
   const style = document.createElement('style')
-  style.textContent = readFileSync('src/styles.css', 'utf8')
+  style.textContent = frameworkStyleDeclarations()
   const host = document.createElement('div')
   host.style.textAlign = 'left'
   host.innerHTML = `<div data-satin-presentation="alert"><div class="satin-presentation-actions">

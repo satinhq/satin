@@ -8,11 +8,12 @@ import {
   type ReactNode,
 } from 'react'
 
-/** `ControlSize`. */
+/** A control's size, from `mini` to `extraLarge`. `regular` is the default. */
 export type ControlSize = 'mini' | 'small' | 'regular' | 'large' | 'extraLarge'
-/** `ButtonRole`. */
+/** A button's role. `destructive` draws it in red; `cancel` marks the action that backs out. */
 export type ButtonRole = 'destructive' | 'cancel'
-/** Built-in button styles, by their `buttonStyle` names. */
+/** The built-in button styles, by their `buttonStyle` names. `automatic` picks one for the
+ * context. */
 export type BuiltInButtonStyle =
   | 'automatic'
   | 'bordered'
@@ -21,46 +22,48 @@ export type BuiltInButtonStyle =
   | 'plain'
   | 'glass'
   | 'glassProminent'
-/** The environment every custom control style receives. */
+/** What every custom control style receives: enabled state, control size and tint. */
 export type ControlConfiguration = Readonly<{
   isEnabled: boolean
   controlSize: ControlSize
   tint: string | undefined
 }>
-/** `ButtonStyleConfiguration`: what a custom `ButtonStyle` draws from. */
+/** What a custom `ButtonStyle` draws from: the label, the pressed state and the role, plus the
+ * shared control values. */
 export type ButtonStyleConfiguration = ControlConfiguration &
   Readonly<{
     label: ReactNode
     isPressed: boolean
     role: ButtonRole | undefined
   }>
-/** A custom framework `ButtonStyle`. Appearance only: return noninteractive content; Satin
- * owns the button. */
+/** A custom look for `Button`. `makeBody` returns noninteractive content; Satin still owns the
+ * button's press handling and accessibility. */
 export type ButtonStyle = Readonly<{
   makeBody(configuration: ButtonStyleConfiguration): ReactNode
 }>
-/** `LabelStyleConfiguration`: the label's title and icon. */
+/** What a custom `LabelStyle` draws from: the label's title and icon. */
 export type LabelStyleConfiguration = Readonly<{ title: ReactNode; icon: ReactNode }>
-/** A custom framework `LabelStyle` that arranges a label's title and icon. */
+/** A custom arrangement of a label's title and icon. */
 export type LabelStyle = Readonly<{
   makeBody(configuration: LabelStyleConfiguration): ReactNode
 }>
-/** Built-in label styles. */
+/** The built-in label styles: the title, the icon or both. `automatic` picks for the context. */
 export type BuiltInLabelStyle = 'automatic' | 'titleAndIcon' | 'titleOnly' | 'iconOnly'
-/** `ToggleStyleConfiguration`: what a custom `ToggleStyle` draws from. */
+/** What a custom `ToggleStyle` draws from: the label, the on state and the pressed state, plus
+ * the shared control values. */
 export type ToggleStyleConfiguration = ControlConfiguration &
   Readonly<{
     label: ReactNode
     isOn: boolean
     isPressed: boolean
   }>
-/** A custom framework `ToggleStyle`. Its declared semantics are applied to the
- * framework-owned interactive element. */
+/** A custom look for `Toggle`. Satin applies the declared `semantics` (switch, checkbox or button)
+ * to the element it owns; `makeBody` draws the appearance. */
 export type ToggleStyle = Readonly<{
   semantics: 'switch' | 'checkbox' | 'button'
   makeBody(configuration: ToggleStyleConfiguration): ReactNode
 }>
-/** Built-in toggle styles. */
+/** The built-in toggle styles: `switch` or `button`. `automatic` picks for the context. */
 export type BuiltInToggleStyle = 'automatic' | 'switch' | 'button'
 /** The control environment a `ControlStyleProvider` sets for its subtree. */
 export type ControlStyleValues = Readonly<{

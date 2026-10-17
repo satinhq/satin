@@ -1,3 +1,4 @@
+import { PadSearchBarMotion } from '../../search/padSearchBarMotion.ts'
 import { SCROLL_INSERTION_MOTION } from '../../scroll/insertionMotion.ts'
 import { KEYBOARD_CARRIER_MOTION } from '../../safe-area/keyboardCarrierGeometry.ts'
 import { keyboardBackdrop } from './keyboardBackdrop.ts'
@@ -181,6 +182,7 @@ export class ProductionGlassRuntime {
   private pointerX = 0
   private pointerStart = 0
   private pointerIndex = 0
+  private padSearch?: PadSearchBarMotion
   private minimize = new TabMinimizeIntent()
   minimizeDom?: WorkerMinimize
   navigationRoutes: NavigationGlassState['routes'] = []
@@ -1478,7 +1480,7 @@ export class ProductionGlassRuntime {
   /** A source change during tab-bar minimize/restore is applied when the motion finishes
    * (its track schedules a preparation): reinstalling every surface mid-motion stalled worker frames. */
   schedulePrepare(afterMinimize = false, windowRecentre = false) {
-    if (!afterMinimize && this.minimizeDom?.active) return
+    if (!afterMinimize && (this.minimizeDom?.active || this.padSearch?.active)) return
     if (
       this.prepareFrame ||
       this.resumeFrame ||
@@ -1804,6 +1806,32 @@ export class ProductionGlassRuntime {
     const previous = this.options.geometry
     this.options = { ...this.options, geometry: { ...previous, ...next } }
     this.minimizeDom?.update(this.options)
+    if (
+      previous.tabBarPlacement === 'top' &&
+      next.tabBarOpacity !== undefined &&
+      previous.tabBarOpacity !== next.tabBarOpacity
+    ) {
+      const spec = this.currentSpecs().find(candidate => candidate.id === 'dock')
+      if (spec) {
+        if (!this.pointer)
+          this.tabInput('reset', this.options.geometry.tabBarSelectedIndex ?? 0, true)
+        const track = (this.padSearch ??= new PadSearchBarMotion()).start(
+          this.options.elements.chrome.dock,
+          1 - next.tabBarOpacity,
+          spec,
+        )
+        if (track.duration) this.track('dock', track.specs, track.duration, track.at)
+        else {
+          const region = this.regionIds.get('dock')
+          this.specs.set('dock', spec)
+          if (region) this.fire({ type: 'region-spec', id: region, spec })
+        }
+        void track.finished.then(() => {
+          if (!this.padSearch?.active) this.schedulePrepare(true)
+        })
+        return
+      }
+    }
     if (previous.tabBarPlacement !== this.options.geometry.tabBarPlacement) {
       this.minimize.rebase(this.options.elements.scroller.scrollTop)
       if (this.options.geometry.tabBarPlacement === 'top') this.restoreMinimizingTabBar()
@@ -1960,6 +1988,7 @@ export class ProductionGlassRuntime {
     this.teardown()
   }
   private teardown() {
+    this.padSearch?.dispose()
     this.unbindAppearance()
     if (this.minimizeDom && (this.minimizeDom.active || this.minimize.compact)) {
       const dock = this.currentSpecs().find(spec => spec.id === 'dock')

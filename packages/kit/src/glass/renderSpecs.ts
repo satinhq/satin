@@ -374,6 +374,7 @@ export type RuntimeGeometry = Readonly<{
   tabBarPillWidths?: readonly number[]
   /** 'top' is the regular-width iPad tab bar; the phone dock is 'bottom' (the default). */
   tabBarPlacement?: 'bottom' | 'top'
+  tabBarOpacity?: number
   tabBarPillHeight?: number
   tabBarPillCenterY?: number
   tabBarCentres?: readonly number[]
@@ -631,6 +632,7 @@ export function createRenderSpecs(
       frameX: geometry.dockX,
       frameY: geometry.dockY,
       id: 'dock' as const,
+      opacity: geometry.tabBarOpacity,
       radius: geometry.dockRadius,
     },
     {

@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs'
+import { frameworkStyleDeclarations } from '../../test/domStyles.ts'
 // @vitest-environment happy-dom
 import { describe, expect, it } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
@@ -181,7 +181,7 @@ it('accepts native compact section spacing without changing the row contents', (
 // Native value rows let both text columns wrap as the available width shrinks.
 it('allows long row labels and values to wrap without clipping their text', () => {
   const style = document.createElement('style')
-  style.textContent = readFileSync('src/styles.css', 'utf8')
+  style.textContent = frameworkStyleDeclarations()
   const host = document.createElement('div')
   const label = 'The Left Hand of Darkness'
   const value = 'Ursula K. Le Guin'

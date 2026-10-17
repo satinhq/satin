@@ -11,7 +11,17 @@ import {
   rowSwipeShouldClose,
   updateRowCorners,
 } from './rowScrub.ts'
+import { createFullSwipeContact } from './fullSwipeContact.ts'
+import type { SwipeActions } from './types.ts'
 afterEach(() => vi.unstubAllGlobals())
+const swipeContact = (configuration?: SwipeActions, width = 400) =>
+  createFullSwipeContact({
+    width,
+    configuration,
+    widths: { leading: 60, trailing: 60 },
+    inline: false,
+    now: performance.now(),
+  })
 const actions = [{ id: 'a', label: 'Archive', onPress() {} }]
 it('keeps no-action edges still and preserves the bounded rubber band', () => {
   const configuration = { edge: 'trailing' as const, allowsFullSwipe: false, actions }
@@ -43,7 +53,15 @@ it('presents the row and pills from the same scroll sample, including a caught r
   const content = document.createElement('div')
   const pill = host.querySelector('button')!
   const configuration = { edge: 'trailing' as const, allowsFullSwipe: false, actions }
-  const scrub = createRowScrub(host, source, content, -80, 400, configuration)!
+  const scrub = createRowScrub(
+    host,
+    source,
+    content,
+    -80,
+    400,
+    configuration,
+    swipeContact(configuration),
+  )!
   const openedPill = pill.style.transform
   source.scrollLeft = 760
   expect(content.style.transform).toBe('translate3d(-80px,0,0)')
@@ -188,4 +206,70 @@ it('closes a revealed tray after reversal without demanding full travel', () => 
   expect(rowSwipeShouldClose(-198, -220, -40)).toBe(false)
   expect(rowSwipeShouldClose(0, -40, -40)).toBe(false)
   expect(rowSwipeShouldClose(0, -35, -35)).toBe(true)
+})
+
+it('presents a destructive takeover from the scroll source on frames, and never on release', () => {
+  let nextFrame: FrameRequestCallback | undefined
+  vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+    nextFrame = callback
+    return 1
+  })
+  vi.stubGlobal('cancelAnimationFrame', () => {})
+  const configuration: SwipeActions = {
+    edge: 'trailing',
+    actions: [
+      { id: 'delete', label: 'Delete', role: 'destructive' },
+      { id: 'more', label: 'More' },
+    ],
+  }
+  const scrubbed = (finger: number) => {
+    const host = document.createElement('div')
+    host.innerHTML =
+      '<div data-satin-swipe-tray="leading"></div>' +
+      '<div data-satin-swipe-tray="trailing"><button data-satin-swipe-action style="width:60px"></button></div>'
+    const source = document.createElement('div')
+    Object.defineProperties(source, { scrollWidth: { value: 2000 }, clientWidth: { value: 400 } })
+    source.scrollLeft = 800
+    const content = document.createElement('div')
+    const contact = swipeContact(configuration)
+    const scrub = createRowScrub(host, source, content, 0, 400, configuration, contact)!
+    // The finger reaches the zone with 290pt of scroll travel.
+    contact.track(finger)
+    source.scrollLeft = 1090
+    return { scrub, contact, content }
+  }
+  // Released before any frame presents the zone: no takeover, no anchor.
+  const lifted = scrubbed(65)
+  expect(lifted.scrub.flush(performance.now(), false).position).toBeCloseTo(
+    rowSwipePosition(-290, 400, configuration),
+  )
+  expect(lifted.contact.anchored()).toBe(false)
+  lifted.scrub.cancel()
+  // A presented frame takes over; later frames keep moving the row with the
+  // scroll offset unchanged, until it reaches the anchor.
+  const held = scrubbed(65)
+  const start = performance.now()
+  nextFrame!(start)
+  expect(held.contact.anchored()).toBe(true)
+  const jumping = held.content.style.transform
+  nextFrame!(start + 50)
+  expect(held.content.style.transform).not.toBe(jumping)
+  nextFrame!(start + 500)
+  expect(held.content.style.transform).toBe('translate3d(-371px,0,0)')
+  expect(held.contact.armed(-290)).toBe(true)
+  held.scrub.cancel()
+})
+
+it('keeps the other actions visible and packed against the row through a destructive takeover', () => {
+  // Native tall Delete row at the anchor: 371pt revealed, primary = revealed - 80
+  // (growth 241 on a 50pt button), More beside the row at alpha 0.32.
+  const primary = swipeActionPose(-371, 0, 2, 1, 0, 50, false, true, true)
+  const secondary = swipeActionPose(-371, 1, 2, 1, 0, 50, false, true, true)
+  expect(primary.growth).toBeCloseTo(241)
+  expect(secondary.spread).toBeCloseTo(241)
+  expect(secondary.opacity).toBeCloseTo(0.32, 2)
+  // r3 reversal back to 142pt revealed: More is brighter again (native 0.73).
+  expect(swipeActionPose(-142, 1, 2, 1, 0, 50, false, true, true).opacity).toBeCloseTo(0.73, 2)
+  // Non-destructive takeover still hands the secondary's slot to the primary.
+  expect(swipeActionPose(-371, 1, 2, 1, 0, 50, false, true).opacity).toBe(0)
 })

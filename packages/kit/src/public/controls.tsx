@@ -57,9 +57,9 @@ import { ListContext, ListRowContentContext } from '../list-form/listContext.ts'
 import { useEditMode, type ListItemID } from '../list-form/editing.tsx'
 import type { Routes, RouteProps, RegisteredRoutes } from './routes.tsx'
 
-/** `swipeActions` and `contextMenu` for a row inside a `List`. */
+/** The `swipeActions` and `contextMenu` props of a row in a `List`. */
 export type RowInteractionProps = RowActionsProps
-/** `textFieldStyle`: `automatic` adapts to the container; `plain` draws no field chrome. */
+/** How a text field draws. `automatic` adapts to its container; `plain` draws no field chrome. */
 export type TextFieldStyle = 'automatic' | 'plain'
 /** A number caps growth; a range also reserves its minimum number of lines. */
 export type LineLimit = number | { min: number; max: number }
@@ -86,7 +86,7 @@ export type FormProps = Omit<HTMLAttributes<HTMLDivElement>, 'id'> & {
   scrollContentBackground?: 'hidden' | 'visible'
 }
 
-/** `listStyle`: the row chrome of a `List`. */
+/** How a `List` draws its rows and sections. `insetGrouped` is the default. */
 export type ListStyle = 'insetGrouped' | 'plain' | 'grouped' | 'sidebar'
 
 /** A `List` takes a `Form`'s options, its `listStyle` and an optional `selection`. */
@@ -95,7 +95,7 @@ export type ListProps<ID extends ListItemID = ListItemID> = FormProps & {
 } & ListSelectionProps<ID>
 
 /**
- * `List(selection:)`. An optional id selects one row: tapping a row selects it. A `Set`
+ * Row selection for a `List`. An optional id selects one row: tapping a row selects it. A `Set`
  * selects many: while editing, rows show selection circles and taps toggle them. Rows are
  * identified by their `ForEach` ids.
  */
@@ -104,8 +104,8 @@ export type ListSelectionProps<ID extends ListItemID = ListItemID> =
   | { selection: ID | null; onSelectionChange: (next: ID | null) => void }
   | { selection: ReadonlySet<ID>; onSelectionChange: (next: Set<ID>) => void }
 /**
- * `List`: a named vertical scroll view of rows, inset grouped by default. Controls inside
- * it render as rows. Its `id` keys scroll restoration, so keep it stable.
+ * A scrolling column of rows, inset grouped by default. Controls inside it render as rows.
+ * Its `id` keys scroll restoration, so keep it stable.
  *
  * With `selection`, rows from a `ForEach` become selectable; with an `EditButton` in the screen's
  * toolbar, `ForEach`'s `onDelete` and `onMove` add the editing controls.
@@ -179,8 +179,8 @@ function selectionBinding<ID extends ListItemID>(
     onChange: onSelectionChange as (next: ListItemID | null) => void,
   }
 }
-/** `Form`: an inset grouped `List` for settings and data entry, whose scroll dismisses
- * the keyboard immediately. */
+/** An inset grouped `List` for settings and data entry. Scrolling it dismisses the keyboard
+ * at once. */
 export function Form(props: FormProps) {
   return (
     <List
@@ -391,8 +391,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
   )
 })
 /**
- * `EditButton`: toggles the screen's edit mode. In a toolbar it reads Edit, then becomes
- * the prominent checkmark (Done) while editing, as in iOS 27.
+ * Toggles the screen's edit mode. In a toolbar it reads Edit, then becomes a prominent
+ * checkmark (Done) while editing.
  *
  * @example
  * <Screen toolbar={<ToolbarItem placement="topBarTrailing"><EditButton /></ToolbarItem>}>
@@ -436,8 +436,8 @@ export type NavigationLinkProps<R extends Routes = RegisteredRoutes> = [
         }
     }[keyof R['definitions'] & string]
 /**
- * `NavigationLink(value:)`: pushes a declared route. In a `List` it is a disclosure row;
- * elsewhere, a plain pressable.
+ * Pushes a declared route. In a `List` it draws a disclosure row; elsewhere it is a plain
+ * pressable.
  *
  * @example
  * <NavigationLink to="note" params={{ id: note.id }}>{note.title}</NavigationLink>
@@ -491,7 +491,7 @@ export function NavigationLink<R extends Routes = RegisteredRoutes>({
 }
 /** A row title and its secondary line. */
 export type RowLabelProps = { children: ReactNode; detail: ReactNode }
-/** A row's title with a secondary line under it, with a title and a subheadline. The framework owns its layout. */
+/** A row title with a secondary `detail` line under it. The framework owns its layout. */
 export function RowLabel({ children, detail }: RowLabelProps) {
   return <RowLabelBody detail={detail}>{children}</RowLabelBody>
 }
@@ -505,7 +505,7 @@ export type LabeledContentProps = RowInteractionProps & {
   className?: string
   'aria-label'?: string
 }
-/** `LabeledContent`: a row with a label and a secondary trailing value. */
+/** A row with a label and a trailing value in secondary text. */
 export function LabeledContent({
   'aria-label': accessibilityLabel,
   ...props
@@ -528,8 +528,8 @@ export type ToggleProps = {
   tint?: string
 }
 /**
- * `Toggle`: a controlled boolean. It is a switch row in a `List` or `Form`, a bare switch
- * elsewhere, or a `button` or custom `ToggleStyle`.
+ * A controlled on/off value. It draws a switch row in a `List` or `Form` and a bare switch
+ * elsewhere. `toggleStyle` can make it a button or a custom `ToggleStyle`.
  *
  * @example
  * <Toggle label="Show Completed" isOn={showCompleted} onChange={setShowCompleted} />
@@ -622,9 +622,8 @@ export type PickerProps = {
   onSelectionChange(id: string): void
 }
 /**
- * `Picker`: choose one option. `menu` (default) shows a menu from the row,
- * `navigationLink` pushes a list of options, `inline` lists them in place and `segmented` draws a
- * segmented control.
+ * Chooses one option. `menu` (the default) opens a menu from the row, `navigationLink` pushes a
+ * list of options, `inline` lists them in place and `segmented` draws a segmented control.
  *
  * An option can carry a `symbol` (or `icon`) and a `color`. Icons draw in colour in an inline or
  * navigationLink list, in the label colour inside the open menu, and not at all when segmented.
@@ -672,8 +671,8 @@ export type StepperProps = {
   label: string
   onEditingChange?: (editing: boolean) => void
 }
-/** `Stepper`: increments or decrements a controlled number within its bounds. A row in a
- * `List`, the bare control elsewhere. */
+/** Increments or decrements a controlled number within its bounds. It draws a row in a `List`
+ * and the bare control elsewhere. */
 export function Stepper({ disabled, ...rest }: StepperProps) {
   const configuration = useControlStyle({ disabled })
   const props = { ...rest, disabled: configuration.disabled }
@@ -687,7 +686,7 @@ export function Stepper({ disabled, ...rest }: StepperProps) {
 export type SliderProps = {
   value: number
   onChange: (value: number) => void
-  /** `in: min...max`; defaults to 0...1. */
+  /** The lower bound. `min` and `max` default to 0 and 1. */
   min?: number
   max?: number
   /** Snap to multiples of `step` from `min`; omit for a continuous Slider. */
@@ -700,7 +699,8 @@ export type SliderProps = {
   tint?: string
   onEditingChange?: (editing: boolean) => void
 }
-/** `Slider(value:in:step:)`: in a List or Form it fills its own 60 pt row. */
+/** Drags a controlled number between `min` and `max`, continuously or in steps. In a `List` or
+ * `Form` it fills its own 60 pt row. */
 export function Slider({ disabled, tint, ...rest }: SliderProps) {
   const configuration = useControlStyle({ disabled, tint })
   const props = { ...rest, disabled: configuration.disabled, tint: configuration.tint }
@@ -804,7 +804,7 @@ export type SecureFieldProps = Omit<
   prompt?: string
   textFieldStyle?: TextFieldStyle
 }
-/** Password entry with secure system input, adapting to a row in a form. */
+/** Password entry through secure system input. In a `List` or `Form` it becomes the row. */
 export const SecureField = forwardRef<HTMLInputElement, SecureFieldProps>(function SecureField(
   { prompt, textFieldStyle, style, ...props },
   ref,
@@ -834,7 +834,8 @@ export type TextEditorProps = Omit<
   prompt?: string
   textFieldStyle?: TextFieldStyle
 }
-/** Multiline text entry, adapting to a row in a form. */
+/** Multiline text entry. In a `List` or `Form` it becomes the row; elsewhere it shows three
+ * lines by default. */
 export const TextEditor = forwardRef<HTMLTextAreaElement, TextEditorProps>(function TextEditor(
   { prompt, textFieldStyle, style, ...props },
   ref,
@@ -863,7 +864,7 @@ export type ContentUnavailableViewProps = {
   className?: string
   children?: ReactNode
 }
-/** `ContentUnavailableView`: an icon, title and description shown for empty content. */
+/** An empty state: an icon, a title, an optional description and optional action children. */
 export function ContentUnavailableView({
   symbol = 'tray',
   title,

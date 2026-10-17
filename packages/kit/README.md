@@ -2,7 +2,7 @@
 
 Satin builds personal apps for the installed iOS Home Screen runtime. The framework owns navigation, glass, editing, restoration and release updates.
 
-Import app APIs from `@satinhq/kit`, build integration from `@satinhq/kit/vite`, and load `@satinhq/kit/styles.css` once. `@satinhq/kit/internal` is for framework development; app lint rejects it. `@satinhq/kit/testing` belongs in tests. `NavigationSplitView` and `SymbolImage` are public app APIs. Legacy `Sidebar`, `DetailList`, `useSplitSelection` and `SidebarSymbol` composition remains in `@satinhq/kit/unstable`; use its generated export inventory for the exact list.
+Import app APIs from `@satinhq/kit`, build integration from `@satinhq/kit/vite`, and let `satinApp()` include framework styles before app CSS. For utility classes, follow [Using Tailwind with Satin](dist/docs/tailwind.md). `@satinhq/kit/internal` is for framework development; app lint rejects it. `@satinhq/kit/testing` belongs in tests. `NavigationSplitView` and `SymbolImage` are public app APIs. Legacy `Sidebar`, `DetailList`, `useSplitSelection` and `SidebarSymbol` composition remains in `@satinhq/kit/unstable`; use its generated export inventory for the exact list.
 
 ## Declare routes, then primary navigation
 
@@ -26,7 +26,6 @@ import {
   useNavigation,
   type RouteParameters,
 } from '@satinhq/kit'
-import '@satinhq/kit/styles.css'
 
 const app = defineApp({ id: 'reading-list', name: 'Reading List', icons: { source: '/icon.png' } })
 const bookParams = { id: param.string(), page: param.int().optional() }

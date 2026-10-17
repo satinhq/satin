@@ -1,3 +1,4 @@
+import { setupPrelaunch, prelaunchDOM } from './prelaunch.test-helper.ts'
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { reportGlassError } from '../glass/errors.ts'
@@ -8,6 +9,7 @@ beforeEach(() => {
   vi.spyOn(performance, 'now').mockImplementation(() => Date.now())
   document.body.innerHTML = '<div id="satin-launch-screen"></div>'
   Object.defineProperty(document, 'hidden', { configurable: true, value: false })
+  setupPrelaunch()
 })
 afterEach(() => {
   window.dispatchEvent(new Event('satin-launch-revealed'))
@@ -20,11 +22,11 @@ it('exposes a stall before React and records the last reached stage', () => {
   ])
   installLaunchWatchdog(10_000)
   vi.advanceTimersByTime(10_000)
-  expect(document.getElementById('satin-launch-error')?.textContent).toContain(
+  expect(prelaunchDOM.getElementById('satin-launch-error')?.textContent).toContain(
     'satin-content-prepared',
   )
-  expect(document.getElementById('satin-launch-screen')?.hidden).toBe(true)
-  expect(document.querySelector('button')?.textContent).toBe('Retry')
+  expect(prelaunchDOM.getElementById('satin-launch-screen')?.hidden).toBe(true)
+  expect(prelaunchDOM.querySelector('button')?.textContent).toBe('Retry')
 })
 it('shows a stalled document failure even before its body arrives', () => {
   const body = document.body
@@ -32,12 +34,12 @@ it('shows a stalled document failure even before its body arrives', () => {
   try {
     installLaunchWatchdog(10_000)
     vi.advanceTimersByTime(10_000)
-    expect(document.querySelector('[role="alert"]')?.textContent).toContain(
+    expect(prelaunchDOM.querySelector('[role="alert"]')?.textContent).toContain(
       'Launch stopped making progress. Please retry.',
     )
-    expect(document.querySelector('button')?.textContent).toBe('Retry')
+    expect(prelaunchDOM.querySelector('button')?.textContent).toBe('Retry')
   } finally {
-    document.getElementById('satin-launch-error')?.remove()
+    prelaunchDOM.getElementById('satin-launch-error')?.remove()
     document.documentElement.append(body)
   }
 })
@@ -51,9 +53,9 @@ it('does not spend the budget while hidden or download bytes advance', () => {
     vi.advanceTimersByTime(9_000)
     window.dispatchEvent(new CustomEvent('satin-launch-progress', { detail: { loaded } }))
   }
-  expect(document.getElementById('satin-launch-error')).toBeNull()
+  expect(prelaunchDOM.getElementById('satin-launch-error')).toBeNull()
   vi.advanceTimersByTime(10_000)
-  expect(document.getElementById('satin-launch-error')).not.toBeNull()
+  expect(prelaunchDOM.getElementById('satin-launch-error')).not.toBeNull()
 })
 it('makes a glass readiness timeout visible immediately', () => {
   installLaunchWatchdog(10_000)
@@ -62,20 +64,24 @@ it('makes a glass readiness timeout visible immediately', () => {
       detail: { code: 'readiness-timeout', message: 'No frame' },
     }),
   )
-  expect(document.getElementById('satin-launch-error')?.textContent).toContain('readiness-timeout')
+  expect(prelaunchDOM.getElementById('satin-launch-error')?.textContent).toContain(
+    'readiness-timeout',
+  )
 })
 it('does not replace a revealed app', () => {
   installLaunchWatchdog(10_000)
   window.dispatchEvent(new Event('satin-launch-revealed'))
   vi.advanceTimersByTime(30_000)
-  expect(document.getElementById('satin-launch-error')).toBeNull()
+  expect(prelaunchDOM.getElementById('satin-launch-error')).toBeNull()
 })
 
 it('exposes the production glass readiness timeout immediately', () => {
   installLaunchWatchdog(10_000)
   reportGlassError('readiness-timeout', new Error('GPU readiness stalled'), 'SatinRoot')
-  expect(document.getElementById('satin-launch-error')?.textContent).toContain('readiness-timeout')
-  expect(document.getElementById('satin-launch-screen')?.hidden).toBe(true)
+  expect(prelaunchDOM.getElementById('satin-launch-error')?.textContent).toContain(
+    'readiness-timeout',
+  )
+  expect(prelaunchDOM.getElementById('satin-launch-screen')?.hidden).toBe(true)
 })
 
 it('shows the reset-specific failure before modules load', () => {
@@ -85,7 +91,7 @@ it('shows the reset-specific failure before modules load', () => {
       detail: 'Service worker reset did not finish. Please retry.',
     }),
   )
-  expect(document.getElementById('satin-launch-error')?.textContent).toContain(
+  expect(prelaunchDOM.getElementById('satin-launch-error')?.textContent).toContain(
     'Service worker reset did not finish. Please retry.',
   )
 })
@@ -122,10 +128,10 @@ it.each([false, true])(
         stalled: true,
       },
     } as unknown as MessageEvent)
-    const text = document.getElementById('satin-launch-error')?.textContent
+    const text = prelaunchDOM.getElementById('satin-launch-error')?.textContent
     if (cached) {
-      expect(document.getElementById('satin-launch-error')).toBeNull()
-      expect(document.getElementById('satin-launch-screen')?.hidden).toBe(false)
+      expect(prelaunchDOM.getElementById('satin-launch-error')).toBeNull()
+      expect(prelaunchDOM.getElementById('satin-launch-screen')?.hidden).toBe(false)
       expect(localStorage.getItem('satin-install-failure:/app/')).toContain('b1')
     } else {
       expect(text).toContain('/app/assets/index-abc.js')
@@ -149,7 +155,7 @@ it('counts response headers as progress while the body is still pending', () => 
     new CustomEvent('satin-launch-progress', { detail: { loaded: 0, activity: 1 } }),
   )
   vi.advanceTimersByTime(9000)
-  expect(document.getElementById('satin-launch-error')).toBeNull()
+  expect(prelaunchDOM.getElementById('satin-launch-error')).toBeNull()
 })
 
 it('requests a one-shot reset only when the watchdog Retry is pressed', () => {
@@ -158,7 +164,7 @@ it('requests a one-shot reset only when the watchdog Retry is pressed', () => {
   installLaunchWatchdog(10_000)
   expect(sessionStorage.getItem('satin-install-reset:/app/')).toBeNull()
   vi.advanceTimersByTime(10_000)
-  document.querySelector<HTMLButtonElement>('button')!.click()
+  prelaunchDOM.querySelector<HTMLButtonElement>('button')!.click()
   expect(sessionStorage.getItem('satin-install-reset:/app/')).toBe('1')
 })
 
@@ -172,5 +178,5 @@ it('counts headers again after an in-app preparation restart', () => {
   vi.advanceTimersByTime(9000)
   report({ loaded: 0, activity: 1 })
   vi.advanceTimersByTime(9000)
-  expect(document.getElementById('satin-launch-error')).toBeNull()
+  expect(prelaunchDOM.getElementById('satin-launch-error')).toBeNull()
 })

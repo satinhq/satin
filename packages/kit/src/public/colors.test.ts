@@ -1,11 +1,10 @@
 // @vitest-environment happy-dom
-import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { frameworkStyleDeclarations } from '../../test/domStyles.ts'
 import { afterEach, expect, it } from 'vitest'
 import { semanticColor, systemColor } from './colors.ts'
 
 const stylesheet = document.createElement('style')
-stylesheet.textContent = readFileSync(resolve(process.cwd(), 'src/styles.css'), 'utf8')
+stylesheet.textContent = frameworkStyleDeclarations()
 document.head.append(stylesheet)
 
 afterEach(() => {

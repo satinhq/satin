@@ -29,8 +29,8 @@ export interface CollectionDefinition<
 }
 
 /**
- * Declares a collection of records keyed by one string field, like a SwiftData `@Model` with a
- * unique attribute. The curried form, `collection<Note>()({ key, indexes })`, infers index names.
+ * Declares a collection of records keyed by one unique string field. The curried form,
+ * `collection<Note>()({ key, indexes })`, infers index names.
  *
  * @example
  * notes: collection<Note>()({ key: 'id', indexes: { byDate: 'createdAt' } })
@@ -70,7 +70,8 @@ export type CollectionSchema = Record<
   string,
   { readonly key: string; readonly indexes: Record<string, string>; readonly __row?: object }
 >
-/** The accepted record updates for a collection. */
+/** A collection's `update` method: a partial record to merge, or a function that returns the
+ * new record. */
 export type CollectionUpdateMethods<T extends object> = {
   update(key: string, update: Partial<T> | ((row: T) => T)): Promise<void>
 }
@@ -79,7 +80,7 @@ export type TransactionCollections<S extends CollectionSchema> = {
   [N in keyof S]: TransactionCollection<RecordOfCollection<S[N]>> &
     CollectionUpdateMethods<RecordOfCollection<S[N]>>
 }
-/** An awaited migration over the database transaction collections. */
+/** A schema migration. It runs inside one transaction and may be async. */
 export type DatabaseMigration<S extends CollectionSchema> = (
   tx: TransactionCollections<S>,
 ) => void | Promise<void>
@@ -295,9 +296,9 @@ export interface ExportDocument {
 }
 
 /**
- * Opens the app's local database (IndexedDB), like a SwiftData `ModelContainer`. Each collection
- * becomes a property of the result. Bump `version` with a migration whenever the schema changes.
- * Export and import are built in, so offer them to the user.
+ * Opens the app's local database, stored in IndexedDB. Each collection becomes a property of the
+ * result. Bump `version` with a migration whenever the schema changes. Export and import are
+ * built in, so offer them to the user.
  *
  * @example
  * export const db = defineDatabase({
@@ -870,7 +871,7 @@ function createDataObserver<T>(
 }
 
 /**
- * SwiftData `@Query`: a collection's records as `{ data, loading, error }`, kept live. Local writes
+ * Reads a collection's records as `{ data, loading, error }` and keeps them live. Local writes
  * show up synchronously, before they persist.
  *
  * @example

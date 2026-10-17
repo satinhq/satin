@@ -1,7 +1,7 @@
 import { createInsertionMotion } from './insertionMotion.ts'
 import { BOTTOM_INSET_CHANGED } from '../safe-area/bottomInsetGeometry.ts'
 import { scrollAfterGlassPrepared } from './scrollJump.ts'
-/** `UnitPoint`: the vertical alignment of a scroll target. */
+/** Where a scroll target lines up in the viewport: `top`, `center` or `bottom`. */
 export type ScrollAnchor = 'top' | 'center' | 'bottom'
 /** Vertical scroll geometry: the current viewport and content offset in points. */
 export type VerticalScrollGeometry = Readonly<{
@@ -10,13 +10,15 @@ export type VerticalScrollGeometry = Readonly<{
   containerHeight: number
   distanceToBottom: number
 }>
-/** `ScrollPosition`: a target identity and the callback that receives its changes. */
+/** A controlled scroll position: the id of the target in view, its anchor and the callback that
+ * receives changes. */
 export type ScrollPositionBinding = Readonly<{
   id: string | null
   anchor?: ScrollAnchor
   onChange(id: string | null): void
 }>
-/** A scroll target binding, anchor and geometry observation policy. */
+/** The scroll view's position options: where it starts, whether it keeps visible content in
+ * place, a controlled position and a geometry callback. */
 export type ScrollPositionOptions = Readonly<{
   defaultScrollAnchor?: 'top' | 'bottom'
   maintainVisibleContentPosition?: boolean

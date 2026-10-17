@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 
-/** The focusable field capabilities accepted by a declared editing order. */
+/** The parts of a field element that `useFocusChain` uses to move focus. */
 export type FocusChainField = Pick<
   HTMLInputElement,
   'focus' | 'blur' | 'disabled' | 'readOnly' | 'isConnected' | 'closest'
@@ -54,8 +54,9 @@ export function createFocusChain<Key extends string>(order: readonly Key[]) {
   }
 }
 /**
- * `@FocusState` for a form: the return key moves to the next field in `order` and the
- * last one dismisses the keyboard. Spread `field(key)` onto each field.
+ * Moves focus through a form's fields in `order`. The return key goes to the next field and the
+ * last one dismisses the keyboard. Disabled and unmounted fields are skipped. Spread
+ * `field(key)` onto each field.
  *
  * @example
  * const focus = useFocusChain(['name', 'email'])

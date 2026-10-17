@@ -1,4 +1,5 @@
-/** A diagnostic installation failure recorded before app launch. */
+/** An installation failure recorded before the app launched: the build, the URL, the reason and
+ * whether the network failed. */
 export interface InstallationFailure {
   buildId: string
   url: string
@@ -7,7 +8,7 @@ export interface InstallationFailure {
   recordedAt?: number
 }
 
-/** Reads the recorded installation failure for acceptance fixtures. */
+/** Reads the last recorded installation failure for an app scope, or null when there is none. */
 export function readInstallationFailure(scope: string): InstallationFailure | null {
   try {
     const value: unknown = JSON.parse(

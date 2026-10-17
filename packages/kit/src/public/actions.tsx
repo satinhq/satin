@@ -14,7 +14,8 @@ export type MenuProps = Readonly<{
    * @experimental Custom menu triggers may change. */
   trigger?: (props: MenuTriggerProps) => ReactNode
 }>
-/** Opens a menu of actions. Toolbar labels with symbols render as icon buttons; text labels render as capsules. */
+/** A button that opens a menu of actions. In a toolbar a symbol label draws an icon button and a
+ * text label draws a capsule. */
 export function Menu(props: MenuProps) {
   const toolbar = useContext(ToolbarContext)
   const trigger =

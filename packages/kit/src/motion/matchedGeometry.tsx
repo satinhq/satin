@@ -29,7 +29,7 @@ import {
 
 const namespaceBrand: unique symbol = Symbol('satin.namespace')
 
-/** `Namespace.ID`: the scope `MatchedGeometryEffect` ids are matched within. */
+/** A scope for matched-geometry ids. Two views match only if they share an id and a namespace. */
 export type NamespaceID = Readonly<{ [namespaceBrand]: true }>
 
 type Entry = {
@@ -41,7 +41,8 @@ type Entry = {
 
 const entries = new Set<Entry>()
 
-/** `@Namespace`: a stable id scope for `MatchedGeometryEffect`, one per component. */
+/** Returns a namespace that stays the same for the life of the component. Pass it to
+ * `MatchedGeometryEffect` and `MatchedTransitionSource`. */
 export function useNamespace(): NamespaceID {
   const [namespace] = useState<NamespaceID>(defineNamespace)
   return namespace
@@ -59,7 +60,7 @@ export function defineNamespace(): NamespaceID {
   return Object.freeze({ [namespaceBrand]: true as const })
 }
 
-/** Props of `MatchedGeometryEffect`. */
+/** The effect's id and namespace, whether it is the source, and the one element it wraps. */
 export type MatchedGeometryEffectProps = Readonly<{
   /** Views with the same id in the same namespace are one view in two places. */
   id: string
@@ -110,8 +111,8 @@ export function MatchedGeometryEffect({
  * Applies the state changes in `update`, then animates the
  * `MatchedGeometryEffect` views they move, insert or remove. Call it from an event handler.
  * Keyed List rows also move to their new positions. Other views take their new layout at once.
- * Returns the callback result and propagates errors. Only synchronous updates participate.
- * Nested calls share the outer List transaction; per-update nested timing is not supported.
+ * Returns the callback result and passes errors through. Only synchronous updates take part,
+ * and nested calls join the outer one.
  * @example
  * <Button onPress={() => withAnimation(() => setShowQueue(!showQueue))}>Playing Next</Button>
  */

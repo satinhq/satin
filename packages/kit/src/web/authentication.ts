@@ -1,6 +1,8 @@
 import { secureWebURL } from './urlPolicy.ts'
 import { consumeWebAuthenticationURL } from '../push/urlProjection.ts'
 
+/** The OAuth provider, client, callback and app URLs for `defineWebAuthentication`, and the
+ * `exchange` function that finishes sign-in on your server. */
 export interface WebAuthenticationConfiguration {
   /** Stable name, unique within this app origin. */
   id: string
@@ -19,6 +21,8 @@ export interface WebAuthenticationConfiguration {
   /** Establish your session on the server. Never return or message tokens to another window. */
   exchange: (request: WebAuthenticationExchange) => Promise<void>
 }
+/** What `exchange` receives: the authorization code, the PKCE verifier and the values your
+ * server needs to redeem and check it. */
 export interface WebAuthenticationExchange {
   code: string
   codeVerifier: string
@@ -29,21 +33,27 @@ export interface WebAuthenticationExchange {
   expectedIssuer?: string
   signal: AbortSignal
 }
+/** Where a sign-in stands, from `idle` through `pending` and `completing` to a final status. */
 export type WebAuthenticationState =
   | { status: 'idle' }
   | { status: 'prepared' | 'pending' | 'completing'; expiresAt: number; needsReturn: boolean }
   | { status: 'succeeded' | 'cancelled' | 'expired' }
   | { status: 'failed' | 'unavailable'; reason: string }
+/** Whether `start` opened the provider in a popup or a redirect, or why it could not. */
 export type WebAuthenticationStartResult =
   | { status: 'dispatched'; transport: 'popup' | 'redirect' }
   | { status: 'unavailable'; reason: string }
+/** The outcome of `complete` on the callback page: the URL to return to, or why it was rejected. */
 export type WebAuthenticationCallbackResult =
   | { status: 'completed'; returnURL: string }
   | { status: 'rejected' | 'unavailable'; reason: string }
+/** A prepared sign-in. Call `start` from the user's press. */
 export interface WebAuthenticationRequest {
   /** Call synchronously in the user's press handler. A blocked popup may retry as redirect. */
   start(options?: { transport?: 'popup' | 'redirect' }): WebAuthenticationStartResult
 }
+/** A sign-in flow made by `defineWebAuthentication`: prepare, start, complete and resume it, or
+ * subscribe to its state. */
 export interface WebAuthentication {
   /** Generate PKCE and durably register the transaction before enabling the sign-in button. */
   prepare(): Promise<WebAuthenticationRequest>
@@ -104,7 +114,8 @@ function callbackValue(value: unknown, state: string): Callback | null {
   return null
 }
 
-/** Durable authorization-code + PKCE handoff. This does not implement a native authentication session. */
+/** Sets up an OAuth authorization-code sign-in with PKCE. The transaction is stored durably, so
+ * it survives a redirect or a suspended app. Your server redeems the code. */
 export function defineWebAuthentication(
   configuration: WebAuthenticationConfiguration,
 ): WebAuthentication {

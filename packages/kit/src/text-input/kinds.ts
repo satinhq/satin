@@ -14,7 +14,7 @@ export type TextFieldKind =
   | 'new-password'
   | 'current-password'
   | 'one-time-code'
-/** `SubmitLabel`: the return key's title. */
+/** The return key's title: `done`, `go`, `next`, `search` or `send`. */
 export type SubmitLabel = 'done' | 'go' | 'next' | 'search' | 'send'
 type Attributes = Pick<
   InputHTMLAttributes<HTMLInputElement>,

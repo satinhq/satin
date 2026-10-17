@@ -13,15 +13,19 @@ const orientations = new Set<AppOrientation>(['landscape', 'portrait'])
 const iconTypes = new Set<AppIcon['type']>(['image/png', 'image/svg+xml', 'image/webp'])
 const iconPurposes = new Set<NonNullable<AppIcon['purpose']>>(['any', 'maskable', 'monochrome'])
 
-/** A declared app capability that requires framework-owned runtime support. */
+/** A capability the app declares so Satin sets up its runtime support: `push`, `badging` or
+ * `background-work`. */
 export type AppCapability = 'badging' | 'background-work' | 'push'
 /** An orientation that the app supports. */
 export type AppOrientation = 'landscape' | 'portrait'
-/** The presentation policy when the window uses an unsupported orientation. */
+/** What the app shows when the device is in an orientation it does not support: a rotation
+ * prompt, a letterboxed layout, a responsive layout, or nothing. */
 export type OrientationFallback = 'letterbox' | 'none' | 'rotation-overlay' | 'responsive'
-/** When a prepared app update may activate. */
+/** When a downloaded update may apply: `cold-launch`, the default, or `cold-launch-or-explicit`,
+ * which also lets it apply on request, as the development menu does. */
 export type UpdateActivation = 'cold-launch' | 'cold-launch-or-explicit'
 
+/** One generated app icon file: its URL, pixel sizes, image type and purpose. */
 export interface AppIcon {
   readonly purpose?: 'any' | 'maskable' | 'monochrome'
   readonly sizes: string
@@ -90,6 +94,8 @@ export type AppDeploymentInput = AppDeploymentOptions &
       }
   )
 
+/** A validated app definition, returned by `defineApp`. Pass it to `runApp` and to the Vite
+ * plugin. */
 export type AppDefinition = AppDeploymentInput & {
   readonly [DEFINITION]: true
 }
@@ -305,6 +311,8 @@ function cloneReachability(value: ServerReachabilityConfig) {
   })
 }
 
+/** Validates a full app definition and fills in its defaults. `defineApp` uses it; lab fixtures
+ * call it directly. */
 export function defineSatinApp(input: AppDeploymentInput): AppDefinition {
   assertRecord(input, 'app')
   assertString(input.id, 'id')

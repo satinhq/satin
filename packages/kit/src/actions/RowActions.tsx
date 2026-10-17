@@ -4,16 +4,16 @@ import { SymbolImage } from '../symbols/Symbol.tsx'
 import {
   createRowScrub,
   rowSwipeShouldClose,
-  rowSwipePosition,
   rowSwipeRaw,
   primaryParts,
-  fullSwipeThreshold,
+  presentedTakeover,
   swipeActionTracks,
   swipeContentTrack,
   swipeOpenWidth,
   swipeWidths,
   updateRowCorners,
 } from './rowScrub.ts'
+import { createFullSwipeContact, type FullSwipeContact } from './fullSwipeContact.ts'
 import { CONTEXT_HOLD_MS, CONTEXT_STILL_MS } from './contextMotion.ts'
 import { contextPreviewSource } from './preview.ts'
 import { useMenuPresenter } from '../glass/menuPresenter.tsx'
@@ -64,6 +64,16 @@ const openRows = new WeakMap<Document, () => void>()
  * to its range edge (two row widths), where the next contact cannot scroll. */
 function retireRowSource(source: HTMLElement | null) {
   if (source) retireNativeScrubSource(source, source.clientWidth * 2)
+}
+/** Pill takeover each tray presents when a new contact catches the row. */
+function caughtTakeovers(element: HTMLElement, initial: number) {
+  const caught = (side: 'leading' | 'trailing') => {
+    const primary = element.querySelector<HTMLElement>(
+      `[data-satin-swipe-tray="${side}"] > :first-child`,
+    )
+    return primary ? presentedTakeover(primary, initial) : 0
+  }
+  return { leading: caught('leading'), trailing: caught('trailing') }
 }
 type RowActionsEngineProps = RowActionsProps & {
   children: ReactNode
@@ -395,8 +405,19 @@ function RowActionsEngine({
     let navigationOwns = false
     // Native drags an open row from its action buttons too; their taps stay presses.
     let startedOnAction = false
-    let rowWidth = 0
+    let rowWidth = 0,
+      rowLeft = 0
+    // One contact maps raw travel to the presented row for the scroll source and
+    // for this touch fallback alike, including a destructive takeover's anchor.
+    let contact: FullSwipeContact | undefined
+    let cachedSide: 'leading' | 'trailing' = 'trailing'
     let cachedActions: ReturnType<typeof swipeActionTracks> = []
+    let fallbackRaw = 0,
+      fallbackFrame = 0
+    const cancelFallbackFrame = () => {
+      cancelAnimationFrame(fallbackFrame)
+      fallbackFrame = 0
+    }
     let contentFrame: ReturnType<typeof swipeContentTrack> | undefined
     let initial = 0,
       current = 0,
@@ -408,6 +429,26 @@ function RowActionsEngine({
       clearTimeout(timer)
       timer = undefined
       delete element.dataset.satinContextPending
+    }
+    /** Present the touch-fallback row and pills from one raw sample. A takeover's
+     * jump keeps moving without input, so it presents further frames itself. */
+    const paintFallback = (raw: number, now: number, evaluate: boolean) => {
+      if (!contact) return current
+      fallbackRaw = raw
+      const position = contact.present(raw, now, evaluate)
+      const takeover = contact.takeover(cachedSide, raw, now)
+      for (const action of cachedActions)
+        Object.assign(action.element.style, action.frame(position, raw, initial ? 1 : 0, takeover))
+      if (body.current && contentFrame)
+        Object.assign(body.current.style, contentFrame(position, initial ? 1 : 0))
+      current = position
+      live.current.offset = position
+      if (evaluate && !fallbackFrame && contact.settling(now))
+        fallbackFrame = requestAnimationFrame(time => {
+          fallbackFrame = 0
+          if (session && !scrub.current) paintFallback(fallbackRaw, time, true)
+        })
+      return position
     }
     const cancelPress = () => {
       if (pointerId !== undefined) cancelPointerPressForOwnedGesture(pointerId)
@@ -425,6 +466,7 @@ function RowActionsEngine({
       }
       const previous = last
       last = sample
+      contact?.track(sample.x - rowLeft)
       session = reduceGestureArena(arena, session, sample).session
       if (!session) return
       // Transfer capture before canceling the child Pressable, which releases its own capture.
@@ -482,6 +524,7 @@ function RowActionsEngine({
             )
             const side = element.dataset.satinSwipeSide === 'leading' ? 'leading' : 'trailing'
             const edge = swipeEdge(props.current.swipeActions, side)
+            cachedSide = side
             cachedActions =
               primary && !scrub.current
                 ? swipeActionTracks(primary, edge.actions.length, rowWidth, edge.allowsFullSwipe)
@@ -497,16 +540,12 @@ function RowActionsEngine({
             rowSwipeRaw(initial, rowWidth, props.current.swipeActions, swipeWidths(element)) +
             sample.x -
             session.start.x
-          current = scrub.current
-            ? scrub.current.position()
-            : rowSwipePosition(raw, rowWidth, props.current.swipeActions, swipeWidths(element))
-          if (!scrub.current) {
-            for (const action of cachedActions)
-              Object.assign(action.element.style, action.frame(current, raw, initial ? 1 : 0))
-            if (body.current && contentFrame)
-              Object.assign(body.current.style, contentFrame(current, initial ? 1 : 0))
-          }
-          live.current.offset = current
+          // A lift-off sample is presented but never evaluated: release reads the
+          // takeover that the last presented frame showed.
+          if (scrub.current) {
+            current = scrub.current.position()
+            live.current.offset = current
+          } else paintFallback(raw, sample.time, sample.phase === 'move')
         }
       }
       if (sample.phase === 'end' && initial !== 0 && !owned && !startedOnAction) {
@@ -515,9 +554,10 @@ function RowActionsEngine({
       }
       if (sample.phase === 'end' || sample.phase === 'cancel') {
         clearTimer()
+        cancelFallbackFrame()
         if (owned) cancelPress()
         if (swipe && sample.phase === 'end') {
-          const released = scrub.current?.flush()
+          const released = scrub.current?.flush(performance.now(), false)
           const releaseRaw =
             released?.raw ??
             rowSwipeRaw(initial, rowWidth, props.current.swipeActions, swipeWidths(element)) +
@@ -534,33 +574,31 @@ function RowActionsEngine({
           element.dataset.satinSwipeSide = current >= 0 ? 'leading' : 'trailing'
           const edge = swipeEdge(props.current.swipeActions, current >= 0 ? 'leading' : 'trailing')
           const actions = edge.actions
-          const first = actions[0],
-            width = rowWidth
-          // The same per-edge threshold that drives the takeover while held. Native
-          // closes a leading three-action row dragged back from 295pt.
-          const releaseSide = current >= 0 ? 'leading' : 'trailing'
-          const threshold = fullSwipeThreshold(
-            width,
-            actions.length,
-            releaseSide,
-            swipeWidths(element)[releaseSide],
-            element.dataset.satinSwipeLabelLayout === 'inline',
-          )
-          if (edge.allowsFullSwipe && Math.abs(releaseRaw) >= threshold && first && !first.disabled)
-            perform(first, current, true)
+          const first = actions[0]
+          // The same rule that drives the takeover while held: a distance threshold,
+          // or a destructive takeover still shown by the last frame. Native closes a
+          // leading three-action row dragged back from 295pt.
+          if (first && contact?.armed(releaseRaw)) perform(first, current, true)
           else {
             const from = current
-            current = !rowSwipeShouldClose(initial, current, sample.x - session.start.x)
+            // Native closes a destructive takeover that was reversed out of its zone.
+            // That close starts far across the row, so its pills stay and shrink
+            // with it, as when an open row is dismissed, until it reaches rest.
+            const anchoredClose = !!contact?.anchored()
+            const closes =
+              anchoredClose || rowSwipeShouldClose(initial, current, sample.x - session.start.x)
+            current = !closes
               ? Math.sign(current) *
                 swipeOpenWidth(
                   actions.length,
                   swipeWidths(element)[current >= 0 ? 'leading' : 'trailing'],
                 )
               : 0
-            element.dataset.satinSwipeActive = String(current !== 0)
+            if (!anchoredClose) element.dataset.satinSwipeActive = String(current !== 0)
             live.current.offset = current
             setOffset(current)
-            if (body.current)
+            const settling =
+              body.current &&
               settleSwipe(
                 body.current,
                 from,
@@ -579,6 +617,10 @@ function RowActionsEngine({
                 rowWidth,
                 edge.allowsFullSwipe,
               )
+            if (anchoredClose) {
+              if (settling) void settling.finished.then(close, () => {})
+              else close()
+            }
           }
         } else if (sample.phase === 'cancel' && !hold && !navigationOwns) close()
         else if (!hold && !owned) {
@@ -604,6 +646,8 @@ function RowActionsEngine({
       if (props.current.disabled || performing.current) return
       const rect = element.getBoundingClientRect()
       rowWidth = rect.width
+      rowLeft = rect.left
+      cancelFallbackFrame()
       contentFrame = body.current ? swipeContentTrack(body.current) : undefined
       navigationOwns = false
       startedOnAction = !!target.closest('[data-satin-swipe-action]')
@@ -634,6 +678,17 @@ function RowActionsEngine({
       if (body.current && animations.length)
         body.current.style.transform = `translate3d(${initial}px,0,0)`
       scrub.current?.cancel()
+      // A new contact starts a new mapping: catching a settling row never inherits
+      // the previous contact's anchor, only its presented pose and pill takeover.
+      contact = createFullSwipeContact({
+        width: rowWidth,
+        configuration: props.current.swipeActions,
+        widths: swipeWidths(element),
+        inline: element.dataset.satinSwipeLabelLayout === 'inline',
+        caught: initial ? caughtTakeovers(element, initial) : undefined,
+        reducedMotion: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false,
+        now: performance.now(),
+      })
       // A contact that touched down before the retired source re-armed cannot scroll
       // it; the touch path drives that contact while the clamp holds the source.
       const sourceLive =
@@ -651,6 +706,7 @@ function RowActionsEngine({
               initial,
               rowWidth,
               props.current.swipeActions,
+              contact,
             )
           : undefined
       live.current.offset = initial
@@ -853,6 +909,7 @@ function RowActionsEngine({
       if (pointerId !== undefined && captureOwner?.hasPointerCapture?.(pointerId))
         captureOwner.releasePointerCapture(pointerId)
       scrub.current?.cancel()
+      cancelFallbackFrame()
       delete element.dataset.satinRowCompositor
       finishLift()
       clearTimer()
@@ -924,6 +981,7 @@ function RowActionsEngine({
                     aria-label={action.accessibilityLabel ?? action.label}
                     onPress={() => select(action)}
                     data-satin-swipe-action="true"
+                    data-satin-swipe-role={action.role}
                     data-satin-swipe-icon={Boolean(action.icon || action.symbol)}
                     data-satin-swipe-title={Boolean(action.label)}
                     style={
@@ -1075,8 +1133,8 @@ function withTrailingAction(swipeActions: SwipeActions | undefined, action: Acti
 }
 
 /**
- * `contextMenu`: long-pressing the content opens the glass menu of its actions, with an
- * optional custom `preview`. Rows in a `List` take a `contextMenu` prop instead.
+ * Opens a menu of actions when the user long-presses its content, with an optional custom
+ * `preview`. Rows in a `List` take a `contextMenu` prop instead.
  */
 export function ContextMenu({
   children,

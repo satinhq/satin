@@ -1,3 +1,7 @@
+import {
+  PadSearchPresentationContext,
+  PadSearchTabContext,
+} from '../search/PadSearchPresentationContext.tsx'
 import { TabSidebarSurface } from './TabSidebarSurface.tsx'
 import { ScrollSurface } from '../scroll/ScrollSurface.tsx'
 import { TabSection, type TabSectionProps } from './TabSection.tsx'
@@ -138,6 +142,11 @@ export function TabView<Id extends string = string>({
   bottomAccessoryMaterial = 'glass',
   tabViewStyle = 'automatic',
 }: TabViewProps<Id>) {
+  const [searchOwner, setSearchOwner] = useState<string | null>(null)
+  const searchPresentation = useMemo(
+    () => ({ owner: searchOwner, setOwner: setSearchOwner }),
+    [searchOwner],
+  )
   const layout = useLayoutClass()
   const { metrics } = useSatinLayoutRuntime()
   const canShowSidebar =
@@ -312,198 +321,204 @@ export function TabView<Id extends string = string>({
     </Pressable>
   )
   return (
-    <div
-      ref={container}
-      data-satin-tab-view="true"
-      data-satin-tab-sidebar-expanded={showSidebar || undefined}
-      data-satin-tab-sidebar-overlay={overlaySidebar || undefined}
-      data-satin-tab-sidebar-collapsed-overlay={didCollapseOverlay || undefined}
-      data-satin-tab-sidebar-expanded-from-tabs={
-        (showSidebar && !overlaySidebar && expandedFromTabs) || undefined
-      }
-      style={
-        didCollapseOverlay
-          ? ({
-              '--satin-tab-sidebar-return-inset': `${metrics.physicalInsets.top}px`,
-            } as CSSProperties)
-          : undefined
-      }
-    >
-      {showSidebar && (
-        <TabSidebarSurface overlay={overlaySidebar} onDismiss={() => changeSidebar(false)}>
-          <div data-satin-tab-sidebar-toggle-host="true">
-            <GlassButton
-              data-satin-tab-sidebar-hide="true"
-              iconOnly
-              aria-label="Hide Tab Sidebar"
-              onPress={() => changeSidebar(false)}
-            >
-              <SymbolImage
-                name="tab-sidebar-collapse"
-                glyph={tabSidebarCollapseGlyph}
-                width={25.3}
-                height={25.3}
-              />
-            </GlassButton>
-          </div>
-          <ScrollSurface
-            id={`${scopeId}-sidebar-scroll`}
-            primary={false}
-            role="tablist"
-            aria-orientation="vertical"
-            onKeyDown={handleTabKeyDown}
-          >
-            {sidebarItems
-              .filter(item => item.role === 'search' || !grouped.has(item.id as Id))
-              .map(sidebarRow)}
-            {sections.map(section => {
-              const expanded = !collapsedSections.has(section.id)
-              const groupId = `${scopeId}-section-${encodeURIComponent(section.id)}`
-              return (
-                <div key={section.id} data-satin-tab-section="true">
-                  <Pressable
-                    aria-label={section.title}
-                    aria-expanded={expanded}
-                    aria-controls={groupId}
-                    data-satin-tab-section-header="true"
-                    onPress={() =>
-                      setCollapsedSections(previous => {
-                        const next = new Set(previous)
-                        if (expanded) next.add(section.id)
-                        else next.delete(section.id)
-                        return next
-                      })
-                    }
-                  >
-                    <span>{section.title}</span>
-                    <SymbolImage name={expanded ? 'chevron.down' : 'chevron.right'} />
-                  </Pressable>
-                  <div id={groupId} role="group" aria-label={section.title} hidden={!expanded}>
-                    {sidebarItems
-                      .filter(
-                        item => item.role !== 'search' && section.tabs.includes(item.id as Id),
-                      )
-                      .map(sidebarRow)}
-                  </div>
-                </div>
-              )
-            })}
-          </ScrollSurface>
-        </TabSidebarSurface>
-      )}
-      <SafeAreaInset
-        inert={showSidebar && overlaySidebar}
-        edge="bottom"
-        spacing={0}
-        content={
-          <div
-            ref={bottomChrome}
-            data-satin-tab-bottom-chrome={readDeviceIdiom() === 'phone' ? 'phone' : 'pad'}
-            // Search's compact hit target uses the full dock, even when its resting bar hugs
-            // two or three items. Only an actual accessory makes that resting bar full-width.
-            style={
-              (bottomAccessory != null || searchTab) && readDeviceIdiom() === 'phone'
-                ? {
-                    width: glassDockWidth(
-                      metrics.layoutViewport.width,
-                      metrics.screen,
-                      metrics.insets,
-                      metrics.layoutViewport.height,
-                    ),
-                    marginInline: 'auto',
-                    transform: `translateX(${(metrics.insets.left - metrics.insets.right) / 2}px)`,
-                  }
-                : undefined
-            }
-          >
-            {bottomAccessory != null && (
-              <div
-                ref={accessoryContact}
-                data-satin-tab-bottom-accessory="true"
-                // Native iPad: 24 pt edge margins, 48 pt minimum row. In portrait
-                // only this floating chrome clears the 280 pt modal sidebar;
-                // landscape's parent already owns the native sidebar column.
-                style={
-                  readDeviceIdiom() === 'pad'
-                    ? {
-                        marginLeft: showSidebar && overlaySidebar ? 304 : 24,
-                        marginRight: 24,
-                        // The installed iPad can report a 25 pt system inset.
-                        // Compensate it fully to retain the native 24 pt edge gap.
-                        marginBottom: 24 - metrics.physicalInsets.bottom,
-                        minHeight: 48,
-                      }
-                    : undefined
-                }
-              >
-                <div data-satin-accessory-clip="true">
-                  <div data-satin-accessory-content="true">
-                    {bottomAccessoryMaterial === 'custom' ? (
-                      bottomAccessory
-                    ) : (
-                      <GlassEffect style={{ width: '100%', height: '100%' }}>
-                        {bottomAccessory}
-                      </GlassEffect>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-            {selected !== undefined && (!showSidebar || overlaySidebar) && (
-              <TabBarAccessoryContext value={bottomAccessory != null}>
-                <TabBar
-                  inert={showSidebar && overlaySidebar}
-                  aria-hidden={(showSidebar && overlaySidebar) || undefined}
-                  style={showSidebar && overlaySidebar ? { visibility: 'hidden' } : undefined}
-                  items={barItems}
-                  selected={selected}
-                  onSelect={select}
-                  onShowSidebar={canShowSidebar ? () => changeSidebar(true) : undefined}
-                />
-              </TabBarAccessoryContext>
-            )}
-            {searchTab && (
-              // The minimized tab bar draws this circle and its magnifier as its own trailing
-              // member (glass/webgpu/minimize.ts), so the parting and the merge are one glass
-              // field. This is only the circle's control, like the leading shortcut's.
-              <div data-satin-tab-compact-search="true">
-                <button
-                  type="button"
-                  aria-label={searchTab.accessibilityLabel ?? searchTab.label}
-                  disabled={searchTab.disabled}
-                  onClick={() => {
-                    restoreCompactTabBar(bottomChrome.current)
-                    // A selected Search shortcut reforms the bar without reselecting its stack.
-                    if (selected !== searchTab.id) select(searchTab.id)
-                  }}
-                />
-              </div>
-            )}
-          </div>
+    <PadSearchPresentationContext value={searchPresentation}>
+      <div
+        ref={container}
+        data-satin-tab-view="true"
+        data-satin-tab-sidebar-expanded={showSidebar || undefined}
+        data-satin-tab-sidebar-overlay={overlaySidebar || undefined}
+        data-satin-tab-sidebar-collapsed-overlay={didCollapseOverlay || undefined}
+        data-satin-tab-sidebar-expanded-from-tabs={
+          (showSidebar && !overlaySidebar && expandedFromTabs) || undefined
+        }
+        style={
+          didCollapseOverlay
+            ? ({
+                '--satin-tab-sidebar-return-inset': `${metrics.physicalInsets.top}px`,
+              } as CSSProperties)
+            : undefined
         }
       >
-        {tabs.map((tab, index) => (
-          <RetainedTab
-            panelId={items[index]!.panelId!}
-            tabId={
-              showSidebar
-                ? `${items[index]!.tabId}-sidebar`
-                : barItems.some(item => item.id === tab.id)
-                  ? items[index]!.tabId
+        {showSidebar && (
+          <TabSidebarSurface overlay={overlaySidebar} onDismiss={() => changeSidebar(false)}>
+            <div data-satin-tab-sidebar-toggle-host="true">
+              <GlassButton
+                data-satin-tab-sidebar-hide="true"
+                iconOnly
+                aria-label="Hide Tab Sidebar"
+                onPress={() => changeSidebar(false)}
+              >
+                <SymbolImage
+                  name="tab-sidebar-collapse"
+                  glyph={tabSidebarCollapseGlyph}
+                  width={25.3}
+                  height={25.3}
+                />
+              </GlassButton>
+            </div>
+            <ScrollSurface
+              id={`${scopeId}-sidebar-scroll`}
+              primary={false}
+              role="tablist"
+              aria-orientation="vertical"
+              onKeyDown={handleTabKeyDown}
+            >
+              {sidebarItems
+                .filter(item => item.role === 'search' || !grouped.has(item.id as Id))
+                .map(sidebarRow)}
+              {sections.map(section => {
+                const expanded = !collapsedSections.has(section.id)
+                const groupId = `${scopeId}-section-${encodeURIComponent(section.id)}`
+                return (
+                  <div key={section.id} data-satin-tab-section="true">
+                    <Pressable
+                      aria-label={section.title}
+                      aria-expanded={expanded}
+                      aria-controls={groupId}
+                      data-satin-tab-section-header="true"
+                      onPress={() =>
+                        setCollapsedSections(previous => {
+                          const next = new Set(previous)
+                          if (expanded) next.add(section.id)
+                          else next.delete(section.id)
+                          return next
+                        })
+                      }
+                    >
+                      <span>{section.title}</span>
+                      <SymbolImage name={expanded ? 'chevron.down' : 'chevron.right'} />
+                    </Pressable>
+                    <div id={groupId} role="group" aria-label={section.title} hidden={!expanded}>
+                      {sidebarItems
+                        .filter(
+                          item => item.role !== 'search' && section.tabs.includes(item.id as Id),
+                        )
+                        .map(sidebarRow)}
+                    </div>
+                  </div>
+                )
+              })}
+            </ScrollSurface>
+          </TabSidebarSurface>
+        )}
+        <SafeAreaInset
+          inert={showSidebar && overlaySidebar}
+          edge="bottom"
+          spacing={0}
+          content={
+            <div
+              ref={bottomChrome}
+              data-satin-tab-bottom-chrome={readDeviceIdiom() === 'phone' ? 'phone' : 'pad'}
+              // Search's compact hit target uses the full dock, even when its resting bar hugs
+              // two or three items. Only an actual accessory makes that resting bar full-width.
+              style={
+                (bottomAccessory != null || searchTab) && readDeviceIdiom() === 'phone'
+                  ? {
+                      width: glassDockWidth(
+                        metrics.layoutViewport.width,
+                        metrics.screen,
+                        metrics.insets,
+                        metrics.layoutViewport.height,
+                      ),
+                      marginInline: 'auto',
+                      transform: `translateX(${(metrics.insets.left - metrics.insets.right) / 2}px)`,
+                    }
                   : undefined
-            }
-            label={tab.label}
-            focusOnActivate={tab.id !== initialSelection}
-            key={tab.id}
-            id={tab.id}
-            active={tab.id === requested}
-            presented={tab.id === selected}
-            register={register}
-          >
-            {mounted.includes(tab.id) ? tab.children : null}
-          </RetainedTab>
-        ))}
-      </SafeAreaInset>
-    </div>
+              }
+            >
+              {bottomAccessory != null && (
+                <div
+                  ref={accessoryContact}
+                  data-satin-tab-bottom-accessory="true"
+                  // Native iPad: 24 pt edge margins, 48 pt minimum row. In portrait
+                  // only this floating chrome clears the 280 pt modal sidebar;
+                  // landscape's parent already owns the native sidebar column.
+                  style={
+                    readDeviceIdiom() === 'pad'
+                      ? {
+                          marginLeft: showSidebar && overlaySidebar ? 304 : 24,
+                          marginRight: 24,
+                          // The installed iPad can report a 25 pt system inset.
+                          // Compensate it fully to retain the native 24 pt edge gap.
+                          marginBottom: 24 - metrics.physicalInsets.bottom,
+                          minHeight: 48,
+                        }
+                      : undefined
+                  }
+                >
+                  <div data-satin-accessory-clip="true">
+                    <div data-satin-accessory-content="true">
+                      {bottomAccessoryMaterial === 'custom' ? (
+                        bottomAccessory
+                      ) : (
+                        <GlassEffect style={{ width: '100%', height: '100%' }}>
+                          {bottomAccessory}
+                        </GlassEffect>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+              {selected !== undefined && (!showSidebar || overlaySidebar) && (
+                <TabBarAccessoryContext value={bottomAccessory != null}>
+                  <TabBar
+                    inert={showSidebar && overlaySidebar}
+                    aria-hidden={(showSidebar && overlaySidebar) || undefined}
+                    style={showSidebar && overlaySidebar ? { visibility: 'hidden' } : undefined}
+                    items={barItems}
+                    selected={selected}
+                    onSelect={select}
+                    onShowSidebar={canShowSidebar ? () => changeSidebar(true) : undefined}
+                  />
+                </TabBarAccessoryContext>
+              )}
+              {searchTab && (
+                // The minimized tab bar draws this circle and its magnifier as its own trailing
+                // member (glass/webgpu/minimize.ts), so the parting and the merge are one glass
+                // field. This is only the circle's control, like the leading shortcut's.
+                <div data-satin-tab-compact-search="true">
+                  <button
+                    type="button"
+                    aria-label={searchTab.accessibilityLabel ?? searchTab.label}
+                    disabled={searchTab.disabled}
+                    onClick={() => {
+                      restoreCompactTabBar(bottomChrome.current)
+                      // A selected Search shortcut reforms the bar without reselecting its stack.
+                      if (selected !== searchTab.id) select(searchTab.id)
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+          }
+        >
+          {tabs.map((tab, index) => (
+            <RetainedTab
+              panelId={items[index]!.panelId!}
+              tabId={
+                showSidebar
+                  ? `${items[index]!.tabId}-sidebar`
+                  : barItems.some(item => item.id === tab.id)
+                    ? items[index]!.tabId
+                    : undefined
+              }
+              label={tab.label}
+              focusOnActivate={tab.id !== initialSelection}
+              key={tab.id}
+              id={tab.id}
+              active={tab.id === requested}
+              presented={tab.id === selected}
+              register={register}
+            >
+              <PadSearchTabContext
+                value={tab.role === 'search' && tab.id === selected ? tab.id : null}
+              >
+                {mounted.includes(tab.id) ? tab.children : null}
+              </PadSearchTabContext>
+            </RetainedTab>
+          ))}
+        </SafeAreaInset>
+      </div>
+    </PadSearchPresentationContext>
   )
 }

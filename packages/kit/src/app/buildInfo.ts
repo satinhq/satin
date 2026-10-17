@@ -1,5 +1,5 @@
-/** Identity embedded in the running app's JavaScript bundle. The app build ID is
- * a unique build identifier, not a git revision or the service worker's cache hash. */
+/** The framework version, build id, build time and build kind baked into the running bundle.
+ * The build id is unique per build. */
 export type BuildInfo = Readonly<{
   frameworkVersion: string
   appBuildId: string
@@ -17,8 +17,8 @@ const buildInfo: BuildInfo = Object.freeze(
   },
 )
 
-/** The build loaded by this app, including offline launches. Metadata comes from
- * satinApp at build time; it never reads the server's latest deployment. */
+/** Returns the build that is running, even offline. The values are written by `satinApp` at
+ * build time; it never asks the server for the latest deployment. */
 export function useBuildInfo(): BuildInfo {
   return buildInfo
 }

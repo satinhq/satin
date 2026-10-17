@@ -1,3 +1,4 @@
+import { PadSearchBarMotion } from '../../search/padSearchBarMotion.ts'
 import { getGlassErrors } from '../errors.ts'
 import {
   createRenderSpecs,
@@ -22,6 +23,7 @@ export class FallbackGlassRuntime {
   private regions: FallbackRegions
   private dock: FallbackMaterial
   private thumb: FallbackMaterial
+  private padSearch?: PadSearchBarMotion
   private minimize = new TabMinimizeIntent()
   private minimizeDom: WorkerMinimize
   private tab = new TabMotion(TAB_INTERACTIVE_MOTION)
@@ -115,7 +117,7 @@ export class FallbackGlassRuntime {
       spec => spec.id === 'dock',
     )!
     // Chrome's DOM host already owns the viewport placement.
-    return { ...spec, frameX: 0, frameY: 0 }
+    return { ...spec, opacity: 1, frameX: 0, frameY: 0 }
   }
   private minimizeTrack(direction: 'collapse' | 'restore', path: RestorePath = 'tap') {
     const track = this.minimizeDom.start(direction, this.dockSpec(), path)
@@ -158,9 +160,13 @@ export class FallbackGlassRuntime {
     this.thumb.paint(this.thumbSpec(selection), this.options.appearance)
   }
   updateGeometry(next: Partial<RuntimeGeometry>) {
+    const previousOpacity = this.options.geometry.tabBarOpacity
     const previousPlacement = this.options.geometry.tabBarPlacement
     this.options = { ...this.options, geometry: { ...this.options.geometry, ...next } }
     const geometry = this.options.geometry
+    if (previousPlacement === 'top' && geometry.tabBarOpacity !== undefined && previousOpacity !== geometry.tabBarOpacity) {
+      (this.padSearch ??= new PadSearchBarMotion()).start(this.options.elements.chrome.dock, 1 - geometry.tabBarOpacity, this.dockSpec())
+    }
     this.tab.configure(
       geometry.tabBarCentres,
       geometry.tabBarPillWidth,
@@ -311,6 +317,7 @@ export class FallbackGlassRuntime {
     this.dispose(owner)
   }
   dispose(_owner?: RuntimeOptions) {
+    this.padSearch?.dispose()
     if (this.disposed) return
     this.disposed = true
     this.unbindScroll()

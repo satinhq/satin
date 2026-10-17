@@ -52,10 +52,8 @@ function writeHex(channels: Channels, withAlpha: boolean) {
 }
 
 /**
- * `ColorPicker`: a row with a colour well that opens the system colour picker (grid,
- * spectrum, sliders, eyedropper and, with `supportsOpacity`, opacity).
- *
- * The system picker is titled "Colors", not with the label.
+ * A row with a colour well that opens the system colour picker: grid, spectrum, sliders,
+ * eyedropper and, with `supportsOpacity`, opacity.
  *
  * @example
  * <ColorPicker label="List Colour" selection={color} onSelectionChange={setColor} supportsOpacity={false} />

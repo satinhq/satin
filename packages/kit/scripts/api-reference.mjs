@@ -1,5 +1,6 @@
 import { SymbolFlags } from 'typescript/unstable/sync'
-import { openDeclarationProject, printDeclaration } from './native-api.mjs'
+import { SyntaxKind, getLeadingCommentRanges } from 'typescript/unstable/ast'
+import { openDeclarationProject } from './native-api.mjs'
 import { createHash } from 'node:crypto'
 import { readFile, writeFile, mkdir, readdir } from 'node:fs/promises'
 import { dirname, relative, resolve } from 'node:path'
@@ -15,6 +16,20 @@ import {
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const cell = value => value.replaceAll('|', '\\|').replaceAll('\n', ' ')
 const identity = (module, name) => `${module}:${name}`
+
+// The JSDoc block nearest a declaration. A `const` export documents its variable
+// statement, not the declaration inside it.
+function leadingDocumentation(declaration) {
+  const node =
+    declaration.kind === SyntaxKind.VariableDeclaration
+      ? (declaration.parent?.parent ?? declaration)
+      : declaration
+  const file = node.getSourceFile()
+  const block = (getLeadingCommentRanges(file.text, node.pos) ?? [])
+    .map(range => file.text.slice(range.pos, range.end))
+    .findLast(comment => comment.startsWith('/**'))
+  return block?.match(/^\/\*\*([\s\S]*?)\*\/$/)?.[1]
+}
 
 async function sourceFingerprint(root) {
   const hash = createHash('sha256')
@@ -50,7 +65,7 @@ export async function referenceInventory(root = packageRoot) {
     const module = path === '.' ? pkg.name : `${pkg.name}/${path.slice(2)}`
     const project = openDeclarationProject(entry)
     try {
-      const { program, checker, emitter } = project
+      const { program, checker } = project
       const file = program.getSourceFile(entry)
       if (!file) throw new Error(`Build before generating the reference: ${entry}`)
       const graph = publicDeclarationGraph(project, entry).replaceAll(`${root}/`, '')
@@ -71,10 +86,7 @@ export async function referenceInventory(root = packageRoot) {
               )
           }
         }
-        const documentation = printDeclaration(emitter, declaration).match(
-          /^\/\*\*([\s\S]*?)\*\//,
-        )?.[1]
-        const summary = documentation
+        const summary = leadingDocumentation(declaration)
           ?.split('\n')
           .map(line => line.replace(/^\s*\* ?/, '').trim())
           .join('\n')
@@ -83,7 +95,7 @@ export async function referenceInventory(root = packageRoot) {
           .trim()
         inventory.push({
           module,
-          summary,
+          summary: summary || undefined,
           name: symbol.name,
           kind: value ? 'Value' : 'Type',
           declaration: relative(resolve(root, 'dist/docs'), declaration.getSourceFile().fileName),
@@ -135,25 +147,119 @@ export function renderReference(
       `Review new public API behavior and unavailable descriptions: ${unreviewed.map(entry => entry.name).join(', ')}`,
     )
   const missing = inventory.filter(entry => !mappedExports.has(identity(entry.module, entry.name)))
+  // Plain words people search for. Never another framework's API names.
   const searchTerms = {
-    NavigationStack: 'navigation stack',
-    NavigationSplitView: 'sidebar and detail',
-    ScrollView: 'scrolling; pull to refresh',
-    List: 'list; rows; pull to refresh',
-    Sheet: 'sheet; modal presentation',
-    FullScreenCover: 'full screen presentation',
-    SafeAreaInset: 'safe area; accessory',
-    useTask: 'cancellable task',
-    useAppStorage: 'persistent settings',
-    useSceneStorage: 'restorable screen state',
-    withAnimation: 'animated state update',
+    Alert: 'alert; dialog; popup',
+    AsyncImage: 'remote image; image URL',
+    Button: 'button; tap',
+    ColorPicker: 'color picker; color well',
+    ConfirmationDialog: 'action sheet; delete confirmation',
+    ContentMargins: 'content inset',
+    ContentUnavailableView: 'empty state; no results',
+    ContextMenu: 'long press menu',
+    DatePicker: 'date picker; time picker; calendar',
+    DefaultToolbarItem: 'bottom search bar',
+    defineApp: 'app manifest; app config',
+    defineDatabase: 'local database; offline storage; IndexedDB',
+    defineRoutes: 'router; routes; deep links',
+    defineWebAuthentication: 'OAuth; sign in; PKCE',
+    Divider: 'separator; hairline',
+    EditButton: 'edit mode; Edit and Done',
+    FileImporter: 'file upload; document picker',
+    ForEach: 'swipe to delete; reorder rows',
+    Form: 'settings screen; form',
+    FullScreenCover: 'full screen presentation; modal',
+    GeometryReader: 'measure size',
     GlassEffect: 'glass; refraction',
+    GlassEffectContainer: 'glass morph; glass group',
+    HStack: 'row; horizontal layout',
+    IgnoresSafeArea: 'full bleed; edge to edge',
+    Image: 'image; picture',
+    LabeledContent: 'value row; detail row',
+    LazyVGrid: 'grid; columns',
+    LazyHGrid: 'horizontal grid',
+    Link: 'link; open URL',
+    List: 'list; rows; pull to refresh; swipe actions',
+    ListRow: 'swipe actions; row insets',
+    MatchedTransitionSource: 'zoom transition',
+    Menu: 'dropdown menu; more button',
+    moving: 'reorder rows',
+    NavigationLink: 'push; disclosure row',
+    NavigationSplitView: 'sidebar and detail; split view',
+    NavigationStack: 'navigation stack; push; back button',
+    NavigationTransition: 'zoom transition',
+    NotificationPermissionExplainer: 'notification permission prompt',
+    PasteButton: 'paste; clipboard',
+    PhotosPicker: 'photo picker; image upload',
+    Picker: 'dropdown; select; segmented control',
+    preferredColorScheme: 'dark mode; light mode',
+    ProgressView: 'spinner; activity indicator; progress bar; loading',
+    removing: 'delete rows',
+    RowIcon: 'settings icon',
+    runApp: 'mount app; entry point',
+    SafeAreaBar: 'bottom bar; top bar',
+    SafeAreaInset: 'safe area; accessory; composer bar',
+    Screen: 'navigation bar; title; toolbar',
+    ScrollView: 'scrolling; pull to refresh; scroll to',
+    Searchable: 'search bar; search field',
+    SecureField: 'password field',
+    Selectable: 'text selection; copy text',
+    SensoryButton: 'haptics; vibration',
+    ShareLink: 'share sheet; share button',
+    Sheet: 'sheet; modal presentation; bottom sheet',
+    Slider: 'slider; range input',
+    Spacer: 'flexible space',
+    Stepper: 'stepper; plus and minus buttons',
+    SwipeActions: 'swipe actions; swipe to delete',
+    SymbolImage: 'icon; glyph',
+    TabView: 'tab bar; tabs',
+    Text: 'text; font; typography',
+    TextEditor: 'multiline text; text area',
+    TextField: 'text field; text input',
+    Toggle: 'switch; checkbox',
+    ToolbarItem: 'toolbar button; bar button',
+    useAppStorage: 'persistent settings; preferences; local storage',
+    useColorScheme: 'dark mode',
+    useDismiss: 'close; go back',
+    useFocusChain: 'next field; return key',
+    useHorizontalSizeClass: 'iPad layout; responsive layout',
+    useKeyboardMetrics: 'keyboard height',
+    useMediaPlayer: 'audio player; music player',
+    useNotifications: 'push notifications; badge',
+    useOpenURL: 'open link; open URL',
+    useQuery: 'live query',
+    useReachability: 'offline; network status',
+    useSafeAreaInsets: 'safe area insets; notch; home indicator',
+    useScaledMetric: 'text size scaling',
+    useScenePhase: 'foreground; background; app state',
+    useSceneStorage: 'restorable screen state; draft',
+    useTask: 'cancellable task; data loading',
+    useUnsavedChanges: 'unsaved changes',
+    ViewThatFits: 'responsive layout; fallback layout',
+    VStack: 'column; vertical layout',
+    WebView: 'iframe; embedded web page',
+    withAnimation: 'animated state update',
+    Zoomable: 'pinch to zoom',
+    ZStack: 'layers; overlay',
   }
-  const moduleLimits = {
-    '@satinhq/kit/sw':
-      'Service worker and build integration only; follow the app build configuration.',
-    '@satinhq/kit/vite': 'Vite build integration only; this module does not render a control.',
-    '@satinhq/kit/unstable': 'Experimental API; its contract may change between beta releases.',
+  // Said once per section instead of on every row.
+  const moduleIntros = {
+    '@satinhq/kit': 'Components, hooks and types for building the app.',
+    '@satinhq/kit/diagnostics':
+      'Readers for installation and appearance records, for an optional diagnostics screen.',
+    '@satinhq/kit/install':
+      'Building blocks for a custom install page. They work only on the install page that `satinApp` builds.',
+    '@satinhq/kit/internal':
+      'Framework internals for Satin tooling and tests. App code must not import them; app lint rejects this module, and it changes without notice.',
+    '@satinhq/kit/internal/vite':
+      'Lower-level build tools for Satin tooling and tests. Apps use `satinApp` from `@satinhq/kit/vite`.',
+    '@satinhq/kit/server':
+      'Node helpers for serving a built app. Keep them out of the browser bundle.',
+    '@satinhq/kit/testing':
+      'Helpers for app tests. They do not prove real touches or notification delivery.',
+    '@satinhq/kit/unstable': 'Experimental API. Its contract may change between beta releases.',
+    '@satinhq/kit/vite':
+      'The Vite plugin that builds the app, its install page and its service worker.',
   }
   const description = entry => {
     const reviews = concepts.filter(
@@ -164,23 +270,15 @@ export function renderReference(
         behavior: entry.summary ?? [...new Set(reviews.map(review => review.behavior))].join(' '),
         limits: [...new Set(reviews.map(review => review.limitations))].join(' '),
       }
-    if (entry.kind === 'Type')
-      return {
-        behavior:
-          entry.summary ??
-          (entry.name.endsWith('Props')
-            ? `Defines the props accepted by \`${entry.name.slice(0, -5)}\`.`
-            : `Defines the \`${entry.name}\` type in \`${entry.module}\`.`),
-        limits:
-          'Compile-time contract only. The linked declaration lists its fields, unions and constraints.',
-      }
+    // Types and integration exports have no reviewed limits. An empty cell means there is
+    // nothing to add beyond the declaration and the section note.
     return {
       behavior:
         entry.summary ??
-        `Provides \`${entry.name}\` through the \`${entry.module}\` module. Read its linked declaration before use.`,
-      limits:
-        moduleLimits[entry.module] ??
-        'Package integration API. It does not add a separately supported app control.',
+        (entry.kind === 'Type' && entry.name.endsWith('Props')
+          ? `Props for \`${entry.name.slice(0, -5)}\`.`
+          : ''),
+      limits: '',
     }
   }
   const modules = [...new Set(inventory.map(entry => entry.module))]
@@ -194,13 +292,14 @@ export function renderReference(
     '',
     `Coverage: ${inventory.length} named exports across ${hashes.length} declaration entry points. ${mappedExports.size} exports have reviewed behavior metadata. ${missing.length} type and integration declarations are identified separately in the behavior review inventory. CSS is a stylesheet, not a named export.`,
     '',
-    'An API description establishes the supported contract. It does not certify pixels, motion, touch or installed-app lifecycle behavior. Experimental entry points remain experimental.',
+    'An API description establishes the supported contract. It does not certify pixels, motion, touch or installed-app lifecycle behavior. Experimental entry points remain experimental. An empty Limits cell means there are no limits beyond what the declaration states.',
     '',
     ...modules.flatMap(module => [
       `## ${module === '@satinhq/kit' ? 'Core API' : module.replace('@satinhq/kit/', '').replaceAll('/', ' ') + ' API'}`,
       '',
       `Module: \`${module}\``,
       '',
+      ...(moduleIntros[module] ? [moduleIntros[module], ''] : []),
       '| Satin export | Behavior | Limits | Also known as |',
       '| --- | --- | --- | --- |',
       ...inventory

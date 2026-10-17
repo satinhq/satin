@@ -9,7 +9,7 @@ export type ScrollOffset = Readonly<{
 
 export type ScrollSnapshot = ReadonlyMap<string, ScrollOffset>
 
-/** Options for restoring a named scroll surface to its top. */
+/** Options for `scrollToTop`: whether to animate. */
 export type ScrollToTopOptions = Readonly<{
   animated?: boolean
 }>

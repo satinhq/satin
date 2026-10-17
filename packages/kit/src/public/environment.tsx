@@ -32,13 +32,15 @@ export function useAppUpdate(): Readonly<{ justUpdated: JustUpdated | null }> {
   const { justUpdated, launchReady } = useSatinLayoutRuntime()
   return { justUpdated: launchReady ? justUpdated : null }
 }
-/** `horizontalSizeClass`: a presentation's own class inside it, else the window's. */
+/** The horizontal size class: `compact` or `regular`. Inside a presentation it is the
+ * presentation's own class; elsewhere, the window's. */
 export function useHorizontalSizeClass(): UserInterfaceSizeClass {
   const presentation = useContext(PresentationLayoutClassContext)
   const runtime = useSatinLayoutRuntime().layoutClass
   return (presentation ?? runtime).horizontal
 }
-/** `verticalSizeClass`: a presentation's own class inside it, else the window's. */
+/** The vertical size class: `compact` or `regular`. Inside a presentation it is the
+ * presentation's own class; elsewhere, the window's. */
 export function useVerticalSizeClass(): UserInterfaceSizeClass {
   const presentation = useContext(PresentationLayoutClassContext)
   const runtime = useSatinLayoutRuntime().layoutClass
@@ -63,12 +65,12 @@ function subscribeScene(listener: () => void) {
     window.removeEventListener('blur', listener)
   }
 }
-/** `scenePhase`: `active` in the foreground with focus, `inactive` without focus,
+/** Whether the app is in use: `active` in the foreground with focus, `inactive` without focus,
  * `background` when hidden. */
 export function useScenePhase(): ScenePhase {
   return useSyncExternalStore(subscribeScene, sceneSnapshot, () => 'inactive' as const)
 }
-/** `colorScheme`: the appearance Satin is currently drawing, `light` or `dark`. */
+/** The appearance Satin is drawing right now, `light` or `dark`. */
 export function useColorScheme(): ColorScheme {
   const store = window.__SATIN_APPEARANCE__
   if (!store) throw new Error('useColorScheme requires the Satin appearance runtime')
@@ -91,9 +93,9 @@ function schema<T>(initial: T): StateSchema<T> {
   }
 }
 /**
- * `@SceneStorage`: state kept with the current navigation entry in the scene checkpoint,
- * so a draft survives a relaunch. Each pushed entry owns its own value. Values must be
- * JSON-serializable. Keep saved records in a collection, not here.
+ * State kept with the current navigation entry, so a draft survives a relaunch. Each pushed
+ * entry owns its own value. Values must be JSON-serializable. Keep saved records in a
+ * collection, not here.
  *
  * @example
  * const [draft, setDraft] = useSceneStorage('draft', '')
@@ -104,8 +106,8 @@ export function useSceneStorage<T>(key: string, initial: T) {
 }
 const preferenceListeners = new Set<() => void>()
 /**
- * `@AppStorage`: a small JSON-serializable preference, kept across launches and shared by
- * every component that reads the same key.
+ * A small preference kept in local storage across launches. Every component that reads the same
+ * key sees the same value. Values must be JSON-serializable.
  *
  * @example
  * const [units, setUnits] = useAppStorage('units', 'kg')
@@ -205,16 +207,17 @@ export function NotificationPermissionExplainer({
   )
 }
 
-/** `EdgeInsets`: logical safe-area padding in points. */
+/** Insets on each edge in points. `leading` and `trailing` follow the layout direction. */
 export type EdgeInsets = Readonly<{
   top: number
   leading: number
   bottom: number
   trailing: number
 }>
-/** `UserInterfaceSizeClass`: the available size along one axis. */
+/** How much room there is along one axis: `compact` or `regular`. */
 export type UserInterfaceSizeClass = 'compact' | 'regular'
-/** `ScenePhase`: the foreground, focus and suspension state. */
+/** Whether the app is in the foreground with focus (`active`), without focus (`inactive`) or
+ * hidden (`background`). */
 export type ScenePhase = 'active' | 'inactive' | 'background'
-/** `ColorScheme`: the appearance currently drawn by the scene. */
+/** A light or dark appearance. */
 export type ColorScheme = 'light' | 'dark'

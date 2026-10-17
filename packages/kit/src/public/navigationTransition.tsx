@@ -7,8 +7,8 @@ import { registerTransitionSource, registerZoomRequest } from '../navigation/zoo
 const brand: unique symbol = Symbol('satin.navigationTransition')
 
 /**
- * `NavigationTransition`: how a pushed screen arrives and leaves. Give one to `Screen`'s
- * `navigationTransition`.
+ * How a pushed screen arrives and leaves: `automatic` (a slide) or `zoom`. Give one to
+ * `Screen`'s `navigationTransition`.
  */
 export type NavigationTransition = Readonly<{
   [brand]: true
@@ -37,7 +37,7 @@ export const NavigationTransition: Readonly<{
     Object.freeze({ [brand]: true as const, kind: 'zoom' as const, sourceID, namespace }),
 })
 
-/** Props of `MatchedTransitionSource`. */
+/** The source's id and namespace, and the one element the screen zooms out of. */
 export type MatchedTransitionSourceProps = Readonly<{
   /** The id a `NavigationTransition.zoom` names as its `sourceID`. */
   id: string
@@ -47,8 +47,8 @@ export type MatchedTransitionSourceProps = Readonly<{
 }>
 
 /**
- * `matchedTransitionSource(id:in:)`: marks the view a zoom transition starts from and
- * returns to. A push zooms only while its source is on screen; otherwise it slides as usual.
+ * Marks the view a zoom transition starts from and returns to. A push zooms only while its
+ * source is on screen; otherwise it slides as usual.
  * @example
  * <MatchedTransitionSource id={album.id} in={albumZoom}>
  *   <Image src={album.artwork} alt="" />

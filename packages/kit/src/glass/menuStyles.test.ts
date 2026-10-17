@@ -1,19 +1,22 @@
-import { readFileSync } from 'node:fs'
+import { frameworkStyleDeclarations } from '../../test/domStyles.ts'
 import { expect, it } from 'vitest'
 
 // The general Menu is a portal outside the app root and its rows are captured into glass ink,
 // so its colours, direction and type size must come from its own rules.
-const css = readFileSync(new URL('../styles.css', import.meta.url), 'utf8')
-/** The declarations of the first rule whose selector is exactly `selector`. */
+const css = frameworkStyleDeclarations()
+/** Collect exact selectors across the cascade, independent of layer indentation. */
 const rule = (selector: string) => {
-  const start = css.indexOf('\n' + selector + ' {')
-  expect(start, selector).toBeGreaterThanOrEqual(0)
-  return css.slice(start, css.indexOf('}', start))
+  const normalize = (value: string) => value.trim().replace(/\s+/g, ' ')
+  const declarations = [...css.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+    .filter(match => normalize(match[1]!) === normalize(selector))
+    .map(match => match[2]!)
+  expect(declarations.length, selector).toBeGreaterThan(0)
+  return declarations.join('\n')
 }
 
 it('gives a general menu its own label colour in both appearances and a destructive red', () => {
-  expect(css).toContain(
-    '\n[data-satin-general-menu] {\n  --satin-action-destructive: #ff383c;\n  color: #000;\n}',
+  expect(rule('[data-satin-general-menu]')).toMatch(
+    /--satin-action-destructive: #ff383c;\s+color: #000;/,
   )
   expect(rule(":where(html[data-satin-appearance='dark']) [data-satin-general-menu]")).toMatch(
     /--satin-action-destructive: #ff4245;\s+color: #fff;/,
@@ -48,7 +51,7 @@ it('scales menu text with the system body size (Dynamic Type) from its own panel
 
 // Owner, Oct 8: native menus draw separators only between sections, never above the first one.
 it('starts the first action section without an extra separator or empty top band', () => {
-  expect(css).not.toContain('\n[data-satin-action-section] {')
+  expect(css).not.toMatch(/(?:^|\n)\s*\[data-satin-action-section\]\s*\{/)
   const boundary = rule('[data-satin-action-section]:not(:first-child)')
   expect(boundary).toContain('border-top: 1px')
   expect(boundary).toContain('margin-block: 10px 0')

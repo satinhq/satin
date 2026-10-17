@@ -39,7 +39,8 @@ export type GlassShape =
       cornerStyle?: 'continuous' | 'circular'
     }>
 type GlassRect = Readonly<{ x: number; y: number; width: number; height: number }>
-/** Normalized RGBA channels in 0...1. Glass.tintRGBA rejects nonfinite or out-of-range channels. */
+/** A glass tint as red, green, blue and alpha channels from 0 to 1. `Glass.tintRGBA` rejects
+ * values outside that range. */
 export type GlassTint = readonly [red: number, green: number, blue: number, alpha: number]
 export type GlassMaterial = Readonly<{
   variant: 'regular' | 'clear'

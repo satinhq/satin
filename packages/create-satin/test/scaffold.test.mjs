@@ -48,7 +48,7 @@ test('flags safely encode identity and keep appearance files aligned', async () 
     assert.doesNotMatch(html, /manifest|theme-color|matchMedia/u)
     const source = await readFile(resolve(target, 'src/main.tsx'), 'utf8')
     assert.match(source, /runApp\(\{ app, routes, navigation, content: TabView \}\)/u)
-    assert.doesNotMatch(source, /registerAppShell|useBackground/u)
+    assert.doesNotMatch(source, /registerAppShell|useBackground|@satinhq\/kit\/styles\.css/u)
     assert.match(definition, /tint: "#abcdef"/u)
     assert.equal(
       await readFile(resolve(target, 'src/styles.css'), 'utf8'),

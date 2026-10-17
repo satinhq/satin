@@ -1,4 +1,5 @@
-/** A deliberate shape choice overrides the framework's semantic default. */
+/** A shape for `cornerClipPath` and swipe action faces: a capsule, an ellipse, a rounded rectangle
+ * or a custom clip path. Choosing one overrides the framework's default shape. */
 export type CornerShape =
   | 'capsule'
   | 'ellipse'
@@ -86,8 +87,7 @@ export function roundedCornerPath(
   return `${commands.join(' ')} Z`
 }
 
-/** CSS clip for an explicitly sized shape. Radii are CSS points; ellipse and
- * capsule are intentional alternatives, not native-default validation errors. */
+/** Returns a CSS `clip-path` for a shape at an explicit width and height. Radii are in points. */
 export function cornerClipPath(shape: CornerShape, width: number, height: number): string {
   if (shape === 'ellipse') return 'ellipse(50% 50% at 50% 50%)'
   if (typeof shape === 'object' && shape.kind === 'custom') return shape.clipPath

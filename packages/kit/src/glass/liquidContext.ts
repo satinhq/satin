@@ -9,6 +9,8 @@ export type RegisteredTabBar = TabBarProps &
     /** 'top': the regular-width iPad bar, laid out by `itemFrames` inside `insetHost`. */
     placement?: 'bottom' | 'top'
     itemFrames?: readonly TabItemFrame[]
+    /** iPad search handoff; applied to material, foreground and controls together. */
+    searchProgress?: number
   }>
 
 export type MaterialEffectRegistration = Readonly<{

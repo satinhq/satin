@@ -44,10 +44,10 @@ function singleRange(header: string | undefined, size: number) {
   }
 }
 
-/** Node static adapter. Stream GET/HEAD with single byte ranges, no cache or
- * compression. A fallback is used only for missing extensionless routes.
- * Other methods are left to the caller. Root and every file must resolve
- * inside the same real directory, including symlink targets.
+/** Serves a built app's static files from Node. It streams GET and HEAD requests and supports
+ * single byte ranges, with no caching or compression. The `fallback` file answers only missing
+ * extensionless routes; other methods are left to the caller. The root and every file, symlink
+ * targets included, must resolve inside the same real directory.
  */
 export async function serveStaticFile(
   request: IncomingMessage,

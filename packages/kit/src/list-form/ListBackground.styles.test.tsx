@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { readFileSync } from 'node:fs'
+import { frameworkStyleDeclarations } from '../../test/domStyles.ts'
 import { afterEach, expect, it } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { List, Row } from './ListForm.tsx'
@@ -18,7 +18,7 @@ for (const appearance of ['light', 'dark']) {
       // Authored CSS loaded first must still override a hidden system fill.
       sheet.textContent =
         '.hearth { background-image: linear-gradient(red, blue); background-color: rgb(10, 20, 30); }' +
-        readFileSync('src/styles.css', 'utf8').replaceAll('\n', ' ')
+        frameworkStyleDeclarations().replaceAll('\n', ' ')
       document.head.append(sheet)
       document.body.innerHTML = renderToStaticMarkup(
         <List id="hearth" variant={variant} className="hearth" scrollContentBackground="hidden">

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { readFileSync } from 'node:fs'
+import { frameworkStyleDeclarations } from '../../test/domStyles.ts'
 import { afterEach, expect, it } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { GeometryReader } from './layout.tsx'
@@ -12,7 +12,7 @@ afterEach(() => {
 })
 function mount(content: React.ReactNode) {
   const style = document.createElement('style')
-  style.textContent = readFileSync('src/styles.css', 'utf8').replaceAll('\n', ' ')
+  style.textContent = frameworkStyleDeclarations().replaceAll('\n', ' ')
   document.head.append(style)
   document.body.innerHTML = renderToStaticMarkup(content)
 }

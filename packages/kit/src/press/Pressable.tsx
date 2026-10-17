@@ -2,7 +2,7 @@ import { forwardRef, type ButtonHTMLAttributes, type CSSProperties, type ReactNo
 import type { PressState } from './stateMachine.ts'
 import { usePressInteraction } from './usePressInteraction.ts'
 
-/** DOM activation handlers reserved for the Pressable interaction policy. */
+/** The DOM event handlers `Pressable` owns. Use `onPress` and `onPressStateChange` instead. */
 export type PressableOwnedHandlers =
   | 'children'
   | 'disabled'
@@ -16,6 +16,8 @@ export type PressableOwnedHandlers =
   | 'onPointerMove'
   | 'onPointerUp'
 
+/** A pressable's `onPress` action, content and press feedback. An `iconOnly` pressable needs an
+ * `aria-label`. */
 export type PressableProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, PressableOwnedHandlers> &
   Readonly<{
     children?: ReactNode
@@ -28,6 +30,8 @@ export type PressableProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, Press
   }> &
   (Readonly<{ iconOnly: true; 'aria-label': string }> | Readonly<{ iconOnly?: false }>)
 
+/** A plain tap target with no button chrome. It dims while pressed, and a touch that turns into a
+ * scroll does not fire `onPress`. Use it for custom tappable content. */
 export const Pressable = forwardRef<HTMLButtonElement, PressableProps>(function Pressable(
   {
     children,

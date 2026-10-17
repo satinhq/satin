@@ -1,3 +1,4 @@
+import { gzipSync } from 'node:zlib'
 import { describe, expect, it } from 'vitest'
 import { defineSatinApp } from './definition.ts'
 import { installPage } from './install.ts'
@@ -36,7 +37,8 @@ describe('install experience page', () => {
     expect(page).toContain('data-satin-install-check')
     expect(page).toContain('<section id="satin-install-check" hidden></section>')
     expect(page).not.toMatch(/install-steps|data-concept|data:image|Checking|configuration…/)
-    expect(Buffer.byteLength(page)).toBeLessThan(46_000)
+    expect(Buffer.byteLength(page)).toBeLessThan(65_000)
+    expect(gzipSync(page).byteLength).toBeLessThan(18_500)
     expect(page).not.toMatch(/<section id="satin-install-guide"[^>]*hidden/)
   })
 
@@ -173,9 +175,10 @@ describe('install experience page', () => {
     expect(page).toContain(`<span data-for="toolbar">${glyph('share')}Share</span>`)
   })
 
-  it('stays under 46 KB with every inline script minified', () => {
+  it('bounds the inline installation page and independent pre-launch environment', () => {
     const page = installPage(app, 'install')
-    expect(Buffer.byteLength(page)).toBeLessThan(46_000)
+    expect(Buffer.byteLength(page)).toBeLessThan(65_000)
+    expect(gzipSync(page).byteLength).toBeLessThan(18_500)
     // Only the glyphs the page uses are in its symbol sheet.
     expect(page).toContain('<symbol id="ix-put"')
     expect(page).not.toContain('<symbol id="ix-arrow"')

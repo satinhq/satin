@@ -1,6 +1,7 @@
 import { glassRadius, type GlassShape } from '../glass/regions.ts'
 
-/** `buttonBorderShape`. Fixed radii are measured in points. */
+/** The outline of a bordered button: `automatic`, `capsule`, or a rounded rectangle with a fixed
+ * corner radius in points. */
 export type ButtonBorderShape =
   'automatic' | 'capsule' | Readonly<{ kind: 'roundedRectangle'; cornerRadius: number }>
 

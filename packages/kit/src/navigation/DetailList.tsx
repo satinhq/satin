@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { ScrollSurface } from '../scroll/ScrollSurface.tsx'
 import { Pressable } from '../press/Pressable.tsx'
 
-/** Regular-width grouped detail content beneath NavigatorHost's inline title. */
+/** A grouped list of rows for a split view's detail column at regular width. */
 export function DetailList({
   items,
 }: {

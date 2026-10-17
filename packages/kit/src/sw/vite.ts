@@ -4,6 +4,8 @@ import type { Plugin, ResolvedConfig } from 'vite'
 import { APP_SHELL_VERSION_FILE } from './protocol.ts'
 import { generateAppShell } from './generator.ts'
 
+/** Options for the service worker build plugin: extra files to precache, public routes, legacy
+ * cache names and diagnostic headers. */
 export interface SatinAppShellPluginOptions {
   readonly mediaProbe?: string
   readonly shellFile?: string
@@ -18,6 +20,8 @@ export interface SatinAppShellPluginOptions {
   readonly diagnosticTimingHeaders?: boolean
 }
 
+/** The Vite build plugin that generates the app's service worker and precache list. `satinApp`
+ * includes it; use it directly only in Satin tooling. */
 export function satinAppShell(options: SatinAppShellPluginOptions = {}): Plugin {
   let config: ResolvedConfig | undefined
   let outputWritten = false

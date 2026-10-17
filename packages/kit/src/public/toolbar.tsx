@@ -1,3 +1,4 @@
+import { readDeviceIdiom } from '../layout/deviceIdiom.ts'
 import {
   Children,
   createContext,
@@ -20,7 +21,8 @@ export const BottomBarRegistrationContext = createContext<(() => () => void) | n
 export const SearchToolbarItemContext = createContext<
   ((element: HTMLElement | null) => void) | null
 >(null)
-/** The supported toolbar placement names. */
+/** A toolbar item's placement and content. `automatic` lets the bar choose; `bottomBar` puts it
+ * in the bottom toolbar. */
 export type ToolbarItemProps = {
   placement:
     | 'subtitle'
@@ -52,7 +54,8 @@ const toolbarPlacement: Record<ToolbarItemProps['placement'], ToolbarSlot> = {
   bottomBar: 'bottom',
 }
 export const ToolbarSlotsContext = createContext<Slots>({})
-/** Places one navigation or bottom-bar item. Adjacent actions share a glass capsule; ToolbarSpacer separates groups. */
+/** Places one item in the navigation bar or the bottom toolbar. Adjacent actions share a glass
+ * capsule; a `ToolbarSpacer` separates groups. */
 export function ToolbarItem({ children, placement }: ToolbarItemProps) {
   const slots = useContext(ToolbarSlotsContext)
   const registerBottomBar = useContext(BottomBarRegistrationContext)
@@ -80,17 +83,19 @@ export function ToolbarItem({ children, placement }: ToolbarItemProps) {
       )
     : null
 }
-/** Which system item to place, and where. */
+/** Which system item to place, and where. Only `search` exists. */
 export type DefaultToolbarItemProps = {
-  /** `DefaultToolbarItem(kind:)`. Only `search` is drawn. */
+  /** The system item. Only `search` is drawn. */
   kind: 'search'
   placement?: 'bottomBar' | 'automatic'
 }
-/** Places the screen search field among bottom-bar items. Requires Screen searchable. */
+/** Places the screen's search field among its bottom toolbar items. The screen must be
+ * `searchable`. */
 export function DefaultToolbarItem({ kind }: DefaultToolbarItemProps) {
   const slots = useContext(ToolbarSlotsContext)
   const report = useContext(SearchToolbarItemContext)
-  const destination = slots.bottom
+  // iPad search is owned by the navigation column's trailing slot.
+  const destination = readDeviceIdiom() === 'pad' ? undefined : slots.bottom
   const [element, setElement] = useState<HTMLDivElement | null>(null)
   useLayoutEffect(() => {
     report?.(element)
@@ -105,13 +110,14 @@ export function DefaultToolbarItem({ kind }: DefaultToolbarItemProps) {
 }
 /** The spacer's sizing and placement. */
 export type ToolbarSpacerProps = {
-  /** `SpacerSizing`: `fixed` separates two items' glass by the standard 12 pt gap;
-   * `flexible` (the default) takes the free space of the bar, like `ToolbarSpacer()`. */
+  /** `fixed` separates two items' glass by the standard 12 pt gap; `flexible`, the default,
+   * takes the free space of the bar. */
   sizing?: 'fixed' | 'flexible'
   placement?: ToolbarItemProps['placement']
 }
-/** `ToolbarSpacer(_:placement:)`. Consecutive items of one placement share one glass
- * capsule; a spacer between them splits it. Place it directly in `toolbar`, next to the items. */
+/** Splits toolbar items into separate glass capsules. Consecutive items of one placement share
+ * one capsule; a spacer between them splits it. Place it directly in `toolbar`, next to the
+ * items. */
 export function ToolbarSpacer({
   sizing = 'flexible',
   placement = 'automatic',
@@ -124,8 +130,8 @@ export function ToolbarSpacer({
   const destination = slots[slot] ?? (slot === 'topBarLeading' ? slots.leading : undefined)
   return destination ? createPortal(spacer, destination) : null
 }
-/** `ToolbarItemGroup`: its items render as consecutive `ToolbarItem`s of the placement,
- * which share one glass capsule (iOS 26+ draws a group and adjacent items identically). */
+/** Groups several items under one placement. They render as consecutive `ToolbarItem`s and share
+ * one glass capsule. */
 export function ToolbarItemGroup({ children, placement }: ToolbarItemProps) {
   // gives confirmation actions separate capsules, even inside a group.
   if (placement === 'confirmationAction')

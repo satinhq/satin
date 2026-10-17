@@ -1,3 +1,5 @@
+import { readDeviceIdiom } from '../layout/deviceIdiom.ts'
+import { PadSearchDrawer } from './PadSearchDrawer.tsx'
 import { NavigationSearchRow, navigationSearchRowOf } from '../navigation/NavigationSearchRow.tsx'
 import { animateElement } from '../motion/animate.ts'
 import { beginSearchBackdrop, endSearchBackdrop, refreshSearchBackdrop } from './searchBackdrop.ts'
@@ -58,7 +60,18 @@ type Running = { animations: Animation[]; spring: MenuSpring; startedAt: number;
  * visual state of each part (FLIP), on the native springs (searchMotion.ts). A retarget mid-way
  * starts from where everything is on screen, keeping the field's velocity.
  */
-export function SearchDrawer({
+export function SearchDrawer(props: {
+  configuration: Searchable
+  scroller: RefObject<HTMLDivElement | null>
+}) {
+  return readDeviceIdiom() === 'pad' ? (
+    <PadSearchDrawer {...props} />
+  ) : (
+    <PhoneSearchDrawer {...props} />
+  )
+}
+
+function PhoneSearchDrawer({
   configuration,
   scroller,
 }: {

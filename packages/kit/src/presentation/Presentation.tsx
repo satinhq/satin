@@ -92,7 +92,7 @@ export function FullScreenCover({ children, ...props }: FullScreenCoverProps) {
     </Surface>
   )
 }
-/** The controlled text and keyboard intent of an alert's embedded field. */
+/** The text field inside an alert: its label, controlled text, prompt and keyboard intent. */
 export type AlertTextFieldProps = Omit<
   InputHTMLAttributes<HTMLInputElement>,
   'value' | 'defaultValue' | 'onChange' | 'onSubmit' | 'size' | 'placeholder'
@@ -109,17 +109,17 @@ export type AlertTextFieldProps = Omit<
 function AlertTextField({ prompt, ...props }: AlertTextFieldProps) {
   return <TextField {...props} placeholder={prompt ?? props.label} />
 }
-/** An alert's presentation binding, message and leaf actions. */
+/** An alert's presentation binding, title, message, actions and optional text field. */
 export type AlertProps = PresentationProps & {
   message?: string
   actions: readonly ActionItem[]
   textField?: AlertTextFieldProps
 }
-/** A confirmation dialog's presentation binding, leaf actions and optional anchor. */
+/** A confirmation dialog's presentation binding, title, message, actions and optional anchor. */
 export type ConfirmationDialogProps = Omit<AlertProps, 'textField'> & {
   /** The view the popover points at. Defaults to the control that was pressed to open it (a swipe
-   * action's row). Native draws no Cancel
-   * button in the popover: a tap outside cancels, and the Cancel action stays for assistive technology. */
+   * action's row). The popover draws no Cancel button: a tap outside cancels, and the Cancel
+   * action stays for assistive technology. */
   anchor?: RefObject<HTMLElement | null>
 }
 function Actions({
@@ -173,7 +173,8 @@ function validateActions(actions: readonly ActionItem[], alert: boolean) {
   if (actions.filter(action => action.role === 'cancel').length > 1)
     throw new Error('Presentation accepts at most one Cancel action.')
 }
-/** `alert`: a titled presentation with up to three leaf actions and an optional text field. */
+/** A centred alert with a title, an optional message, up to three actions and an optional text
+ * field. */
 export function Alert({ message, actions, textField, ...props }: AlertProps) {
   const isPresented = useColdLaunchPresentation(props.isPresented, props.onPresentedChange)
   props = { ...props, isPresented }
@@ -197,7 +198,7 @@ export function Alert({ message, actions, textField, ...props }: AlertProps) {
     </Surface>
   )
 }
-/** `confirmationDialog`: a titled action presentation anchored to its initiating control. */
+/** A titled set of actions, such as Delete and Cancel, shown next to the control that opened it. */
 export function ConfirmationDialog({
   message,
   actions,

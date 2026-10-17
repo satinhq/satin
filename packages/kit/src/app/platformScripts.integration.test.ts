@@ -14,6 +14,7 @@ import { gateAppScripts } from './platformScripts.ts'
 const require = createRequire(import.meta.url)
 type TestWindow = Window & {
   __SATIN_PLATFORM_BLOCKED__?: boolean
+  prelaunchRoot?: ShadowRoot
   classicStarted?: boolean
 }
 const { JSDOM, VirtualConsole } = require('jsdom') as {
@@ -86,6 +87,13 @@ function executeHead(html: string, ios: boolean, url = 'https://app.test/', stan
     url,
     virtualConsole,
     beforeParse(window) {
+      const element = (window as unknown as { Element: typeof Element }).Element
+      const attach = element.prototype.attachShadow
+      element.prototype.attachShadow = function (options) {
+        const root = attach.call(this, options)
+        if (this.localName === 'satin-prelaunch') window.prelaunchRoot = root
+        return root
+      }
       Object.defineProperty(window, 'TextEncoder', { value: TextEncoder })
       Object.defineProperties(window.navigator, {
         userAgent: { value: ios ? 'Mozilla/5.0 (iPhone) AppleWebKit/605.1.15' : 'Desktop' },
@@ -136,26 +144,20 @@ function expectStartup(html: string, admitted: boolean, ios: boolean, standalone
 }
 
 describe('platform scripts through Vite', () => {
-  it('paints the launch cover and its colors without executing any JavaScript', async () => {
+  it('creates the isolated launch cover before any application JavaScript', async () => {
     const { root } = await fixture()
     await build({ configFile: false, root, logLevel: 'silent', plugins: satinApp(app) })
     const html = await readFile(join(root, 'dist/index.html'), 'utf8')
-    const dom = new JSDOM(html)
+    const { dom, errors } = executeHead(html, true)
+    expect(errors).toEqual([])
     try {
       const { document } = dom.window
-      expect(document.getElementById('satin-launch-screen')).not.toBeNull()
-      expect(document.querySelector('.satin-launch-icon img')?.getAttribute('src')).toMatch(
-        /^data:image\/png;base64,/,
-      )
-      expect(document.querySelector('.satin-launch-icon img')?.getAttribute('decoding')).toBe(
-        'sync',
-      )
-      const preload = document.querySelector('link[rel="preload"][as="image"]')
-      expect(preload?.getAttribute('href')).toBe(
-        document.querySelector('.satin-launch-icon img')?.getAttribute('src'),
-      )
-      expect(document.head.contains(preload)).toBe(true)
-      expect(document.getElementById('satin-launch-progress')?.hasAttribute('hidden')).toBe(true)
+      const root = dom.window.prelaunchRoot!
+      expect(document.querySelector('satin-prelaunch')!.shadowRoot).toBeNull()
+      expect(root.getElementById('satin-launch-screen')).not.toBeNull()
+      expect(root.querySelector('img')?.getAttribute('src')).toMatch(/^data:image\/png;base64,/)
+      expect(root.querySelector('img')?.getAttribute('decoding')).toBe('sync')
+      expect(root.getElementById('satin-launch-progress')?.hasAttribute('hidden')).toBe(true)
       const paint = document.getElementById('satin-launch-paint')
       expect(paint?.textContent).toContain('--satin-launch-background:#ffffff')
       expect(html.indexOf('id="satin-launch-paint"')).toBeLessThan(

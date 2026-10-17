@@ -104,7 +104,12 @@ it('packs the bar uniforms in the order the bar shader declares their slots', ()
   const struct = /struct Parameters \{([^}]*)\}/.exec(shaders.bar.wgsl)![1]
   const slots = [...struct.matchAll(/(\w+)_slot: vec4<f32>/g)].map(match => match[1])
   expect(slots).toEqual([...shaders.bar.uniforms, 'kernelScale'])
-  expect(shaders.bar.uniforms.at(-1)).toBe('uTabBarOptics')
+  expect(shaders.bar.uniforms.slice(-4)).toEqual([
+    'uTabBarOptics',
+    'uControlRim',
+    'uControlSpecular',
+    'uControlSize',
+  ])
 })
 
 it('switches each tab bar optic in the bar shader on uTabBarOptics', () => {

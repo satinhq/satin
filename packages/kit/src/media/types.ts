@@ -1,4 +1,5 @@
-/** Each occurrence has its own entryId, including repeated songs. */
+/** One item in the audio queue: its source URL, media id and display metadata. Each occurrence
+ * has its own `entryId`, so a repeated song appears twice. */
 export type MediaQueueEntry = Readonly<{
   entryId: string
   mediaId: string
@@ -15,7 +16,7 @@ export type MediaCommandResult = Readonly<
     }
   | { status: 'failed'; operationId: number; code: string; cause?: unknown }
 >
-/** The queue's repeat mode. */
+/** The queue's repeat mode: `off`, `one` or `all`. */
 export type MediaRepeat = 'off' | 'one' | 'all'
 /** Everything the player shows: the queue, the current entry, status, position and modes. */
 export type MediaSnapshot = Readonly<{
@@ -45,7 +46,9 @@ export type MediaQueueOptions = Readonly<{
   position?: number
   autoplay?: boolean
 }>
-/** Queue results acknowledge the transaction. Playback and seek results acknowledge observed completion. */
+/** The audio player's commands: queue editing, transport, seek, repeat and shuffle. Queue
+ * commands resolve once the change is made; `play` and `seek` resolve once playback is seen to
+ * respond. */
 export interface MediaController {
   replaceQueue(
     entries: readonly MediaQueueEntry[],

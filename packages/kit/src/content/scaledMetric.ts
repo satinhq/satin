@@ -56,7 +56,8 @@ function createMetricStore(style: TextStyle) {
 }
 const stores = new Map<TextStyle, ReturnType<typeof createMetricStore>>()
 
-/** Scale a dimension by the target WebKit system text style's Dynamic Type ratio. */
+/** Scales a dimension with the user's text size, relative to a text style (`body` by default).
+ * Use it for spacing or icon sizes that should grow with text. */
 export function useScaledMetric(value: number, relativeTo: TextStyle = 'body'): number {
   if (!Number.isFinite(value)) throw new Error('useScaledMetric requires a finite value.')
   let store = stores.get(relativeTo)

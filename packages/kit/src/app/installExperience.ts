@@ -243,66 +243,6 @@ html:not([data-ready]) [data-js], html[data-ready] [data-nojs], [data-copy-faile
 }
 html[data-env="gate"] .ix { max-width: 440px; margin: 0 auto; }
 
-/*
- * The deployment check's failure report keeps its words and gets the page's voice. The
- * check injects its own styles later, so each rule here starts at the body element to outrank them.
- */
-body:has(#satin-install-check[data-error]) :is(.ix-hero, .ix-pointer) { visibility: hidden; }
-/* Nested, so the long selector is written once. */
-body #satin-install-check {
-  &[data-error] {
-    padding: 32px 24px;
-    background: var(--bg);
-    color: var(--label);
-    font: inherit;
-  }
-  & .install-error-content::before {
-    content: "!";
-    display: grid;
-    place-items: center;
-    width: 44px;
-    height: 44px;
-    margin: 0 auto 16px;
-    border-radius: 50%;
-    background: #ff3b30;
-    color: #fff;
-    font-size: 26px;
-    font-weight: 700;
-    line-height: 1;
-  }
-  & .install-error-content:has(button)::before {
-    content: "?";
-    background: var(--third);
-  }
-  & h2 { font-size: 1.294rem; margin: 0 0 8px; }
-  & p { margin: 6px 0; color: var(--second); }
-  & p:nth-of-type(2) { color: var(--label); }
-  & button {
-    min-height: 50px;
-    margin-top: 20px;
-    padding: 0 36px;
-    border-radius: 25px;
-    background: var(--tint);
-    color: var(--on-tint);
-    font-weight: 600;
-  }
-  & ul {
-    margin-top: 24px;
-    padding: 4px 16px;
-    border-radius: 20px;
-    background: var(--fill);
-    text-align: left;
-  }
-  & li {
-    margin: 0;
-    padding: 10px 0;
-    color: var(--label);
-    font: 0.706rem/1.45 ui-monospace, SFMono-Regular, Menlo, monospace;
-  }
-  & li + li { border-top: 1px solid var(--hair); }
-  & .install-error-detail { color: var(--second); }
-}
-
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }

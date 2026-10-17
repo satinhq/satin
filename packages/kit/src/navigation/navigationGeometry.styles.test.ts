@@ -1,12 +1,12 @@
 // @vitest-environment happy-dom
-import { readFileSync } from 'node:fs'
+import { frameworkStyleDeclarations } from '../../test/domStyles.ts'
 import { expect, it } from 'vitest'
 
 // iOS 27.0, iPad Pro 11 M5: window safe top 32, bar row 54, expanded title row 52.
 // The historical regular List +8 offset double-counted a stale harness safe-area input.
 it('does not add a second safe-area correction to a regular stack large title', () => {
   const style = document.createElement('style')
-  style.textContent = readFileSync('src/styles.css', 'utf8')
+  style.textContent = frameworkStyleDeclarations()
   const root = document.createElement('div')
   root.dataset.satinLayoutHorizontal = 'regular'
   root.style.cssText =

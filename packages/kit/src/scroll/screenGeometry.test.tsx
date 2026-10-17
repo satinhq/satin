@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs'
+import { frameworkStyleDeclarations } from '../../test/domStyles.ts'
 // @vitest-environment happy-dom
 import { act, type CSSProperties, type HTMLAttributes, type ReactNode } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
@@ -148,7 +148,7 @@ it('a bottomBar toolbar item insets the primary scroll view; a hidden bar reserv
 
 it('restores the album top fade after pushing, popping and re-pushing from a scrolled root', () => {
   const stylesheet = document.createElement('style')
-  stylesheet.textContent = readFileSync('src/styles.css', 'utf8')
+  stylesheet.textContent = frameworkStyleDeclarations()
   document.head.append(stylesheet)
   document.documentElement.dataset.satinViewportFit = 'auto'
   element.dataset.satinFullBleed = 'true'
@@ -645,7 +645,7 @@ it('a screen ScrollView defaults to vertical and displays its large navigation t
 
 it('List can reveal its parent background without removing row backgrounds', () => {
   const style = document.createElement('style')
-  style.textContent = readFileSync('src/styles.css', 'utf8')
+  style.textContent = frameworkStyleDeclarations()
   document.head.append(style)
   try {
     const scroller = mount(
@@ -672,7 +672,7 @@ it('List can reveal its parent background without removing row backgrounds', () 
 
 it('custom List section spacing changes adjacent gaps and retains the terminal inset', () => {
   const style = document.createElement('style')
-  style.textContent = readFileSync('src/styles.css', 'utf8')
+  style.textContent = frameworkStyleDeclarations()
   document.head.append(style)
   try {
     const scroller = mount(
