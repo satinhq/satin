@@ -4,7 +4,7 @@ Opens the platform share sheet using Web Share. Pass prepared `item` data contai
 
 `onCompletion` reports the browser's completed handoff, not delivery to a recipient. `onError` is required. An AbortError can mean dismissal or no suitable target; it is not proof of a user cancellation. Unsupported sharing or files report NotSupportedError. Other browser errors retain their names.
 
-The operating system chooses share targets and previews. Custom transferable objects, preview models and activity lists are unavailable. Keep `item` stable while sharing; changing its identity invalidates delivery to the old owner.
+The operating system chooses share targets and previews. Structured transfer objects, custom previews and custom activity lists are unsupported. Keep `item` stable while sharing; changing its identity invalidates delivery to the old owner.
 
 ## Example
 

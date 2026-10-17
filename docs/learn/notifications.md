@@ -53,10 +53,10 @@ This snippet stays Code-only because the system permission prompt belongs to an 
 
 ## 3. Connect the relay
 
-Use your own authenticated relay and keep private credentials on the server. Follow [Push relay](../../packages/pwakit-push/README.md) and [Server-scheduled reminders](../server-reminders.md) for sending, subscription state and retries.
+Use your own authenticated relay and keep private credentials on the server. Follow [Push relay](../../packages/push/README.md) and [Server-scheduled reminders](../server-reminders.md) for sending, subscription state and retries.
 
 ## Next steps
 
 - [Deploy and update](deploy.md)
-- [Push relay](../../packages/pwakit-push/README.md)
+- [Push relay](../../packages/push/README.md)
 - [Server-scheduled reminders](../server-reminders.md)

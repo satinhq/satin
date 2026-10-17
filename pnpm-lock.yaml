@@ -26,13 +26,13 @@ importers:
         specifier: ^3.9.9
         version: 3.9.9
 
-  packages/create-pwakit:
+  packages/create-satin:
     devDependencies:
       oxlint:
         specifier: ^1.79.0
         version: 1.80.0
 
-  packages/pwakit:
+  packages/kit:
     dependencies:
       sharp:
         specifier: ^0.35.4
@@ -87,7 +87,7 @@ importers:
         specifier: 4.1.10
         version: 4.1.10(@types/node@24.13.3)(happy-dom@20.14.5)(jsdom@26.1.0)(vite@8.2.2(@types/node@24.13.3)(esbuild@0.28.2))
 
-  packages/pwakit-lint:
+  packages/lint:
     dependencies:
       oxc-parser:
         specifier: 0.153.0
@@ -100,11 +100,11 @@ importers:
         specifier: ^1.79.0
         version: 1.80.0
 
-  packages/pwakit-push:
+  packages/push:
     dependencies:
       '@satinhq/kit':
         specifier: workspace:*
-        version: link:../pwakit
+        version: link:../kit
       web-push:
         specifier: ^3.6.7
         version: 3.6.7
@@ -163,7 +163,7 @@ importers:
         version: 5.0.5
       '@satinhq/kit':
         specifier: workspace:*
-        version: link:../../packages/pwakit
+        version: link:../../packages/kit
       react:
         specifier: 19.2.8
         version: 19.2.8

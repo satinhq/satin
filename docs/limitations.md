@@ -37,4 +37,4 @@ What each part of Satin does today, and where it stops. Limits that come from iO
 - **Video player.** There's no general video player control.
 - **Full search tab.** `searchable` gives a search field and results, but not the full search tab.
 
-`@satinhq/kit/unstable` exports are experimental and may change. The [API reference](https://github.com/satinhq/satin/blob/main/packages/pwakit/api/swiftui-reference.md) lists every export.
+`@satinhq/kit/unstable` exports are experimental and may change. The [API reference](https://github.com/satinhq/satin/blob/main/packages/kit/api/reference.md) lists every export.

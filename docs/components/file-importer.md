@@ -1,6 +1,6 @@
 # FileImporter
 
-Imports file bytes through the system file chooser. `FileImporter` requires a user gesture and does not expose a presentation flag that would open a chooser outside a user gesture.
+Imports file bytes through the system file chooser. `FileImporter` opens the system chooser from a press. It does not expose a presentation flag that would open a chooser outside a user gesture.
 
 Pass `selection` as the accepted File array and update it in `onSelectionChange`. `allowedContentTypes` accepts MIME strings or file extensions, for example `['application/pdf', '.txt']`. These are chooser hints, not content validation or Swift uniform type identifiers. `allowsMultipleSelection` defaults to false.
 

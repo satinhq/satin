@@ -4,7 +4,7 @@ Reads plain text with the async Clipboard API inside the user's press. `onPaste`
 
 WebKit may show its own Paste confirmation before returning text. Dismissal and denial cannot be reliably distinguished. The component never reads clipboard contents during render or probes whether a paste is available. It cannot pre-disable itself based on clipboard contents.
 
-This version supports plain text only, not arbitrary transferable objects or clipboard images. No hidden editable field, synthetic paste, permission polling or clipboard cache bypasses WebKit's prompt.
+This version supports plain text only. Structured clipboard objects and images are unsupported. No hidden editable field, synthetic paste, permission polling or clipboard cache bypasses WebKit's prompt.
 
 ## Example
 

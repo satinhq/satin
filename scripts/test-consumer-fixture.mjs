@@ -12,19 +12,19 @@ import {
 } from 'node:fs/promises'
 import { dirname, isAbsolute, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { assertPublicDoc, checkShippedDocs } from '../packages/create-pwakit/scripts/agent-docs.mjs'
+import { assertPublicDoc, checkShippedDocs } from '../packages/create-satin/scripts/agent-docs.mjs'
 
 const workspace = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const evidence = resolve(
   workspace,
-  process.env.PWAKIT_CONSUMER_EVIDENCE ?? 'fixtures/consumer/.artifacts/evidence',
+  process.env.SATIN_CONSUMER_EVIDENCE ?? 'fixtures/consumer/.artifacts/evidence',
 )
 const artifacts = resolve(workspace, 'fixtures/consumer/.artifacts')
 const expectedFramework = JSON.parse(
-  await readFile(resolve(workspace, 'packages/pwakit/package.json'), 'utf8'),
+  await readFile(resolve(workspace, 'packages/kit/package.json'), 'utf8'),
 )
-const scratch = process.env.PWAKIT_SCRATCH_ROOT
-if (!scratch) throw new Error('Set PWAKIT_SCRATCH_ROOT to a directory outside the workspace.')
+const scratch = process.env.SATIN_SCRATCH_ROOT
+if (!scratch) throw new Error('Set SATIN_SCRATCH_ROOT to a directory outside the workspace.')
 await mkdir(scratch, { recursive: true })
 const scratchReal = await realpath(scratch)
 const relativeScratch = relative(await realpath(workspace), scratchReal)
@@ -106,8 +106,8 @@ async function verifyPackage(app) {
       await access(destination)
     }
   }
-  const reference = await readFile(resolve(guideDirectory, 'swiftui-reference.md'), 'utf8')
-  assert.match(reference, /Missing mapping inventory/)
+  const reference = await readFile(resolve(guideDirectory, 'reference.md'), 'utf8')
+  assert.match(reference, /Behavior review inventory/)
   const snippets = [...reference.matchAll(/^```tsx\s*\n([\s\S]*?)^```/gm)]
   assert.ok(snippets.length > 0, 'native reference must ship a compiled public API example')
   for (const [index, snippet] of snippets.entries()) {
@@ -120,8 +120,8 @@ async function verifyPackage(app) {
 try {
   const packs = {}
   for (const [name, directory] of [
-    ['@satinhq/kit', 'pwakit'],
-    ['create-satin', 'create-pwakit'],
+    ['@satinhq/kit', 'kit'],
+    ['create-satin', 'create-satin'],
   ]) {
     const cwd = resolve(workspace, 'packages', directory)
     // prepack runs normally; record the actual reviewed listing as well.
@@ -159,7 +159,7 @@ try {
   run(
     process.execPath,
     [
-      resolve(workspace, 'packages/pwakit-lint/scripts/check-fidelity.mjs'),
+      resolve(workspace, 'packages/lint/scripts/check-fidelity.mjs'),
       resolve(app, 'src'),
       resolve(app, 'index.html'),
     ],

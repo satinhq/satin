@@ -10,9 +10,10 @@ they can't. Each area that has been cleaned up adds its section here.
 Use clear public names, explicit props and stability markers. The conventions below apply to the public API layer.
 
 **Every export has JSDoc at its declaration.** The API report prints it and editors show it as
-the tooltip, so it is what app authors read first. Say when to use the export and the one thing people get wrong, and add a short `@example`
-when the signature doesn't make usage obvious. Keep native reference measurements and capture names out of
-it; they belong in implementation comments beside the constant they justify.
+the tooltip, so it is what app authors read first. Describe what the Satin export does,
+when to use it, who owns its state and the limitation a caller is most likely to miss.
+Add a short `@example` when the signature does not make usage obvious. Keep measurements
+and capture names in implementation comments beside the constants they justify.
 
 **One module per API family in `public/`.** `Screen.tsx` holds `Screen`, `toolbar.tsx` the toolbar
 components, `controls.tsx` the controls, and so on. Engine-facing glue that the facades share
@@ -44,13 +45,13 @@ keep other directories' import paths stable during parallel work; new code impor
 `Screen.tsx`, `toolbar.tsx` or `screenChrome.tsx` directly.
 
 **Regenerate the API report with every public change.** Build, then run
-`pnpm --filter @satinhq/kit api:write`. The report, the API reference and the template's API table
+`pnpm --filter @satinhq/kit api:write`. The report, the Satin API reference and the template's API table
 are generated; review their diff as part of the change. If you change `push/schema.ts`, also run
-`node packages/pwakit-push/scripts/sync-routes.mjs`, which copies it into the server package.
+`node packages/push/scripts/sync-routes.mjs`, which copies it into the server package.
 
 ## Shared test fixtures and retired prototypes
 
-Keep a controller fixture shared by navigation suites in `packages/pwakit/test/`.
+Keep a controller fixture shared by navigation suites in `packages/kit/test/`.
 The helper owns only its test state; production code must not import it. Keep
 fixtures used by one suite local, including the deferred navigation controller.
 When test bodies differ only by an input, use named parameter rows that retain

@@ -2,6 +2,8 @@
 
 Build a personal React app for the installed iPhone or iPad Home Screen runtime. This public beta targets iOS 27. For the shortest path from the published package, follow the [Quick start](learn/quick-start.md). This guide is the full reference: start with the local package instructions below, then read [current limitations](limitations.md) for supported behavior and platform constraints.
 
+Satin's APIs follow the declarative style people already use to build iPhone and iPad apps. If you've used SwiftUI, Jetpack Compose or Flutter, it will feel familiar.
+
 ## Create an app from this checkout
 
 Use Node 22.12 or later in the 22.x series, or Node 24 or later, and pnpm 10. The following commands pack the preview and its scaffolder locally. Other app dependencies still need registry access. Run the first block at the repository root:
@@ -10,8 +12,8 @@ Use Node 22.12 or later in the 22.x series, or Node 24 or later, and pnpm 10. Th
 pnpm install --frozen-lockfile
 PREVIEW_DIR="$(mktemp -d "${TMPDIR:-/tmp}/satin-preview.XXXXXX")"
 mkdir -p "$PREVIEW_DIR/packages" "$PREVIEW_DIR/scaffolder"
-KIT_ARCHIVE="$(node -p "const { name, version } = require('./packages/pwakit/package.json'); name.replace(/^@/, '').replaceAll('/', '-') + '-' + version + '.tgz'")"
-CREATE_ARCHIVE="$(node -p "const { name, version } = require('./packages/create-pwakit/package.json'); name.replace(/^@/, '').replaceAll('/', '-') + '-' + version + '.tgz'")"
+KIT_ARCHIVE="$(node -p "const { name, version } = require('./packages/kit/package.json'); name.replace(/^@/, '').replaceAll('/', '-') + '-' + version + '.tgz'")"
+CREATE_ARCHIVE="$(node -p "const { name, version } = require('./packages/create-satin/package.json'); name.replace(/^@/, '').replaceAll('/', '-') + '-' + version + '.tgz'")"
 pnpm --filter @satinhq/kit pack --pack-destination "$PREVIEW_DIR/packages"
 pnpm --filter create-satin pack --pack-destination "$PREVIEW_DIR/packages"
 tar -xzf "$PREVIEW_DIR/packages/$CREATE_ARCHIVE" -C "$PREVIEW_DIR/scaffolder"
@@ -124,13 +126,13 @@ For a built Safari-tab preview, add `updateProfile: 'preview'` to the generated 
 
 Import app APIs from `@satinhq/kit`, build integration from `@satinhq/kit/vite`, and load `@satinhq/kit/styles.css` once. `@satinhq/kit/internal` is for framework development; app lint rejects it. `@satinhq/kit/testing` belongs in tests. `@satinhq/kit/unstable` contains experimental compatibility APIs; consult its generated export inventory before use.
 
-The generated [API reference](../packages/pwakit/api/swiftui-reference.md) describes supported exports and behavior. Its declaration links resolve inside the installed package. See the [package guide](../packages/pwakit/README.md) for examples. A planned feature does not imply that a React prop exists.
+The generated [API reference](../packages/kit/api/reference.md) describes supported exports and behavior. Its declaration links resolve inside the installed package. See the [package guide](../packages/kit/README.md) for examples. A planned feature does not imply that a React prop exists.
 
 Use `NavigationLink` for a destination, `Button` for an action, `LabeledContent` for a value, and `RowLabel` for composed text. Use `Picker pickerStyle="segmented"` for segmented selection. Public fields and Alert's embedded field use `prompt`.
 
 Let the app definition own install metadata and launch backgrounds. Keep the generated status style; components consume framework geometry rather than raw viewport units or safe-area CSS. Satin uses the system font. Do not add font files or recreate missing framework controls in app CSS.
 
-Continue with [application recipes](app-recipes.md), [safe local data and backup restore](data.md), [geometry and theme tokens](tokens.md), [networking](networking.md) and [push sender setup](../packages/pwakit-push/README.md). The [push relay](../packages/pwakit-push/README.md) sends immediately; your backend owns reminder scheduling. DatePicker, ColorPicker and ProgressView are available with [documented styles and constraints](controls.md). Photo/file acquisition has no public chooser at this revision. Read the current limitations before depending on these capabilities.
+Continue with [application recipes](app-recipes.md), [safe local data and backup restore](data.md), [geometry and theme tokens](tokens.md), [networking](networking.md) and [push sender setup](../packages/push/README.md). The [push relay](../packages/push/README.md) sends immediately; your backend owns reminder scheduling. DatePicker, ColorPicker and ProgressView are available with [documented styles and constraints](controls.md). Photo/file acquisition has no public chooser at this revision. Read the current limitations before depending on these capabilities.
 
 ## Screen content and controls
 

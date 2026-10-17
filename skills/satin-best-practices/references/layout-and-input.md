@@ -51,6 +51,61 @@ Never place it with `position: fixed`. For a growing message composer, follow
   the page yourself.
 - Raw `<input>` and `<button>` are flagged by lint. Use the framework controls.
 
+## Edit a collection of items
+
+Use a stable ID for each draft row. Put `ForEach` directly in a `Section`, render a
+`TextField` for each item, and append a new item from a Button. `onDelete` receives
+row offsets, which `removing` applies to the current array.
+
+```tsx
+import { useState } from 'react'
+import { Button, Form, ForEach, Section, TextField, removing } from '@satinhq/kit'
+
+function IngredientsForm() {
+  const [items, setItems] = useState([{ id: 'first', text: '' }])
+  const [newItemID, setNewItemID] = useState<string | null>(null)
+
+  function addIngredient() {
+    const id = crypto.randomUUID()
+    setItems(current => [...current, { id, text: '' }])
+    setNewItemID(id)
+  }
+
+  return (
+    <Form id="ingredients">
+      <Section header="Ingredients">
+        <ForEach
+          data={items}
+          onDelete={offsets => setItems(current => removing(current, offsets))}
+        >
+          {item => (
+            <TextField
+              label="Ingredient"
+              value={item.text}
+              autoFocus={item.id === newItemID}
+              onChange={text => setItems(current => current.map(row =>
+                row.id === item.id ? { ...row, text } : row
+              ))}
+            />
+          )}
+        </ForEach>
+        <Button onPress={addIngredient}>Add Ingredient</Button>
+      </Section>
+    </Form>
+  )
+}
+```
+
+The new row's `autoFocus` moves editing to it when it mounts. Existing rows keep
+their IDs while typing and deleting, so their fields retain identity. Do not use
+array offsets as IDs or schedule focus with a timeout.
+
+For a sheet, put this Form in the sheet route's `Screen` under a
+`NavigationStack modal`, as shown in `node_modules/@satinhq/kit/dist/docs/components/sheet.md`. Give the
+screen one Form; reuse the Section inside that Form when adding other fields.
+The Form owns keyboard avoidance and scrolling. `onDelete` supplies swipe actions.
+Keep the array as draft state and save it when the user confirms.
+
 ## Custom layout
 
 Plain React and semantic HTML are fine for content. For stacks, prefer `VStack`, `HStack`,

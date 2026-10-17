@@ -1,0 +1,42 @@
+{
+  "name": "create-satin",
+  "version": "0.1.0-beta.3",
+  "description": "Create a Satin iPhone Home Screen app.",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": "^22.12.0 || >=24.0.0"
+  },
+  "bin": {
+    "create-satin": "./bin/create-satin.mjs"
+  },
+  "files": [
+    "bin",
+    "template",
+    "README.md",
+    "LICENSE",
+    "NOTICE",
+    "THIRD_PARTY_NOTICES.md"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/",
+    "tag": "beta"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/satinhq/satin.git",
+    "directory": "packages/create-satin"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "prepack": "node scripts/build.mjs",
+    "typecheck": "node --check bin/create-satin.mjs && node --check scripts/build.mjs",
+    "lint": "oxlint bin scripts test",
+    "test": "node --test test/*.test.mjs"
+  },
+  "devDependencies": {
+    "oxlint": "^1.79.0"
+  },
+  "homepage": "https://satin.build"
+}

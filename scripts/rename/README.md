@@ -33,14 +33,13 @@ The rename adds no legacy API or CSS aliases. The unbranded stable API, includin
 `defineApp` and `runApp`, retains its names. The rendering engine keeps its own
 name from the map.
 
-Internal source directories (`packages/pwakit`, `packages/pwakit-lint`,
-`packages/pwakit-push`, `packages/create-pwakit`) remain stable so checkout tools
-can locate them independently of npm names. Scratch paths,
-`PWAKIT_SCRATCH_ROOT` and `PWAKIT_CONSUMER_EVIDENCE` remain shared test
-infrastructure. The public build switch is `SATIN_STRICT_GLASS`. Historical specs, design notes, build-plan
+Source directories (`packages/kit`, `packages/lint`,
+`packages/push`, `packages/create-satin`) are configured in `names.json` so checkout tools
+can locate them independently of npm names. `SATIN_SCRATCH_ROOT` and `SATIN_CONSUMER_EVIDENCE` select temporary test
+directories outside the checkout. The public build switch is `SATIN_STRICT_GLASS`. Historical specs, design notes, build-plan
 history, evidence and native reference projects retain their original names.
 
 Software validation uses directory filters so a name change cannot silently skip a package.
 
-Run `pnpm --filter ./packages/pwakit build`, then `pnpm --filter ./packages/pwakit api:write` and `node scripts/check-skills.mjs`.
+Run `pnpm --filter ./packages/kit build`, then `pnpm --filter ./packages/kit api:write` and `node scripts/check-skills.mjs`.
 Run the workspace typecheck, lint, build, tests and packed consumer proof after changing identity.

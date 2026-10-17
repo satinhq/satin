@@ -42,7 +42,7 @@
 | Appearance-aware colour | `semanticColor`, `systemColor`, `useColorScheme` |
 | Animate a state change | `withAnimation` with an `Animation` preset |
 
-For every export the installed `node_modules/@satinhq/kit/dist/docs/swiftui-reference.md` lists what it
+For every export the installed `node_modules/@satinhq/kit/dist/docs/reference.md` lists what it
 does, its limits and a link to its declaration. Read the declaration for the exact props. Import
 type-only exports with `import type`.
 

@@ -1,0 +1,88 @@
+{
+  "provenance": {
+    "scene": "reference iOS 27 Simulator Notes, light and dark touch-clocked recordings",
+    "source": "native opening measurements/curve fit and native-samples.json; recognition = touch +750ms",
+    "limits": "Translucent threshold contours are estimates; same-device optical acceptance remains pending.",
+    "content": "openContent: native iPad Pro 11 (2nd gen) iOS 27.0.1 .contextMenu on a chat bubble, warm-light-chat-tall (3 counter-qualified trials, native menu measurements curve fit, width RMS 0.028, height RMS 0.017) on the recognition clock (content settle start = this epoch + 55 ms). Centres follow their size axis (native's first resolved frame is already at 89% width). Dark uses the light fit (dark windows were rejected)."
+  },
+  "open": {
+    "dark": {
+      "width": {
+        "delay": 178.0213,
+        "omega": 23.2612,
+        "zeta": 0.7571,
+        "velocity": 8.5734
+      },
+      "height": {
+        "delay": 159.4281,
+        "omega": 24.4664,
+        "zeta": 0.7673,
+        "velocity": 15.0
+      },
+      "centerY": {
+        "delay": 197.2187,
+        "omega": 24.5702,
+        "zeta": 0.7695,
+        "velocity": 0.3521
+      },
+      "centerX": {
+        "delay": 178.0213,
+        "omega": 23.2612,
+        "zeta": 0.7571,
+        "velocity": 8.5734
+      }
+    },
+    "light": {
+      "width": {
+        "delay": 156.9709,
+        "omega": 25.6198,
+        "zeta": 0.8091,
+        "velocity": -0.8028
+      },
+      "height": {
+        "delay": 135.8007,
+        "omega": 20.2885,
+        "zeta": 0.7847,
+        "velocity": -7.2934
+      },
+      "centerY": {
+        "delay": 174.8335,
+        "omega": 24.4769,
+        "zeta": 0.7926,
+        "velocity": -11.1356
+      },
+      "centerX": {
+        "delay": 156.9709,
+        "omega": 25.6198,
+        "zeta": 0.8091,
+        "velocity": -0.8028
+      }
+    }
+  },
+  "openContent": {
+    "width": {
+      "delay": 55,
+      "omega": 19.5,
+      "zeta": 0.73,
+      "velocity": 0
+    },
+    "height": {
+      "delay": 55,
+      "omega": 29.5,
+      "zeta": 0.87,
+      "velocity": 0
+    },
+    "centerY": {
+      "delay": 55,
+      "omega": 29.5,
+      "zeta": 0.87,
+      "velocity": 0
+    },
+    "centerX": {
+      "delay": 55,
+      "omega": 19.5,
+      "zeta": 0.73,
+      "velocity": 0
+    }
+  }
+}

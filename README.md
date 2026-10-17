@@ -6,6 +6,8 @@ You write React. Satin gives you screens and navigation, lists and forms, sheets
 
 > **Public beta for iOS 27.** APIs may change before 1.0. [Known issues](docs/known-issues.md) lists what iOS limits, what we're fixing and what we won't do.
 
+Satin's APIs follow the declarative style people already use to build iPhone and iPad apps. If you've used SwiftUI, Jetpack Compose or Flutter, it will feel familiar.
+
 ## Start an app
 
 You need Node 22.12 or later (or Node 24) and an iPhone or iPad on iOS 27, or the iOS Simulator.
@@ -37,7 +39,7 @@ Add `--skill satin-design` to install one of them, or `-g` to install for every 
 - [Quick start](docs/learn/quick-start.md), then [Build a list app](docs/learn/lists-and-forms.md), [Add it to the Home Screen](docs/learn/installing-and-updates.md) and [Deploy and update](docs/learn/deploy.md).
 - [Components](docs/components/index.md): one page per component, with examples.
 - [Recipes](docs/app-recipes.md): longer examples, such as a messaging thread or local data with backups.
-- [API reference](packages/pwakit/api/swiftui-reference.md): every export, generated from the package.
+- [API reference](packages/kit/api/reference.md): every export, generated from the package.
 
 The same docs, with live previews, are at https://satin.build/docs/. Every page is also plain Markdown, indexed at https://satin.build/llms.txt, so coding agents can read them too.
 
@@ -45,10 +47,10 @@ The same docs, with live previews, are at https://satin.build/docs/. Every page 
 
 | Folder | What it is |
 | --- | --- |
-| `packages/pwakit` | The framework. |
-| `packages/create-pwakit` | The app generator behind `npm create`. |
-| `packages/pwakit-lint` | Lint rules that keep apps on the framework's path. |
-| `packages/pwakit-push` | A small sender for push notifications. |
+| `packages/kit` | The framework. |
+| `packages/create-satin` | The app generator behind `npm create`. |
+| `packages/lint` | Lint rules that keep apps on the framework's path. |
+| `packages/push` | A small sender for push notifications. |
 | `templates/basic` | The starter app. |
 | `skills` | Agent skills that developers install into their coding agent. |
 | `apps/docs` | The website and documentation. |

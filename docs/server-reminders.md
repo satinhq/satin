@@ -42,7 +42,7 @@ existing authenticated session, before the enable gesture. Never put a sender to
 VAPID private key or a shared relay configuration file in the app bundle. The current
 relay maps each distinct client bearer token to a configured owner. An app session
 token is not automatically a relay token. Your backend must use the same owner mapping.
-Follow [private relay setup](../packages/pwakit-push/README.md); keep the Node listener
+Follow [private relay setup](../packages/push/README.md); keep the Node listener
 private, behind trusted HTTPS, with the configured app origin and authentication intact.
 
 Explain that reminders need notifications, then call
@@ -116,7 +116,7 @@ schedule ID with the local reminder so later cancellation reaches the same job.
 
 ## Send due reminders through the existing transport
 
-Use the [single-owner SQLite storage and sender example](../packages/pwakit-push/README.md#scheduled-reminders-need-a-server).
+Use the [single-owner SQLite storage and sender example](../packages/push/README.md#scheduled-reminders-need-a-server).
 It is a server recipe, not code Satin starts. Your already operated server must run
 the sender periodically and monitor failures. Configure `REMINDERS_DB` to the same
 private absolute database path for schedule endpoints and sender. Populate its

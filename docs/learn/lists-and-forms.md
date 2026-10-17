@@ -92,6 +92,61 @@ TextField receives the current string and its setter. The Add Book button is dis
 
 `addBook` appends the title and clears the field. `List` provides scrolling and Section groups the editor above the books.
 
+## Edit a collection of items
+
+Use a stable ID for each draft row. Put `ForEach` directly in a `Section`, render a
+`TextField` for each item, and append a new item from a Button. `onDelete` receives
+row offsets, which `removing` applies to the current array.
+
+```tsx
+import { useState } from 'react'
+import { Button, Form, ForEach, Section, TextField, removing } from '@satinhq/kit'
+
+function IngredientsForm() {
+  const [items, setItems] = useState([{ id: 'first', text: '' }])
+  const [newItemID, setNewItemID] = useState<string | null>(null)
+
+  function addIngredient() {
+    const id = crypto.randomUUID()
+    setItems(current => [...current, { id, text: '' }])
+    setNewItemID(id)
+  }
+
+  return (
+    <Form id="ingredients">
+      <Section header="Ingredients">
+        <ForEach
+          data={items}
+          onDelete={offsets => setItems(current => removing(current, offsets))}
+        >
+          {item => (
+            <TextField
+              label="Ingredient"
+              value={item.text}
+              autoFocus={item.id === newItemID}
+              onChange={text => setItems(current => current.map(row =>
+                row.id === item.id ? { ...row, text } : row
+              ))}
+            />
+          )}
+        </ForEach>
+        <Button onPress={addIngredient}>Add Ingredient</Button>
+      </Section>
+    </Form>
+  )
+}
+```
+
+The new row's `autoFocus` moves editing to it when it mounts. Existing rows keep
+their IDs while typing and deleting, so their fields retain identity. Do not use
+array offsets as IDs or schedule focus with a timeout.
+
+For a sheet, put this Form in the sheet route's `Screen` under a
+`NavigationStack modal`, as shown in [Sheet](../components/sheet.md). Give the
+screen one Form; reuse the Section inside that Form when adding other fields.
+The Form owns keyboard avoidance and scrolling. `onDelete` supplies swipe actions.
+Keep the array as draft state and save it when the user confirms.
+
 ## Next steps
 
 - [Add it to the Home Screen](installing-and-updates.md): install the app and open it like any other.

@@ -2,13 +2,13 @@ import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 
 const manifest = async path => JSON.parse(await readFile(new URL(path, import.meta.url), 'utf8'))
-const framework = await manifest('../packages/pwakit/package.json')
-const scaffold = await manifest('../packages/create-pwakit/package.json')
+const framework = await manifest('../packages/kit/package.json')
+const scaffold = await manifest('../packages/create-satin/package.json')
 const template = await manifest('../templates/basic/package.json')
-const lint = await manifest('../packages/pwakit-lint/package.json')
-const push = await manifest('../packages/pwakit-push/package.json')
+const lint = await manifest('../packages/lint/package.json')
+const push = await manifest('../packages/push/package.json')
 const fixture = await manifest('../fixtures/consumer/package.json')
-const notices = await manifest('../packages/pwakit/src/acknowledgements/inventory.json')
+const notices = await manifest('../packages/kit/src/acknowledgements/inventory.json')
 const identity = await manifest('./rename/names.json')
 const packages = identity.profiles[identity.packageProfile]
 assert.equal(framework.name, packages.kit)
@@ -32,7 +32,7 @@ assert.equal(
   'Consumer fixture must use the released framework archive',
 )
 assert.equal(notices.find(notice => notice.role === 'framework')?.version, identity.version)
-for (const path of ['../NOTICE', '../packages/pwakit/NOTICE']) {
+for (const path of ['../NOTICE', '../packages/kit/NOTICE']) {
   const notice = await readFile(new URL(path, import.meta.url), 'utf8')
   assert.ok(
     notice.includes(`## ${identity.brand} ${identity.version}\n`),

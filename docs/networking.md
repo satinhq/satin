@@ -179,7 +179,7 @@ and [Apple's web app session explanation](https://developer.apple.com/videos/pla
 
 Do not schedule background fetch or background sync on iOS. A page may be frozen
 or killed after it leaves the foreground. Run schedules on your server and use
-visible Web Push to notify the user; follow the [push sender guide](../packages/pwakit-push/README.md).
+visible Web Push to notify the user; follow the [push sender guide](../packages/push/README.md).
 Push is not permission to run a silent polling loop or a guaranteed delivery time.
 
 Queue offline writes in the [local database](data.md). Store a stable operation ID,

@@ -149,7 +149,7 @@ for (const file of files) {
   }
 }
 // Public skill directories and branded source basenames follow the same prefix.
-// Package source directory names are intentionally stable.
+// Source layout is explicit in names.json and independent of npm coordinates.
 function renameChildren(directory, renameDirectories = false) {
   for (const entry of readdirSync(directory, { withFileTypes: true })) {
     const path = join(directory, entry.name)
@@ -163,19 +163,19 @@ function renameChildren(directory, renameDirectories = false) {
   }
 }
 for (const directory of [
-  'packages/pwakit/src',
-  'packages/pwakit/api',
-  'packages/pwakit/bin',
-  'packages/create-pwakit/bin',
+  'packages/kit/src',
+  'packages/kit/api',
+  'packages/kit/bin',
+  'packages/create-satin/bin',
 ]) {
   renameChildren(resolve(root, directory))
 }
 renameChildren(resolve(root, 'skills'), true)
 for (const [directory, name] of [
-  ['pwakit', packages.kit],
-  ['pwakit-lint', packages.lint],
-  ['pwakit-push', packages.push],
-  ['create-pwakit', config.createPackage],
+  [config.directories.kit, packages.kit],
+  [config.directories.lint, packages.lint],
+  [config.directories.push, packages.push],
+  [config.directories.create, config.createPackage],
 ]) {
   const path = resolve(root, 'packages', directory, 'package.json')
   const manifest = JSON.parse(readFileSync(path, 'utf8'))
@@ -200,7 +200,7 @@ const fixture = JSON.parse(readFileSync(fixturePath, 'utf8'))
 const kitArchive = `${packages.kit.replace(/^@/, '').replaceAll('/', '-')}-${config.version}.tgz`
 fixture.dependencies[packages.kit] = `file:.artifacts/${kitArchive}`
 writeFileSync(fixturePath, `${JSON.stringify(fixture, null, 2)}\n`)
-const inventoryPath = resolve(root, 'packages/pwakit/src/acknowledgements/inventory.json')
+const inventoryPath = resolve(root, 'packages/kit/src/acknowledgements/inventory.json')
 const notices = JSON.parse(readFileSync(inventoryPath, 'utf8'))
 const frameworkNotice = notices.find(notice => notice.role === 'framework')
 if (!frameworkNotice) throw new Error('Missing framework license notice')
@@ -209,7 +209,7 @@ for (const notice of notices) {
   notice.sha256 = createHash('sha256').update(notice.text).digest('hex')
 }
 writeFileSync(inventoryPath, `${JSON.stringify(notices, null, 2)}\n`)
-for (const name of ['NOTICE', 'packages/pwakit/NOTICE']) {
+for (const name of ['NOTICE', 'packages/kit/NOTICE']) {
   const noticePath = resolve(root, name)
   const content = readFileSync(noticePath, 'utf8')
   const heading = new RegExp(`^## ${escape(config.brand)} [^\\n]+$`, 'm')

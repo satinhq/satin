@@ -1,0 +1,56 @@
+{
+  "name": "@satinhq/push",
+  "version": "0.1.0-beta.3",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "default": "./src/index.mjs"
+    },
+    "./schema": {
+      "types": "./src/schema.d.ts",
+      "default": "./src/schema.js"
+    }
+  },
+  "bin": {
+    "satin-push": "./src/cli.mjs"
+  },
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE",
+    "NOTICE",
+    "THIRD_PARTY_NOTICES.md"
+  ],
+  "scripts": {
+    "build": "node scripts/sync-routes.mjs && node --check src/index.mjs",
+    "typecheck": "pnpm --dir ../kit build && node scripts/sync-routes.mjs && tsc --noEmit --allowJs --module nodenext --target es2023 --types node src/index.mjs src/index.d.ts",
+    "lint": "oxlint src",
+    "test": "node --test src/*.test.mjs",
+    "prepack": "node scripts/sync-routes.mjs"
+  },
+  "dependencies": {
+    "web-push": "^3.6.7",
+    "@satinhq/kit": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "~7.0.2",
+    "oxlint": "^1.79.0",
+    "@types/node": "^24.13.3"
+  },
+  "types": "./src/index.d.ts",
+  "engines": {
+    "node": "^22.12.0 || >=24.0.0"
+  },
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public",
+    "tag": "beta"
+  },
+  "homepage": "https://satin.build",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/satinhq/satin.git",
+    "directory": "packages/push"
+  }
+}

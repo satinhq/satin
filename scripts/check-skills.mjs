@@ -12,13 +12,13 @@ import assert from 'node:assert/strict'
 import { cp, mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises'
 import { dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { assertPublicDoc } from '../packages/create-pwakit/scripts/agent-docs.mjs'
+import { assertPublicDoc } from '../packages/create-satin/scripts/agent-docs.mjs'
 
 const workspace = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const skillsRoot = resolve(workspace, 'skills')
 const placeholder = 'satin'
 const frameworkPackage = JSON.parse(
-  await readFile(resolve(workspace, 'packages/pwakit/package.json'), 'utf8'),
+  await readFile(resolve(workspace, 'packages/kit/package.json'), 'utf8'),
 ).name
 const sampleName = 'example'
 
@@ -103,7 +103,7 @@ async function checkApiNames(directory, label) {
   publicSource ??= (
     await Promise.all(
       publicEntryPoints.map(file =>
-        readFile(resolve(workspace, 'packages/pwakit/src', file), 'utf8'),
+        readFile(resolve(workspace, 'packages/kit/src', file), 'utf8'),
       ),
     )
   ).join('\n')

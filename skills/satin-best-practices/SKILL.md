@@ -90,7 +90,7 @@ Read the reference that matches the task before writing code. Each one is short.
 | What to check before saying the app is done | [references/done.md](references/done.md) |
 
 The installed package is the authority on exact props. Search
-`node_modules/@satinhq/kit/dist/docs/swiftui-reference.md` for an export name and follow its declaration
+`node_modules/@satinhq/kit/dist/docs/reference.md` for an export name and follow its declaration
 link, and copy complete examples from `node_modules/@satinhq/kit/README.md` and
 `node_modules/@satinhq/kit/dist/docs/app-recipes.md` before adapting them. If this skill and the
 installed package disagree, the package wins.

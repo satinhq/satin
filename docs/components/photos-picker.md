@@ -4,7 +4,7 @@ Selects one photo or video using a real file input. The browser chooses the sour
 
 `selection` is the accepted `File | null`; `onSelectionChange` receives a new File. `matching` accepts `images`, `videos`, or `imagesAndVideos`. `capture="user"` or `"environment"` supplies a browser camera preference, not a camera guarantee. No photo-library permission probe runs.
 
-The browser may offer Photo Library, camera or Files. The control does not expose PhotosPickerItem identifiers, ordered multi-selection, persistent library access, or native filter objects. File decoding, object URLs, storage and validation belong to the app.
+The browser may offer Photo Library, camera or Files. The control does not expose PhotosPickerItem identifiers, ordered multi-selection, persistent library access, or library-specific content filters. File decoding, object URLs, storage and validation belong to the app.
 
 ## Example
 

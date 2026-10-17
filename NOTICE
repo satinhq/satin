@@ -1,6 +1,6 @@
 # Satin distribution notices
 
-Generated from packages/pwakit/src/acknowledgements/inventory.json.
+Generated from packages/kit/src/acknowledgements/inventory.json.
 
 Satin-authored framework packages use MIT; third-party terms are preserved.
 Retain the copyright and permission notices required by MIT in copies or
@@ -12,7 +12,7 @@ is a separately installed build dependency. Consumer Vite builds emit NOTICE.txt
 and licenses.json from their actual emitted module graph, including runtime peers.
 Development dependencies are not assumed to be bundled.
 
-## Satin 0.1.0-beta.2
+## Satin 0.1.0-beta.3
 
 License: MIT
 Source: https://opensource.org/license/mit
