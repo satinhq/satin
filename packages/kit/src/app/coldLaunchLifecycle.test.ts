@@ -229,7 +229,7 @@ it('keeps the launch covered from a real install through activating and claim', 
   const result = await prepareColdLaunchUpdate('/', progress)
   await host.activation()
   expect(host.stored.get(':satin:app-shell:v2:https%3A%2F%2Fsatin.test%2F:test-b')?.size).toBe(2)
-  expect(progress).not.toHaveBeenCalled()
+  expect(progress).toHaveBeenCalled()
   expect(result).toBe('reloading')
   expect(window.location.reload).toHaveBeenCalledOnce()
   expect(
@@ -245,7 +245,7 @@ it('applies an update without performance marks unless diagnostics are explicitl
   const progress = vi.fn()
   expect(await prepareColdLaunchUpdate('/', progress)).toBe('reloading')
   await host.activation()
-  expect(progress).not.toHaveBeenCalled()
+  expect(progress).toHaveBeenCalled()
   expect(window.location.reload).toHaveBeenCalledOnce()
   expect(performance.getEntriesByName('satin-launch-update')).toEqual([])
 })
@@ -258,21 +258,11 @@ it('keeps the current document when the generated install fails halfway', async 
   expect(host.workers.controller.state).toBe('activated')
 })
 
-it('leaves a hinted new build waiting when WebKit publishes installing beyond the launch budget', async () => {
+it('waits for a hinted build when WebKit publishes installing beyond lookup', async () => {
   const host = lifecycle({ discoveryDelayMs: 1300, versionHint: true })
-  expect(await prepareColdLaunchUpdate('/', vi.fn())).toBe('current')
-  await vi.waitFor(() => expect(host.registration.waiting?.state).toBe('installed'), {
-    timeout: 2000,
-  })
-  expect(window.location.reload).not.toHaveBeenCalled()
-  expect(fetch).toHaveBeenCalledWith(
-    '/satin-version.json',
-    expect.objectContaining({ cache: 'no-store' }),
-  )
-  const reasons = performance
-    .getEntriesByName('satin-launch-update')
-    .map(mark => (mark as PerformanceMark).detail.reason)
-  expect(reasons).toEqual(['start', 'version-discovered', 'check-budget'])
+  expect(await prepareColdLaunchUpdate('/', vi.fn())).toBe('reloading')
+  expect(window.location.reload).toHaveBeenCalledOnce()
+  expect(host.workers.controller).toBe(host.next)
 })
 
 it('leaves a late unannounced install waiting after the current app was revealed', async () => {
@@ -293,7 +283,7 @@ it('bounds a discovered version whose browser install never starts', async () =>
     performance
       .getEntriesByName('satin-launch-update')
       .map(mark => (mark as PerformanceMark).detail.reason),
-  ).toContain('check-budget')
+  ).toContain('update-stalled')
   expect(window.location.reload).not.toHaveBeenCalled()
 }, 10000)
 
@@ -321,7 +311,7 @@ it('installs a real replacement at suspension and applies it on the next offline
 })
 
 it('a real late claim leaves the old document working while the next launch owns the new build', async () => {
-  const host = lifecycle({ claimDelayMs: 3100 })
+  const host = lifecycle({ claimDelayMs: 8100 })
   expect(await prepareColdLaunchUpdate('/', vi.fn())).toBe('current')
   await host.activation()
   expect(host.registration.active).toBe(host.next)
@@ -330,4 +320,4 @@ it('a real late claim leaves the old document working while the next launch owns
   expect(host.next.state).toBe('activated')
   expect(await host.asset('/assets/worker-a.js')).toBe('old worker')
   expect(window.location.reload).not.toHaveBeenCalled()
-})
+}, 10000)

@@ -14,6 +14,8 @@ export type TabDeclaration<R extends Routes> = StackDeclaration<R> & {
   label: string
   icon?: ReactNode
   symbol?: SymbolName
+  /** A count or attention dot. Zero or null hides the badge; Tab can override it live. */
+  badge?: number | 'dot' | null
   /** `search` marks the search tab, drawn apart from the other tabs. */
   role?: 'search'
   /** Wraps the tab's stack, for per-tab providers. Render `<NavigationStack />` inside it. */

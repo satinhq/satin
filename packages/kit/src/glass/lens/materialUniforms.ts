@@ -32,22 +32,17 @@ export const MENU_SHADOW_RESPONSE: Readonly<
   dark: [12.8, 0.1, 0, 1],
 }
 
-/* The search drawer field's parameter row over the bar recipe (same shader, face, rim and tint).
- * Native's drawer field is a more transparent glass than bar buttons. Fitted 2026-10-12 to the reference
- * native reference fixture (iOS 27.0 Simulator, iPhone 17 Pro Max): a list row title under the pinned field
- * keeps 24% of its contrast in dark and 14% in light, Gaussian-blurred by 0.9 pt. The bar recipe
- * keeps about 5% (its 8 pt fill, mixed half-and-half and min/max-ed against the detail) and leaves
- * the interior unblurred. So the field row:
- * - `diffusion` sets a uniform interior blur radius (blurOpacities [q, q, 0.5, 1]; the rim ramp to
- *   the bar's full radius is unchanged);
- * - `frost` scales how much of the wide fill replaces the detail (blurFill weights and mix).
- * The bottom toolbar's search field is not this material: natively it passes content like the
- * bar recipe does (reference field material report), so it stays on bar glass. */
+/* The search drawer field has its own measured transmission row (reference, Oct 12).
+ * Preserve that fit independently of the hardware-calibrated regular controls:
+ * uniform interior diffusion and the original wide-fill weights. Its face, rim
+ * and tint still follow regular glass. Native hardware search fidelity is not
+ * inferred from the four control shapes in the round-3 matrix.
+ */
 export const SEARCH_FIELD_RECIPE: Readonly<
-  Record<Appearance, Readonly<{ diffusion: number; frost: number }>>
+  Record<Appearance, Readonly<{ diffusion: number; blurFill: readonly number[] }>>
 > = {
-  light: { diffusion: 0.075, frost: 0.64 },
-  dark: { diffusion: 0.075, frost: 0.64 },
+  light: { diffusion: 0.075, blurFill: [8, 0.576, 0, 0.32] },
+  dark: { diffusion: 0.075, blurFill: [8, 0, 0.576, 0.32] },
 }
 
 type MaterialSurface = 'bar' | 'searchField' | 'menu'
@@ -56,12 +51,11 @@ type MaterialSurface = 'bar' | 'searchField' | 'menu'
 function recipeRow(surface: MaterialSurface, a: Appearance) {
   if (surface !== 'searchField') return recipes[`${a}-${surface}`]
   const bar = recipes[`${a}-bar`]
-  const { diffusion, frost } = SEARCH_FIELD_RECIPE[a]
-  const [radius, maxWeight, minWeight, mix] = bar.blurFill
+  const { diffusion, blurFill } = SEARCH_FIELD_RECIPE[a]
   return {
     ...bar,
     blurOpacities: [diffusion, diffusion, bar.blurOpacities[2]!, bar.blurOpacities[3]!],
-    blurFill: [radius!, maxWeight! * frost, minWeight! * frost, mix! * frost],
+    blurFill: [...blurFill],
   }
 }
 

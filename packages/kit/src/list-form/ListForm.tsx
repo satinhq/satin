@@ -19,8 +19,7 @@ import {
 } from './editing.tsx'
 import { ListItem, type ForEachItem } from './ListItem.tsx'
 import { resetReorderTransforms } from './reorder.ts'
-import { RowMotionScope, useRowMotionGroup } from './rowMotionScope.tsx'
-import { isLayoutTransaction } from '../motion/layoutTransaction.ts'
+import { RowMotionCommit, RowMotionScope, useRowMotionGroup } from './rowMotionScope.tsx'
 import type { ActionItem, RowActionsProps } from '../actions/types.ts'
 import {
   Children,
@@ -304,16 +303,8 @@ function ListItems({ children, section = false }: { children: ReactNode; section
   const rows = sectionRows(children)
   const parentRef = useRef<HTMLElement>(null)
   // An empty map must stay registered to animate its first insertion and last removal.
-  const { rows: motionGroup, settle } = useRowMotionGroup(true)
-  const order = rows
-    .filter(row => row.motionID !== undefined)
-    .map(row => row.key)
-    .join('\n')
-  const previousOrder = useRef(order)
-  useLayoutEffect(() => {
-    if (previousOrder.current !== order && !isLayoutTransaction()) settle()
-    previousOrder.current = order
-  })
+  const { rows: motionGroup, scope } = useRowMotionGroup(true)
+  const order = JSON.stringify(rows.map(row => row.key))
   useLayoutEffect(() => {
     const parent = parentRef.current
     if (!parent) return
@@ -377,7 +368,7 @@ function ListItems({ children, section = false }: { children: ReactNode; section
     return () => observer.disconnect()
   }, [children])
   return (
-    <>
+    <RowMotionCommit scope={scope} order={order}>
       {rows.map(({ child, key, motionID, item }, index) => {
         // Keep explicit sections and authored titles as siblings. Opaque components
         // that render sections are unboxed by the same semantic CSS boundary.
@@ -428,7 +419,7 @@ function ListItems({ children, section = false }: { children: ReactNode; section
           </div>
         )
       })}
-    </>
+    </RowMotionCommit>
   )
 }
 
@@ -461,6 +452,8 @@ export function Section({ children, header, footer, className, style }: SectionP
           data-satin-section-header="true"
         >
           {header}
+          {/* The scroll edge material, drawn while a plain list pins this header (styles.css). */}
+          <div aria-hidden="true" data-satin-edge-material="" />
         </div>
       )}
       <div ref={rowsRef} data-satin-section-rows="true">

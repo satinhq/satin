@@ -3,8 +3,12 @@ import { afterEach, expect, it, vi } from 'vitest'
 import {
   createRowScrub,
   primaryTransform,
+  presentedTakeover,
+  presentedPillResponse,
+  retainPillRelease,
   rowSwipePosition,
   swipeActionPose,
+  swipeActionTracks,
   swipeContentTrack,
   fullSwipeThreshold,
   rowSwipeRaw,
@@ -23,6 +27,72 @@ const swipeContact = (configuration?: SwipeActions, width = 400) =>
     now: performance.now(),
   })
 const actions = [{ id: 'a', label: 'Archive', onPress() {} }]
+it('recovers destructive takeover from the content independently of the growing fill', () => {
+  vi.stubGlobal(
+    'DOMMatrixReadOnly',
+    class {
+      a: number
+      m41: number
+      constructor(transform: string) {
+        const values = transform
+          .match(/matrix\(([^)]+)\)/)?.[1]
+          ?.split(',')
+          .map(Number)
+        this.a = values?.[0] ?? 1
+        this.m41 = values?.[4] ?? 0
+      }
+    },
+  )
+  for (const inline of [true, false]) {
+    const host = document.createElement('div')
+    host.dataset.satinRowActions = 'true'
+    host.dataset.satinSwipeLabelLayout = inline ? 'inline' : 'below'
+    host.innerHTML = `<button data-satin-swipe-role="destructive" style="width:${inline ? 84 : 50}px"><span data-satin-swipe-fill="middle" style="transform:matrix(${inline ? 6 : 201},0,0,1,0,0)"></span><span data-satin-swipe-label><svg></svg></span></button>`
+    document.body.append(host)
+    try {
+      const primary = host.firstElementChild as HTMLElement
+      const part = primary.querySelector(inline ? '[data-satin-swipe-label]' : 'svg')!
+      for (const anchor of [0, 0.25, 0.5, 1]) {
+        part.setAttribute(
+          'style',
+          `transform:matrix(1,0,0,1,${-100 * (anchor + (inline ? 1 : 0))},0)`,
+        )
+        expect(presentedTakeover(primary, -398)).toBeCloseTo(anchor, 10)
+      }
+    } finally {
+      host.remove()
+    }
+  }
+})
+it('recovers a single inline action held past the tray as a full takeover', () => {
+  vi.stubGlobal(
+    'DOMMatrixReadOnly',
+    class {
+      a: number
+      constructor(transform: string) {
+        this.a = Number(transform.match(/matrix\(([^,]+)/)?.[1] ?? 1)
+      }
+    },
+  )
+  // iPad o1 leading commit: one 82.5pt "Read" capsule held at 572pt. Its
+  // overscroll and its takeover give the same fill width; the pose treats a
+  // single non-destructive action as taken over, so its release must too.
+  const host = document.createElement('div')
+  host.dataset.satinRowActions = 'true'
+  host.dataset.satinSwipeLabelLayout = 'inline'
+  host.innerHTML =
+    '<div data-satin-swipe-tray="leading"><button style="width:82.5px">' +
+    '<span data-satin-swipe-fill="middle" style="transform:matrix(13.5,0,0,1,0,0)"></span></button></div>'
+  document.body.append(host)
+  try {
+    const primary = host.querySelector('button')!
+    expect(presentedTakeover(primary, 572)).toBe(1)
+    primary.querySelector('span')!.setAttribute('style', 'transform:matrix(1,0,0,1,0,0)')
+    expect(presentedTakeover(primary, 102.5)).toBe(0)
+  } finally {
+    host.remove()
+  }
+})
 it('keeps no-action edges still and preserves the bounded rubber band', () => {
   const configuration = { edge: 'trailing' as const, allowsFullSwipe: false, actions }
   expect(rowSwipePosition(200, 400, configuration)).toBe(0)
@@ -68,6 +138,10 @@ it('presents the row and pills from the same scroll sample, including a caught r
   expect(pill.style.transform).toBe(openedPill)
   nextFrame!(performance.now())
   expect(content.style.transform).toBe('translate3d(-40px,0,0)')
+  // Retargeting preserves the presented size at this instant; the spring then
+  // advances even though the scroll sample is unchanged.
+  expect(pill.style.transform).toBe(openedPill)
+  nextFrame!(performance.now() + 16)
   expect(pill.style.transform).not.toBe(openedPill)
   source.scrollLeft = 720
   // Release can precede the next callback; its handoff presents the final sample.
@@ -234,7 +308,7 @@ it('presents a destructive takeover from the scroll source on frames, and never 
     const contact = swipeContact(configuration)
     const scrub = createRowScrub(host, source, content, 0, 400, configuration, contact)!
     // The finger reaches the zone with 290pt of scroll travel.
-    contact.track(finger)
+    contact.track(finger, performance.now())
     source.scrollLeft = 1090
     return { scrub, contact, content }
   }
@@ -262,14 +336,240 @@ it('presents a destructive takeover from the scroll source on frames, and never 
 
 it('keeps the other actions visible and packed against the row through a destructive takeover', () => {
   // Native tall Delete row at the anchor: 371pt revealed, primary = revealed - 80
-  // (growth 241 on a 50pt button), More beside the row at alpha 0.32.
+  // (growth 241 on a 50pt button). r31 separates target alpha 0.30 from the
+  // transient presentation alpha 0.32 in the older r3 frame.
   const primary = swipeActionPose(-371, 0, 2, 1, 0, 50, false, true, true)
   const secondary = swipeActionPose(-371, 1, 2, 1, 0, 50, false, true, true)
   expect(primary.growth).toBeCloseTo(241)
   expect(secondary.spread).toBeCloseTo(241)
-  expect(secondary.opacity).toBeCloseTo(0.32, 2)
+  expect(secondary.opacity).toBeCloseTo(0.3, 2)
   // r3 reversal back to 142pt revealed: More is brighter again (native 0.73).
   expect(swipeActionPose(-142, 1, 2, 1, 0, 50, false, true, true).opacity).toBeCloseTo(0.73, 2)
   // Non-destructive takeover still hands the secondary's slot to the primary.
   expect(swipeActionPose(-371, 1, 2, 1, 0, 50, false, true).opacity).toBe(0)
+})
+
+it('keeps inline Delete at the outer edge and carries its content to the leading inset', () => {
+  // Physical iPad native r6: fixed outer mask edge F383–498; trash moves from
+  // centered F484 to a 17pt leading inset F493. This checks anchoring independently
+  // of any one button width, so resizing cannot put the content back at center.
+  const label = document.createElement('span')
+  label.dataset.satinSwipeDirection = 'trailing'
+  for (const width of [88, 104]) {
+    const first = swipeActionPose(-400, 0, 2, 0, 0, width, true, true, true)
+    const expanded = swipeActionPose(-950, 0, 2, 1, 0, width, true, true, true)
+    expect(first.spread).toBe(0)
+    expect(expanded.spread).toBe(0)
+    const contentShift = Number(
+      primaryTransform(label, expanded.growth, width - 44, expanded.contentAnchor).match(
+        /translate3d\(([-\d.]+)/,
+      )![1],
+    )
+    // The pill's leading cap and the label translate by the same amount.
+    expect(contentShift + expanded.growth).toBe(0)
+    const middle = swipeActionPose(-700, 0, 2, 0.5, 0, width, true, true, true)
+    const middleShift = Number(
+      primaryTransform(label, middle.growth, width - 44, middle.contentAnchor).match(
+        /translate3d\(([-\d.]+)/,
+      )![1],
+    )
+    expect(middleShift).toBeLessThan(-middle.growth / 2)
+    expect(middleShift).toBeGreaterThan(-middle.growth)
+  }
+})
+
+it('moves the tall destructive icon to the leading cap while fading its centered caption', () => {
+  const host = document.createElement('div')
+  host.dataset.satinRowActions = 'true'
+  host.dataset.satinSwipeLabelLayout = 'below'
+  host.innerHTML =
+    '<div data-satin-swipe-tray="trailing"><button data-satin-swipe-action data-satin-swipe-role="destructive" style="width:50px"><span data-satin-swipe-direction="trailing" data-satin-swipe-fill="start"></span><span data-satin-swipe-direction="trailing" data-satin-swipe-label><svg></svg><span data-satin-swipe-caption>Delete</span></span></button><button data-satin-swipe-action style="width:50px"></button></div>'
+  document.body.append(host)
+  try {
+    const primary = host.querySelector('button')!
+    const tracks = swipeActionTracks(primary, 2, 984, true)
+    const frame = (selector: string, takeover: number) =>
+      tracks.find(track => track.element.matches(selector))!.frame(-950, -950, 0, takeover)
+    const x = (value: Keyframe) =>
+      Number(String(value.transform).match(/translate3d\(([-\d.]+)/)![1])
+    const label = x(frame('[data-satin-swipe-label]', 1))
+    const icon = x(frame('svg', 1))
+    const cap = x(frame('[data-satin-swipe-fill="start"]', 1))
+    expect(label + icon).toBe(cap)
+    expect(label).toBe(cap / 2)
+    expect(frame('[data-satin-swipe-caption]', 0).opacity).toBe(1)
+    expect(frame('[data-satin-swipe-caption]', 0.5).opacity).toBe(0.5)
+    expect(frame('[data-satin-swipe-caption]', 1).opacity).toBe(0)
+    // Reversal retains the expanded geometry; resting again restores the caption.
+    expect(frame('[data-satin-swipe-caption]', 0).opacity).toBe(1)
+  } finally {
+    host.remove()
+  }
+})
+
+it('tracks full-swipe travel beyond half-width before the contact reaches its edge anchor', () => {
+  const configuration: SwipeActions = [
+    {
+      edge: 'trailing',
+      actions: [{ id: 'delete', label: 'Delete', role: 'destructive' }, ...actions],
+      allowsFullSwipe: true,
+    },
+    { edge: 'leading', actions, allowsFullSwipe: true },
+  ]
+  // r28 native short/tall model positions, before any destructive anchor.
+  for (const travel of [-301.5, -472, -639.5]) {
+    expect(rowSwipePosition(travel, 984, configuration)).toBe(travel)
+    expect(rowSwipeRaw(travel, 984, configuration)).toBe(travel)
+  }
+  const resisted = rowSwipePosition(-1200, 984, configuration)
+  expect(resisted).toBeGreaterThan(-1200)
+  expect(rowSwipeRaw(resisted, 984, configuration)).toBeCloseTo(-1200)
+  // Native Read has resistance after its threshold; destructive geometry must
+  // not change that separate mapping.
+  expect(rowSwipePosition(815, 984, configuration)).toBeLessThan(815)
+})
+
+it('grows Delete and packs More before takeover on both short and tall rows', () => {
+  // r28 at recognized 301.5pt: native widths 186 (inline 85.5pt slot) and
+  // 221.5 (tall 50pt slot). The outer edge stays fixed before the anchor fires.
+  for (const [width, inline, expectedWidth] of [
+    [85.5, true, 186],
+    [50, false, 221.5],
+  ] as const) {
+    const primary = swipeActionPose(-301.5, 0, 2, 0, 0, width, inline, true, true)
+    const secondary = swipeActionPose(-301.5, 1, 2, 0, 0, width, inline, true, true)
+    expect(primary.growth + width).toBe(expectedWidth)
+    expect(primary.spread).toBe(0)
+    expect(secondary.spread).toBe(primary.growth)
+    expect(primary.contentAnchor).toBe(0)
+  }
+})
+
+it('dims the secondary destructive action before takeover using native width-relative alpha', () => {
+  for (const [distance, expected] of [
+    [301.5, 0.779],
+    [472, 0.654],
+    [639.5, 0.5313],
+    [966.8, 0.3],
+  ]) {
+    const pose = swipeActionPose(-distance!, 1, 2, 0, 0, 85.5, true, true, true, 984)
+    expect(pose.opacity).toBeCloseTo(expected!, 4)
+  }
+  // Releasing to the ordinary open tray restores both actions to full opacity.
+  expect(swipeActionPose(-201, 1, 2, 0, 1, 85.5, true, true, true, 984).opacity).toBe(1)
+})
+
+it('extends the pill by the same distance for each measured row height', () => {
+  for (const height of [33.5, 39.5, 49.5, 50]) {
+    const host = document.createElement('div')
+    host.dataset.satinRowActions = 'true'
+    host.dataset.satinSwipeLabelLayout = 'below'
+    host.innerHTML = `<div data-satin-swipe-tray="trailing" style="--satin-swipe-capsule-height:${height}px"><button data-satin-swipe-action data-satin-swipe-role="destructive" style="width:60px"><span data-satin-swipe-fill="middle"></span></button></div>`
+    document.body.append(host)
+    try {
+      const tracks = swipeActionTracks(host.querySelector('button')!, 1, 984, true)
+      const middle = tracks.find(track =>
+        track.element.matches('[data-satin-swipe-fill="middle"]'),
+      )!
+      const transform = String(middle.frame(-300, -300, 0, 1).transform)
+      const scale = Number(transform.match(/scaleX\(([^)]+)\)/)![1])
+      // One 60pt pill plus 10pt gap and outer padding opens at 80pt.
+      expect((scale - 1) * (60 - height)).toBeCloseTo(220, 10)
+    } finally {
+      host.remove()
+    }
+  }
+})
+
+it('does not hide a lone destructive caption before takeover in fallback tracks', () => {
+  const host = document.createElement('div')
+  host.dataset.satinRowActions = 'true'
+  host.dataset.satinSwipeLabelLayout = 'below'
+  host.innerHTML =
+    '<div data-satin-swipe-tray="trailing"><button data-satin-swipe-action data-satin-swipe-role="destructive" style="width:60px"><span data-satin-swipe-label><svg></svg><span data-satin-swipe-caption>Delete</span></span></button></div>'
+  document.body.append(host)
+  try {
+    const tracks = swipeActionTracks(host.querySelector('button')!, 1, 984, true)
+    const caption = tracks.find(track => track.element.hasAttribute('data-satin-swipe-caption'))!
+    expect(caption.frame(-140).opacity).toBe(1)
+    expect(caption.frame(-950, Infinity).opacity).toBe(0)
+  } finally {
+    host.remove()
+  }
+})
+
+it('grows a revealed pill after the finger stops and retains its release velocity', () => {
+  vi.stubGlobal('requestAnimationFrame', () => 1)
+  vi.stubGlobal('cancelAnimationFrame', () => {})
+  const host = document.createElement('div')
+  host.innerHTML =
+    '<div data-satin-swipe-tray="leading"></div>' +
+    '<div data-satin-swipe-tray="trailing"><button data-satin-swipe-action style="width:60px"></button></div>'
+  const source = document.createElement('div')
+  Object.defineProperties(source, { scrollWidth: { value: 2000 }, clientWidth: { value: 400 } })
+  source.scrollLeft = 800
+  const configuration = { edge: 'trailing' as const, allowsFullSwipe: false, actions }
+  const scrub = createRowScrub(
+    host,
+    source,
+    document.createElement('div'),
+    0,
+    400,
+    configuration,
+    swipeContact(configuration),
+  )!
+  const pill = host.querySelector('button')!
+  const scale = () => Number(pill.style.transform.match(/scale\(([^)]+)\)/)?.[1])
+  const now = performance.now()
+  source.scrollLeft = 880
+  scrub.flush(now + 16)
+  expect(scale()).toBe(0)
+  scrub.flush(now + 100)
+  expect(scale()).toBeGreaterThan(0)
+  expect(scale()).toBeLessThan(0.8)
+  expect(presentedPillResponse(pill)?.velocity).toBeGreaterThan(0)
+  const growing = scale()
+  scrub.flush(now + 150)
+  expect(scale()).toBeGreaterThan(growing)
+  scrub.flush(now + 850)
+  expect(scale()).toBeCloseTo(1, 2)
+  scrub.cancel()
+})
+
+it('samples a caught close with the same continuous scale and velocity', () => {
+  const pill = document.createElement('button')
+  retainPillRelease(pill, { position: 1, velocity: 0 }, 0, 100, 750)
+  expect(presentedPillResponse(pill, 90)).toEqual({ position: 1, velocity: 0 })
+  const caught = presentedPillResponse(pill, 200)!
+  expect(caught.position).toBeGreaterThan(0)
+  expect(caught.position).toBeLessThan(1)
+  expect(caught.velocity).toBeLessThan(0)
+  expect(presentedPillResponse(pill, 850)).toEqual({ position: 0, velocity: 0 })
+})
+
+it('uses the travel pose immediately when reduced motion is enabled', () => {
+  vi.stubGlobal('matchMedia', () => ({ matches: true }))
+  vi.stubGlobal('requestAnimationFrame', () => 1)
+  vi.stubGlobal('cancelAnimationFrame', () => {})
+  const host = document.createElement('div')
+  host.innerHTML =
+    '<div data-satin-swipe-tray="leading"></div>' +
+    '<div data-satin-swipe-tray="trailing"><button data-satin-swipe-action style="width:60px"></button></div>'
+  const source = document.createElement('div')
+  Object.defineProperties(source, { scrollWidth: { value: 2000 }, clientWidth: { value: 400 } })
+  source.scrollLeft = 800
+  const configuration = { edge: 'trailing' as const, allowsFullSwipe: false, actions }
+  const scrub = createRowScrub(
+    host,
+    source,
+    document.createElement('div'),
+    0,
+    400,
+    configuration,
+    swipeContact(configuration),
+  )!
+  source.scrollLeft = 880
+  scrub.flush()
+  expect(host.querySelector('button')!.style.transform).toContain('scale(1)')
+  scrub.cancel()
 })

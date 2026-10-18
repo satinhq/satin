@@ -113,7 +113,7 @@ export const apiBehaviors = [
   mapped(
     'Tabs',
     'TabView Tab',
-    'Each declared tab keeps its own stack, and the selected tab is restored. Tab and TabSection children may arrange the declared tabs, using each id once.',
+    'Each declared tab keeps its own stack, and the selected tab is restored. Tab and TabSection children may arrange the declared tabs, using each id once. Set badge in defineNavigation or pass a live badge to Tab. A number shows a count, dot shows attention, and zero or null clears it.',
     'Only the declared tab styles exist. Desktop browsers are not supported.',
   ),
   mapped(

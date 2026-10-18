@@ -96,10 +96,16 @@ export function ControlLens({
       data-satin-glass-region-id={active && regions ? id : undefined}
       style={style}
     >
-      <canvas ref={canvas} aria-hidden="true" data-satin-glass-region-canvas="true" />
+      <canvas
+        ref={canvas}
+        style={{ position: 'absolute' }}
+        aria-hidden="true"
+        data-satin-glass-region-canvas="true"
+      />
       {regions ? (
         <canvas
           ref={overlay}
+          style={{ position: 'absolute' }}
           aria-hidden="true"
           data-satin-glass-region-canvas="true"
           data-satin-glass-lift="region"

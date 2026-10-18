@@ -1,6 +1,7 @@
 import type { ViewportFitPolicy } from './viewportValue.ts'
 import type { LaunchScreenSlot } from './launchScreen.ts'
 import { installAppearanceStore } from './appearanceStore.ts'
+import { installStatusColor } from './statusColor.ts'
 import type { ServerReachabilityConfig } from '../reachability/model.ts'
 
 const DEFINITION = Symbol('AppDefinition')
@@ -481,12 +482,12 @@ export function generatePreReactAppearanceScript(definition: AppDefinition) {
     definition.appearance.darkLaunch === 'match-light' ? light : definition.appearance.darkLaunch
 
   return `;(() => {
+  const statusColor = (${installStatusColor.toString()})()
   const launchAppearance = ${JSON.stringify({ dark, light })}
   const store = (${installAppearanceStore.toString()})(${JSON.stringify('satin-appearance:v1:' + definition.id)})
   const applyLaunchAppearance = () => {
     const selected = store.getSnapshot().dark ? launchAppearance.dark : launchAppearance.light
-    document.documentElement.style.backgroundColor = selected.background
-    document.querySelector('#satin-theme-color')?.setAttribute('content', selected.background)
+    statusColor.setBase(selected.background)
   }
   applyLaunchAppearance()
   store.subscribe(applyLaunchAppearance)

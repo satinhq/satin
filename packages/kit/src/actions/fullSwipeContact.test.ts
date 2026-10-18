@@ -46,7 +46,7 @@ function stroke(row: ReturnType<typeof contact>, origin: number, fingers: number
   return fingers.map((finger, index) => {
     const raw = finger - origin
     const now = from + (index * 1000) / 60
-    row.track(finger - inset)
+    row.track(finger - inset, now)
     return { finger, raw, now, position: row.present(raw, now), anchored: row.anchored() }
   })
 }
@@ -57,6 +57,26 @@ const path = (from: number, to: number, step = 2) =>
   Array.from({ length: Math.floor(Math.abs(to - from) / step) + 1 }, (_, index) =>
     from > to ? from - index * step : from + index * step,
   )
+
+it('retains an in-zone delivered move when a flick ends before the next paint', () => {
+  const row = createFullSwipeContact({
+    width: 984,
+    configuration: tall,
+    widths: { leading: 84, trailing: 84 },
+    inline: true,
+    now: 0,
+  })
+  // iPad native r12: 100pt at 233ms is outside; 69.5pt at 241.7ms
+  // enters the zone. Touchend follows the 65pt move at about 250ms.
+  row.track(100 - 20, 233)
+  row.present(-800, 233)
+  expect(row.armed(-800)).toBe(false)
+  row.track(69.5 - 20, 241.7)
+  row.observe(-830.5, 241.7)
+  row.track(65 - 20, 250)
+  row.present(-835, 250, false)
+  expect(row.armed(-835)).toBe(true)
+})
 
 it('takes a destructive full swipe over where the finger is, not after a fixed travel', () => {
   // Native: strokes from x300, x350 and x400 all take over at x88, after
@@ -119,7 +139,7 @@ it('reads the takeover the last presented frame showed when a fast flick lifts o
   // r3 2100pt/s: the in-zone sample arrives after lift-off and Delete does not fire.
   const fast = contact()
   stroke(fast, 320, [280, 240, 200, 160, 120])
-  fast.track(80 - inset)
+  fast.track(80 - inset, 100)
   expect(fast.present(-240, 100, false)).toBe(rowSwipePosition(-240, width, tall, widths))
   expect(fast.anchored()).toBe(false)
   expect(fast.armed(-240)).toBe(false)
@@ -184,11 +204,127 @@ it('starts a caught row with a fresh mapping and its presented pill takeover', (
   const pose = -300
   const initialRaw = rowSwipeRaw(pose, width, tall, widths)
   const caught = contact(tall, { caught: { trailing: 1 } })
-  caught.track(300)
+  caught.track(300, 0)
   expect(caught.present(initialRaw, 0)).toBeCloseTo(pose, 6)
   expect(caught.anchored()).toBe(false)
   expect(caught.armed(initialRaw)).toBe(false)
   // Its pill takeover springs from the caught pose rather than restarting at rest.
   expect(caught.takeover('trailing', initialRaw, 0)).toBe(1)
   expect(caught.takeover('trailing', initialRaw, 200)).toBeLessThan(0.01)
+})
+
+it('uses the native 25pt recognition origin without moving before horizontal ownership', () => {
+  const row = createFullSwipeContact({
+    width: 984,
+    configuration: tall,
+    widths,
+    inline: true,
+    now: 0,
+    origin: { finger: 880, offset: 0, time: 0 },
+  })
+  // Travel before horizontal ownership neither moves the row nor recognizes the pan.
+  row.track(830, 16)
+  expect(row.recognizedAt()).toBeUndefined()
+  expect(row.present(-40, 16)).toBe(0)
+  // Ownership is won on a later sample, back at 20pt of travel.
+  row.track(860, 24)
+  row.recognize()
+  expect(row.present(-10, 24)).toBe(0)
+  expect(row.recognizedAt()).toBeUndefined()
+  // iPad r123 slow stroke: recognized at 25.5pt with translation -0.5pt.
+  row.track(854.5, 225)
+  expect(row.translation(-15.5)).toBe(-0.5)
+  expect(row.recognizedAt()).toBe(225)
+  row.track(740, 550)
+  expect(row.translation(-126)).toBe(-115)
+  expect(row.present(-126, 550)).toBe(-115)
+  // The same recognizer origin survives reversal; it is not a new deadband.
+  row.track(850, 600)
+  expect(row.translation(-16)).toBe(-5)
+})
+
+it('restarts a fast pan from the finger 25ms after touch-down, as the median native stroke', () => {
+  // iPad r123/r124/r134 fast step, delivered at 120 Hz: native holds at -52.9pt,
+  // the finger at 25ms (843) to its final 790. Without the restart it held -85pt.
+  const step = (samples: [number, number][]) => {
+    const row = createFullSwipeContact({
+      width: 984,
+      configuration: tall,
+      widths,
+      inline: true,
+      now: 0,
+      origin: { finger: 900, offset: 0, time: 0 },
+    })
+    row.recognize()
+    const held: number[] = []
+    for (const [time, x] of samples) {
+      row.track(x, time)
+      held.push(row.translation(0))
+    }
+    return { row, held }
+  }
+  const delivered120 = step([
+    [8.3, 884],
+    [16.7, 864],
+    [25, 843],
+    [33.3, 822.5],
+    [41.7, 803.5],
+    [50, 790],
+  ])
+  // Recognized at 16.7ms (36pt), the row waits for the restart instead of moving.
+  expect(delivered120.row.recognizedAt()).toBe(16.7)
+  expect(delivered120.held).toEqual([0, 0, 0, -20.5, -39.5, -53])
+  // WebKit may deliver the same stroke at 60 Hz: the restart interpolates to 25ms.
+  const delivered60 = step([
+    [16.7, 864],
+    [33.3, 822.5],
+    [50, 790],
+  ])
+  expect(delivered60.held.at(-1)).toBeCloseTo(-53, 0)
+  // A stroke that is still slow at 25ms keeps the 25pt recognition origin.
+  const slow = step([
+    [30, 880],
+    [60, 870],
+    [90, 850],
+  ])
+  expect(slow.held.at(-1)).toBe(-25)
+})
+
+it('keeps a single Delete caption centered until a destructive takeover occurs', () => {
+  const row = contact({
+    edge: 'trailing',
+    actions: [{ id: 'delete', label: 'Delete', role: 'destructive' }],
+  })
+  row.track(240, 100)
+  row.present(-140, 100)
+  expect(row.takeover('trailing', -140, 100)).toBe(0)
+  expect(row.takeover('trailing', -140, 600)).toBe(0)
+  expect(row.armed(-140)).toBe(false)
+  row.track(60, 700)
+  row.present(-320, 700)
+  row.takeover('trailing', -320, 700)
+  expect(row.takeover('trailing', -320, 1000)).toBeGreaterThan(0.99)
+  expect(row.armed(-320)).toBe(true)
+})
+
+it('filters ordinary travel and retains row velocity when the finger lifts', async () => {
+  const { swipeContactResponse } = await import('./swipeSpring.ts')
+  const row = createFullSwipeContact({
+    width: 984,
+    configuration: tall,
+    widths,
+    inline: false,
+    now: 0,
+    trackingResponse: swipeContactResponse,
+  })
+  row.track(800, 0)
+  for (let i = 1; i <= 30; i++) row.present((-85 * i) / 30, i * 10)
+  const beforeRelease = row.present(-85, 300, false)
+  expect(beforeRelease).toBeGreaterThan(-85)
+  expect(beforeRelease).toBeLessThan(-65)
+  expect(row.velocity()).toBeLessThan(-200)
+  expect(row.settling(300)).toBe(true)
+  const settled = row.present(-85, 1300, false)
+  expect(settled).toBeCloseTo(-85, 5)
+  expect(row.velocity()).toBeCloseTo(0, 5)
 })

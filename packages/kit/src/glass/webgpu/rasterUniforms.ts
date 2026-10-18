@@ -1,8 +1,12 @@
 import {
   CONTROL_SPECULAR,
+  CONTROL_INTERIOR_SHADE,
   controlRimUniform,
   controlSizeResponse,
+  controlBoundarySizeResponse,
   controlShadowScale,
+  controlOpticalScale,
+  controlTransmission,
 } from './controlRim.ts'
 import { touchLightUniforms } from './touchLight.ts'
 import { morphFieldUniforms } from '../morphField.ts'
@@ -205,21 +209,10 @@ export function outputUniforms(layout: ResultLayout, frameWidth: number, frameHe
 
 /** The material regular material (bar or menu kernel) sampling the backdrop pyramid. A menu
  * draws its two-part morph outline and trigger regime, and outputs over its padded pyramid. */
-/** The bar's darker band just inside its top edge: [amount, rise end, fall start, fall end], the
- * distances in points inside the edge. Fitted 2026-09-30 to the native tab bar (ParityReference
- * `--tab-glass-scroll`, iOS 27.0 Simulator) over a flat white card, a flat dark card and a photo
- * in both appearances: 4 luma darker than the interior from 8 to 12 pt over mid and bright
- * content, 1 over the dark card, none by 20 pt. The amount enters as P * (1 + a * w * (3 - 2P)),
- * where w fades the shade out over dark glass (smoothstep of the glass luminance, 0.05 to 0.5). */
-export const BAR_TOP_INNER_SHADE = [-0.0145, 8, 11, 20] as const
-
-/** Whether a bar-kernel surface is the tab bar. The tab bar's optics were fitted to the native
- * tab bar: full-resolution detail, a four-tap fill, no highlight floor, the inner shade (all in
- * the bar shader, switched by `uTabBarOptics`). Every bar surface, the tab bar included, reads
- * the same area-average blur pyramid (rasterMaterial.ts usesAreaMips). Every other
- * bar surface (toolbar buttons, glass buttons, a merged group, a button opening into its menu)
- * keeps the optics the morph engine's material was fitted and approved on: under the tab bar's
- * optics an open menu's backdrop read sharper and brighter than in that build. */
+/** The tab retains its full-resolution detail and highlight-floor switch.
+ * Regular controls share the hardware wide-fill kernel; the separately fitted
+ * search field selects the historical fill independently in the second slot.
+ */
 export function usesTabBarOptics(spec: ResultLayout['spec']) {
   return spec.id === 'dock'
 }
@@ -255,28 +248,37 @@ export function materialUniforms(
       (sampleWidth * resolution * scale) / pyramid.width,
       (sampleHeight * resolution * scale) / pyramid.height,
     ],
-    // The shape's coordinates (vFilterCoord * uResolution) keep the scale they had when the
-    // pyramid's storage was its content rounded up to whole texels: the bar pyramid's padding
-    // to whole coarse texels (areaMips.ts) changes where the backdrop is read, not the shape.
-    __filterScale: [
-      (sampleWidth * resolution * scale) / Math.ceil(sampleWidth * resolution * scale),
-      (sampleHeight * resolution * scale) / Math.ceil(sampleHeight * resolution * scale),
-    ],
+    // Bar materials render at the full output resolution. Pyramid texel rounding
+    // must not rescale their SDF coordinates: a 124.5 pt sample at DPR 2 has
+    // 249 output pixels even though its half-resolution pyramid rounds to 125.
+    // Menus retain their separate quarter-resolution material grid.
+    __filterScale: menu
+      ? [
+          (sampleWidth * resolution * scale) / Math.ceil(sampleWidth * resolution * scale),
+          (sampleHeight * resolution * scale) / Math.ceil(sampleHeight * resolution * scale),
+        ]
+      : [1, 1],
     uResolution: [sampleWidth, sampleHeight],
     uShape: shapeUniform(spec, first),
     uRadius: first.radius,
     uMaterialMix: 1,
     uCoverageWidth: 0.5 / resolution,
     uDiagnosticOutput: 0,
-    uInnerShade: BAR_TOP_INNER_SHADE,
-    uTabBarOptics: usesTabBarOptics(spec) ? 1 : 0,
+    uInnerShade: CONTROL_INTERIOR_SHADE,
+    uTabBarOptics: [usesTabBarOptics(spec) ? 1 : 0, spec.materialProfile === 'searchField' ? 0 : 1],
     uControlRim: controlRimUniform(appearance),
     uControlSpecular: CONTROL_SPECULAR,
+    uControlTransmission:
+      spec.materialProfile === 'searchField'
+        ? [0, 1, 0, 0]
+        : controlTransmission(appearance, first.halfWidth * 2, first.halfHeight * 2),
     uControlSize: [
       controlSizeResponse(appearance, first.halfWidth * 2, first.halfHeight * 2),
       controlShadowScale(appearance, first.halfWidth * 2, first.halfHeight * 2),
-      0,
-      0,
+      controlBoundarySizeResponse(appearance, first.halfWidth * 2, first.halfHeight * 2),
+      spec.materialProfile === 'searchField'
+        ? 1
+        : controlOpticalScale(first.halfWidth * 2, first.halfHeight * 2),
     ],
   }
   if (menu)

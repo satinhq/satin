@@ -27,7 +27,7 @@ it("uses each split pane's own scrolled tint for the fitted status band", () => 
       </div>
       <div data-satin-navigation-edge-host data-satin-pane="${pane}">
         <div data-satin-scroll-edge data-satin-scroll-edge-visible="true"
-          style="background: ${pane === 'sidebar' ? 'rgb(255, 255, 255)' : 'rgb(0, 0, 0)'}; opacity: 0.5"></div>
+          style="opacity: ${pane === 'sidebar' ? 1 : 0.5}"></div>
       </div>`,
       )
       .join('')}
@@ -47,8 +47,10 @@ it("uses each split pane's own scrolled tint for the fitted status band", () => 
   const restore = installStatusBand(root)
   try {
     paint?.(0)
-    // Equal-width panes contribute white/black tint independently: 247.5 and 120.
-    expect(html.style.getPropertyValue('--satin-status-band')).toBe('rgb(184 184 184)')
+    // Each pane lays the edge material over its own background at its own strength: light over
+    // 240 reads 255 (scrollEdgeMaterial.ts), so the full-strength sidebar is 255 and the
+    // half-strength detail 247.5. Equal widths average them.
+    expect(html.style.getPropertyValue('--satin-status-band')).toBe('rgb(251 251 251)')
   } finally {
     restore()
     root.remove()

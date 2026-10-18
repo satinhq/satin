@@ -36,14 +36,14 @@ describe('search drawer field row', () => {
     return (1 - mix!) * (1 - maxWeight! - minWeight!)
   }
   for (const appearance of ['light', 'dark'] as const) {
-    it(`${appearance}: passes about six times the bar's detail, with the bar's face, rim and tint`, () => {
+    it(`${appearance}: preserves the measured field transmission independently of the regular control row`, () => {
       // reference (owner, Oct 12): content scrolled under the pinned field read as a smear. Native's
-      // field keeps 24% (dark) / 14% (light) of a title's contrast; bar glass kept 7% / 4%.
+      // field keeps more title contrast than regular bar glass. The field recipe stays
+      // independent when the default-setting regular material is remeasured.
       const bar = materialUniformValues('bar', appearance),
         field = materialUniformValues('searchField', appearance)
-      expect(detail(bar)).toBeCloseTo(0.05, 3)
-      expect(detail(field)).toBeGreaterThan(0.25)
-      expect(detail(field)).toBeLessThan(0.33)
+      expect(detail(bar)).toBeLessThan(detail(field))
+      expect(detail(field)).toBeCloseTo(0.28832, 5)
       // A uniform interior blur, and nothing else differs from bar glass.
       const interior = field.uMaterialBlurDifferences![0]
       expect(interior).toBe(SEARCH_FIELD_RECIPE[appearance].diffusion)

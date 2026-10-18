@@ -1,3 +1,5 @@
+import { advanceSwipeResponse, type SwipeResponse } from './swipeResponse.ts'
+import { swipePillScale } from './swipeSpring.ts'
 import { cornerClipPath, roundedCornerPath, type CornerShape } from '../shapes/corners.ts'
 import type { FullSwipeContact } from './fullSwipeContact.ts'
 import { swipeEdge, type SwipeActions } from './types.ts'
@@ -82,8 +84,10 @@ function inlineEntrance(distance: number, buttonWidth: number) {
 
 /** A destructive takeover keeps the other actions visible and dimmed. Native tall
  * Delete row (r3 receipts): More fades from 0.73 at 142pt revealed to 0.30 at 381pt. */
-function destructiveSecondaryOpacity(distance: number) {
-  return clamp(0.73 - ((0.73 - 0.3) / (381 - 142)) * (distance - 142))
+function destructiveSecondaryOpacity(distance: number, rowWidth: number) {
+  // r31 model alpha: 0.7790 at 301.5pt, 0.6540 at 472pt on a 984pt row.
+  // The target reaches 0.3 at the destructive anchor, independent of row height.
+  return Math.max(0.3, 1 - (0.7 * distance) / Math.max(1, rowWidth - 29))
 }
 
 /** Spatial fit of native's sequential capsule reveal. Rest interpolates the
@@ -100,6 +104,7 @@ export function swipeActionPose(
   inline = false,
   allowsFullSwipe = false,
   destructive = false,
+  rowWidth = 400,
 ) {
   const distance = Math.abs(position)
   const open = swipeOpenWidth(count, buttonWidth)
@@ -112,24 +117,47 @@ export function swipeActionPose(
   const entrance = inline ? inlineEntrance(localDistance + revealLead, buttonWidth) : undefined
   const contactScale = entrance?.scale ?? revealScale(localDistance)
   const reveal = contactScale + (clamp(distance / open) - contactScale) * rest
-  const packed = destructive && index > 0 ? takeover * excess : 0
-  const spread = (((index + 0.5) * excess) / (count + 0.5)) * (1 - takeover) + packed
+  const expandingDelete = allowsFullSwipe && destructive
+  const packed = expandingDelete && index > 0 ? excess : 0
+  // iPad stock List, swipe-parity native r6 F383–498 and r28 short/tall: Delete
+  // capsule grows inward while its outer edge stays fixed. Its content moves
+  // from centered to the leading inset during takeover (F484–493).
+  // Keep that content motion on the same measured takeover timeline as the fill.
+  const spread =
+    expandingDelete && index === 0
+      ? 0
+      : expandingDelete
+        ? packed
+        : (((index + 0.5) * excess) / (count + 0.5)) * (1 - takeover)
   const opacity =
     (entrance?.opacity ?? contactScale) + (1 - (entrance?.opacity ?? contactScale)) * rest
-  const takenOver = destructive ? destructiveSecondaryOpacity(distance) : 0
+  const secondaryOpacity = expandingDelete
+    ? Math.min(opacity, destructiveSecondaryOpacity(distance, rowWidth)) * (1 - rest) +
+      opacity * rest
+    : opacity * (1 - takeover)
   return {
     scale: reveal,
     spread,
-    opacity: index === 0 ? opacity : opacity * (1 - takeover) + takenOver * takeover,
+    contentAnchor: allowsFullSwipe && destructive && index === 0 ? takeover : 0,
+    opacity: index === 0 ? opacity : secondaryOpacity,
     growth:
       index === 0
-        ? (inline && allowsFullSwipe ? excess * (1 - takeover) : 0) +
-          takeover * (destructive ? excess : Math.max(0, distance - buttonWidth - 20))
+        ? expandingDelete
+          ? excess
+          : (inline && allowsFullSwipe ? excess * (1 - takeover) : 0) +
+            takeover * Math.max(0, distance - buttonWidth - 20)
         : 0,
   }
 }
 
 function capsuleHeight(primary: HTMLElement) {
+  // The tray owns the height measured from this row. Use the same value as
+  // CSS when extending the fill and recovering a caught takeover.
+  const tray = primary.closest<HTMLElement>('[data-satin-swipe-tray]')
+  const measured = Number.parseFloat(
+    tray?.style.getPropertyValue('--satin-swipe-capsule-height') ?? '',
+  )
+  if (Number.isFinite(measured)) return measured
   return primary.closest<HTMLElement>('[data-satin-row-actions]')?.dataset.satinSwipeLabelLayout ===
     'below'
     ? 50
@@ -165,7 +193,7 @@ export function swipeActionTracks(
         temporalTakeover ??
         (!allowsFullSwipe
           ? 0
-          : count === 1 || raw === Infinity
+          : (count === 1 && !destructive) || raw === Infinity
             ? 1
             : progress * progress * (3 - 2 * progress))
       return swipeActionPose(
@@ -178,7 +206,37 @@ export function swipeActionTracks(
         inline,
         allowsFullSwipe,
         destructive,
+        width,
       )
+    }
+    const direction = trailing ? -1 : 1
+    const partFrame = (part: HTMLElement, value: ReturnType<typeof swipeActionPose>): Keyframe => {
+      // Tall stock List r19 F2300..2318: the icon moves to the leading cap,
+      // while its caption fades at the old center. They are separate tracks.
+      if (part.parentElement?.hasAttribute('data-satin-swipe-label')) {
+        if (part.hasAttribute('data-satin-swipe-caption'))
+          return { opacity: 1 - value.contentAnchor }
+        return {
+          transform: `translate3d(${(direction * value.growth * value.contentAnchor) / 2}px,0,0)`,
+        }
+      }
+      return {
+        transform: primaryTransform(
+          part,
+          value.growth,
+          middleWidth,
+          trailing && inline ? value.contentAnchor : 0,
+        ),
+      }
+    }
+    // A committed full swipe whose row stays returns from its takeover pose.
+    // Native (iPad o1 leading commit, presentation layer) moves the expanded
+    // button's frame back to the resting button in step with the row: its
+    // width is linear in the row's progress (82.4 + 0.821 x offset). The
+    // capsule shrinks about the centre of that frame and fades with the row.
+    const collapsingPose = (from: number, progress: number, takeover: number) => {
+      const value = pose(from, from, 0, takeover)
+      return { ...value, growth: value.growth * progress }
     }
     return [
       {
@@ -186,21 +244,28 @@ export function swipeActionTracks(
         frame(position: number, raw = position, rest = 0, temporalTakeover?: number): Keyframe {
           const value = pose(position, raw, rest, temporalTakeover)
           return {
-            transform: `translate3d(${(trailing ? -1 : 1) * value.spread}px,0,0) scale(${value.scale})`,
+            transform: `translate3d(${direction * value.spread}px,0,0) scale(${value.scale})`,
             opacity: value.opacity,
+          }
+        },
+        collapsing(from: number, progress: number, scale: number, takeover: number): Keyframe {
+          const value = collapsingPose(from, progress, takeover)
+          // The button box is the resting capsule and scales about its own
+          // centre. The grown capsule's centre is half the growth further out.
+          const centring = (value.growth / 2) * (1 - scale)
+          return {
+            transform: `translate3d(${direction * (value.spread + centring)}px,0,0) scale(${scale})`,
+            opacity: value.opacity * progress,
           }
         },
       },
       ...primaryParts(button).map(part => ({
         element: part,
         frame(position: number, raw = position, rest = 0, temporalTakeover?: number): Keyframe {
-          return {
-            transform: primaryTransform(
-              part,
-              pose(position, raw, rest, temporalTakeover).growth,
-              middleWidth,
-            ),
-          }
+          return partFrame(part, pose(position, raw, rest, temporalTakeover))
+        },
+        collapsing(from: number, progress: number, _scale: number, takeover: number): Keyframe {
+          return partFrame(part, collapsingPose(from, progress, takeover))
         },
       })),
     ]
@@ -218,7 +283,12 @@ export function rowSwipePosition(
   const edge = swipeEdge(configuration, side)
   if (!edge.actions.length) return 0
   const limit = edge.allowsFullSwipe
-    ? swipeDragLimit(width, edge.actions.length, widths[side])
+    ? // Native r28 short/tall Delete: model translation remains 1:1
+      // beyond half-width (e.g. recognized -639.5pt gives row x=-619.5 on a
+      // 20pt-inset row). The destructive contact owns its separate far-edge limit.
+      edge.actions[0]?.role === 'destructive'
+      ? width
+      : swipeDragLimit(width, edge.actions.length, widths[side])
     : swipeOpenWidth(edge.actions.length, widths[side])
   const excess = Math.max(0, Math.abs(raw) - limit)
   const resistance = edge.allowsFullSwipe && edge.actions.length <= 2 ? 0.25 : 0.2
@@ -254,7 +324,9 @@ export function rowSwipeRaw(
   const side = position >= 0 ? 'leading' : 'trailing'
   const edge = swipeEdge(configuration, side)
   const limit = edge.allowsFullSwipe
-    ? swipeDragLimit(width, edge.actions.length, widths[side])
+    ? edge.actions[0]?.role === 'destructive'
+      ? width
+      : swipeDragLimit(width, edge.actions.length, widths[side])
     : swipeOpenWidth(edge.actions.length, widths[side])
   const excess = Math.max(0, Math.abs(position) - limit)
   const resistance = edge.allowsFullSwipe && edge.actions.length <= 2 ? 0.25 : 0.2
@@ -266,12 +338,21 @@ export function rowSwipeRaw(
 }
 
 export function primaryParts(primary: HTMLElement) {
+  const below =
+    primary.closest<HTMLElement>('[data-satin-row-actions]')?.dataset.satinSwipeLabelLayout ===
+    'below'
   return [
     ...primary.querySelectorAll<HTMLElement>('[data-satin-swipe-fill], [data-satin-swipe-label]'),
+    ...(below ? primary.querySelectorAll<HTMLElement>('[data-satin-swipe-label] > *') : []),
   ]
 }
 
-export function primaryTransform(part: HTMLElement, growth: number, middleWidth = 16) {
+export function primaryTransform(
+  part: HTMLElement,
+  growth: number,
+  middleWidth = 16,
+  leadingAnchor = 0,
+) {
   const trailing = part.dataset.satinSwipeDirection === 'trailing'
   switch (part.dataset.satinSwipeFill) {
     case 'middle':
@@ -281,7 +362,7 @@ export function primaryTransform(part: HTMLElement, growth: number, middleWidth 
     case 'start':
       return `translate3d(${trailing ? -growth : 0}px,0,0)`
     default:
-      return `translate3d(${(trailing ? -growth : growth) / 2}px,0,0)`
+      return `translate3d(${((trailing ? -growth : growth) * (1 + leadingAnchor)) / 2}px,0,0)`
   }
 }
 
@@ -294,18 +375,52 @@ export function presentedTakeover(primary: HTMLElement, position: number) {
   const inline =
     primary.closest<HTMLElement>('[data-satin-row-actions]')?.dataset.satinSwipeLabelLayout ===
     'inline'
-  const excess = Math.max(0, Math.abs(position) - swipeOpenWidth(count, buttonWidth))
-  const ordinary = inline ? excess : 0
-  // A destructive takeover grows only into the excess; inline rows grow that much
-  // before takeover too, so their caught takeover reads as none.
-  const expanded =
-    primary.dataset.satinSwipeRole === 'destructive'
-      ? excess
-      : Math.max(0, Math.abs(position) - buttonWidth - 20)
-  if (expanded <= ordinary) return 0
   const matrix = new DOMMatrixReadOnly(getComputedStyle(middle).transform)
   const growth = (matrix.a - 1) * Math.max(1, buttonWidth - capsuleHeight(primary))
+  if (primary.dataset.satinSwipeRole === 'destructive') {
+    // Delete grows before its content takes over, so fill width cannot identify
+    // the caught anchor. Recover it from the independently moving label/icon.
+    // This also preserves an intermediate anchor when release interrupts entry.
+    const label = primary.querySelector<HTMLElement>('[data-satin-swipe-label]')
+    const part = inline ? label : label?.querySelector<HTMLElement>(':scope > svg')
+    if (!part || growth <= 0) return 0
+    const translation = new DOMMatrixReadOnly(getComputedStyle(part).transform).m41
+    return clamp((2 * Math.abs(translation)) / growth - (inline ? 1 : 0))
+  }
+  // A single non-destructive action takes the row over as soon as it grows
+  // (see the pose's takeover rule). Its inline overscroll and its takeover
+  // give the same fill width, so the width cannot tell them apart.
+  if (count === 1 && growth > 0) return 1
+  const excess = Math.max(0, Math.abs(position) - swipeOpenWidth(count, buttonWidth))
+  const ordinary = inline ? excess : 0
+  const expanded = Math.max(0, Math.abs(position) - buttonWidth - 20)
+  if (expanded <= ordinary) return 0
   return clamp((growth - ordinary) / (expanded - ordinary))
+}
+
+type PillResponse = SwipeResponse & { release?: { time: number; target: number; duration: number } }
+const pillResponses = new WeakMap<HTMLElement, PillResponse>()
+export function presentedPillResponse(element: HTMLElement, now = performance.now()) {
+  const state = pillResponses.get(element)
+  if (!state?.release) return state
+  const elapsed = Math.max(0, now - state.release.time)
+  return elapsed >= state.release.duration
+    ? { position: state.release.target, velocity: 0 }
+    : advanceSwipeResponse(
+        { position: state.position, velocity: state.velocity },
+        state.release.target,
+        elapsed / 1000,
+        swipePillScale,
+      )
+}
+export function retainPillRelease(
+  element: HTMLElement,
+  state: SwipeResponse,
+  target: number,
+  time: number,
+  duration: number,
+) {
+  pillResponses.set(element, { ...state, release: { target, time, duration } })
 }
 
 export function createRowScrub(
@@ -318,6 +433,7 @@ export function createRowScrub(
   contact: FullSwipeContact,
 ) {
   if (!width || source.scrollWidth <= source.clientWidth) return undefined
+  const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
   const widths = swipeWidths(host)
   const initialRaw = rowSwipeRaw(initial, width, configuration, widths)
   const origin = source.scrollLeft
@@ -334,19 +450,56 @@ export function createRowScrub(
       const edge = swipeEdge(configuration, side)
       const actions = swipeActionTracks(primary, edge.actions.length, width, edge.allowsFullSwipe)
       const openWidth = swipeOpenWidth(edge.actions.length, widths[side])
-      let previousPosition = Number.NaN
-      let previousTakeover = Number.NaN
+      let previousTime = performance.now()
+      const responses = new Map<HTMLElement, { state: SwipeResponse; target: number }>()
+      for (const action of actions) {
+        if (!action.element.matches('[data-satin-swipe-action]')) continue
+        const frame = action.frame(initial, initial, initial ? 1 : 0)
+        const target = Number(String(frame.transform).match(/scale\(([^)]+)\)/)?.[1] ?? 0)
+        const state = (initial ? presentedPillResponse(action.element) : undefined) ?? {
+          position: target,
+          velocity: 0,
+        }
+        responses.set(action.element, { state, target })
+        pillResponses.set(action.element, state)
+      }
       const update = (now: number, raw: number, position: number) => {
         // Both takeover springs advance across reversals, but the hidden tray has
         // no pixels to update. Read the scroll source before either tray writes.
         const takeover = contact.takeover(side, raw, now)
         if (position * sign <= 0) return
-        if (position === previousPosition && takeover === previousTakeover) return
-        previousPosition = position
-        previousTakeover = takeover
+        const seconds = Math.max(0, (now - previousTime) / 1000)
+        previousTime = now
         const rest = initial ? clamp(1 - Math.abs(raw - initialRaw) / openWidth) : 0
         for (const action of actions) {
           const frame = action.frame(position, raw, rest, takeover)
+          const response = responses.get(action.element)
+          if (response) {
+            // Native pill scale follows the travel target independently of the
+            // row's presented lag; filtering that target twice delays entrance.
+            const scaleFrame = contact.anchored()
+              ? frame
+              : action.frame(
+                  rowSwipePosition(raw, width, configuration, widths),
+                  raw,
+                  rest,
+                  takeover,
+                )
+            const target = Number(String(scaleFrame.transform).match(/scale\(([^)]+)\)/)?.[1] ?? 0)
+            // Candidate uses the measured r28 pill poles; r31/r32 establish
+            // an underdamped contact response. Physical contact qualification
+            // remains in swipe-parity-notes.md. Retain velocity as travel changes;
+            // a stationary finger must not freeze the entrance response.
+            response.state = reducedMotion
+              ? { position: target, velocity: 0 }
+              : advanceSwipeResponse(response.state, response.target, seconds, swipePillScale)
+            response.target = target
+            pillResponses.set(action.element, response.state)
+            frame.transform = String(frame.transform).replace(
+              /scale\([^)]*\)/,
+              `scale(${response.state.position})`,
+            )
+          }
           // Avoid dirtying style when a capsule part did not change this frame.
           if (frame.transform !== undefined && action.element.style.transform !== frame.transform)
             action.element.style.transform = String(frame.transform)
@@ -362,7 +515,7 @@ export function createRowScrub(
   // compositor row with main-thread pills exposes every delayed main-thread frame.
   // The contact maps the raw offset, so a takeover's anchor moves row and pills alike.
   let actionFrame = 0
-  const rawPosition = () => initialRaw + origin - source.scrollLeft
+  const rawPosition = () => contact.translation(initialRaw + origin - source.scrollLeft)
   /** Present the current scroll sample. A release passes `evaluate: false`: lifting
    * the finger cannot start a takeover that no frame has shown. */
   const flush = (now = performance.now(), evaluate = true) => {

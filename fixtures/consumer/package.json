@@ -8,7 +8,7 @@
     "build": "tsc -p tsconfig.json --pretty false && vite build"
   },
   "dependencies": {
-    "@satinhq/kit": "file:.artifacts/satinhq-kit-0.1.0-beta.4.tgz",
+    "@satinhq/kit": "file:.artifacts/satinhq-kit-0.1.0-beta.5.tgz",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },

@@ -57,8 +57,8 @@ const empty: KeyboardMetrics = {
 let snapshot = empty
 let layoutWidth = 0
 const listeners = new Set<() => void>()
-/** A keyboard height change, and how far into the keyboard's own curve the page starts it. */
-export type KeyboardMotion = Readonly<{ height: number; leadMs: number }>
+/** A keyboard height change and its curve's epoch on the document performance clock. */
+export type KeyboardMotion = Readonly<{ height: number; startTime: number }>
 const motionListeners = new Set<(motion: KeyboardMotion) => void>()
 /**
  * Called synchronously whenever the keyboard height the page lays out for changes, in the same
@@ -224,9 +224,40 @@ export function installKeyboardAdapter(root: HTMLElement) {
   let motionTimer: ReturnType<typeof setTimeout> | undefined
   // The visual viewport's width at the last report: a rotation changes it.
   let viewportWidth = viewport?.width ?? window.innerWidth
+  // Root keyboard state held back until a carried motion's first frame (see update).
+  let pendingRootState: (() => void) | undefined
+  let rootStateFrame = 0
+  let rootStateTimer: ReturnType<typeof setTimeout> | undefined
+  const publishPendingRootState = () => {
+    cancelAnimationFrame(rootStateFrame)
+    clearTimeout(rootStateTimer)
+    rootStateFrame = 0
+    rootStateTimer = undefined
+    const publish = pendingRootState
+    pendingRootState = undefined
+    publish?.()
+  }
+  const publishRootStateNow = (publish: () => void) => {
+    publishPendingRootState()
+    publish()
+  }
+  /** Publish after the next frame has rendered; the latest state replaces an earlier pending one. */
+  const publishRootStateAfterNextFrame = (publish: () => void) => {
+    pendingRootState = publish
+    if (rootStateFrame || rootStateTimer) return
+    rootStateFrame = requestAnimationFrame(() => {
+      rootStateFrame = 0
+      clearTimeout(rootStateTimer)
+      rootStateTimer = setTimeout(publishPendingRootState, 0)
+    })
+    // A hidden page draws no frame.
+    rootStateTimer = setTimeout(publishPendingRootState, READERS_FRAME_DEADLINE_MS)
+  }
   let readersFrame = 0
   let readersTimer: ReturnType<typeof setTimeout> | undefined
   const notifyReaders = () => {
+    // Readers see the root in the state they are told about.
+    publishPendingRootState()
     cancelAnimationFrame(readersFrame)
     clearTimeout(readersTimer)
     readersFrame = 0
@@ -376,22 +407,25 @@ export function installKeyboardAdapter(root: HTMLElement) {
     layoutWidth = width
     phase('geometry')
     let motion: KeyboardMotion | undefined
+    // How far into its own curve the CSS bottom inset chain starts, at the time it is written.
+    let insetChainLead: (() => number) | undefined
     if (next.height !== snapshot.height) {
       // The bottom inset chain follows the keyboard on its own curve (styles.css). A reported
       // keyboard is already moving: start that far into the curve. An anticipated one is not.
       const rises = next.height > snapshot.height
       const reportLead = rises ? KEYBOARD_SHOW_LEAD_MS : KEYBOARD_HIDE_LEAD_MS
-      const lead = anticipated ? 0 : reportLead + performance.now() - reportedAt
+      const reportStamp = reportedAt
+      insetChainLead = () => (anticipated ? 0 : reportLead + performance.now() - reportStamp)
+      const lead = insetChainLead()
       // The carrier anchors to the report's stamp, not to the frame the page draws next.
       const stampLead = rises ? KEYBOARD_REPORT_SHOW_LEAD_MS : KEYBOARD_REPORT_HIDE_LEAD_MS
       motion = {
         height: next.height,
-        leadMs: anticipated ? 0 : stampLead + performance.now() - reportedAt,
+        startTime: anticipated ? performance.now() : reportedAt - stampLead,
       }
       lastMotion = anticipated
         ? null
         : { height: next.height, reportLead: stampLead, reportedAt, at: performance.now() }
-      writeKeyboardProperties(root, { '--satin-keyboard-phase': `${-Math.round(lead)}ms` })
       // The scene is in motion until the inset arrives: glass samples its installed planes
       // instead of capturing a moving page (glass/webgpu/production.ts).
       root.dataset.satinKeyboardMoving = 'true'
@@ -401,17 +435,36 @@ export function installKeyboardAdapter(root: HTMLElement) {
         Math.max(0, KEYBOARD_DURATION_MS - lead) + 34,
       )
     }
-    writeKeyboardProperties(root, {
-      '--satin-keyboard-height': `${next.height}px`,
-      '--satin-keyboard-viewport-height': `${next.viewportHeight}px`,
-      '--satin-keyboard-offset-top': `${next.offsetTop}px`,
-      '--satin-keyboard-layout-height': `${next.layoutHeight}px`,
-    })
-    root.dataset.satinKeyboard = next.visible ? 'visible' : 'hidden'
+    const publishRootState = () => {
+      if (insetChainLead) {
+        const lead = insetChainLead()
+        writeKeyboardProperties(root, { '--satin-keyboard-phase': `${-Math.round(lead)}ms` })
+      }
+      writeKeyboardProperties(root, {
+        '--satin-keyboard-height': `${next.height}px`,
+        '--satin-keyboard-viewport-height': `${next.viewportHeight}px`,
+        '--satin-keyboard-offset-top': `${next.offsetTop}px`,
+        '--satin-keyboard-layout-height': `${next.layoutHeight}px`,
+      })
+      root.dataset.satinKeyboard = next.visible ? 'visible' : 'hidden'
+    }
     const carried = motion !== undefined && !anticipated && motionListeners.size > 0
-    phase('properties')
-    if (motion) for (const listener of motionListeners) listener(motion)
-    phase('carrier')
+    if (motion && carried) {
+      // A carried keyboard change is put in motion by compositor transforms, which reach the
+      // screen with the next frame the page draws. The root's keyboard properties and attribute
+      // are layout for the whole page, so they wait until after that frame: a long transcript
+      // spent tens of milliseconds of the first frame on them while the keyboard moved alone.
+      // The carrier also measures before anything here invalidates layout.
+      for (const listener of motionListeners) listener(motion)
+      phase('carrier')
+      publishRootStateAfterNextFrame(publishRootState)
+      phase('properties')
+    } else {
+      publishRootStateNow(publishRootState)
+      phase('properties')
+      if (motion) for (const listener of motionListeners) listener(motion)
+      phase('carrier')
+    }
     if (
       Object.keys(next).some(
         key => next[key as keyof KeyboardMetrics] !== snapshot[key as keyof KeyboardMetrics],
@@ -533,9 +586,16 @@ export function installKeyboardAdapter(root: HTMLElement) {
       editing &&
       snapshot.visible &&
       viewport !== null &&
+      window.innerWidth === width &&
       viewport.width === viewportWidth &&
       Math.abs(viewport.height - layoutHeight) <= 1
     viewportWidth = viewport?.width ?? viewportWidth
+    // An intermediate growth may already have armed the rotation timer. The full-height
+    // report resolves that ambiguity; do not carry its settling delay into a known dismissal.
+    if (dismissed) {
+      clearTimeout(resizeTimer)
+      resizing = false
+    }
     if (
       resizing ||
       (!dismissed &&
@@ -548,7 +608,7 @@ export function installKeyboardAdapter(root: HTMLElement) {
       started.reportedAt = event.timeStamp
       const motion = {
         height: started.height,
-        leadMs: started.reportLead + performance.now() - event.timeStamp,
+        startTime: event.timeStamp - started.reportLead,
       }
       for (const listener of motionListeners) listener(motion)
     }
@@ -696,6 +756,9 @@ export function installKeyboardAdapter(root: HTMLElement) {
     clearTimeout(motionTimer)
     cancelAnimationFrame(readersFrame)
     clearTimeout(readersTimer)
+    cancelAnimationFrame(rootStateFrame)
+    clearTimeout(rootStateTimer)
+    pendingRootState = undefined
     delete root.dataset.satinKeyboardMoving
     navigationObserver.disconnect()
     keyboardReaders.delete(root)

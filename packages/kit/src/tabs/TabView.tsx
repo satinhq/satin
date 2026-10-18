@@ -1,3 +1,4 @@
+import { TabBadge } from './TabBadge.tsx'
 import {
   PadSearchPresentationContext,
   PadSearchTabContext,
@@ -48,7 +49,7 @@ export type TabProps<Id extends string = string> = Readonly<{
   icon?: ReactNode
   symbol?: SymbolName
   role?: 'search'
-  badge?: number | 'dot'
+  badge?: number | 'dot' | null
   disabled?: boolean
   accessibilityLabel?: string
   children: ReactNode
@@ -318,6 +319,7 @@ export function TabView<Id extends string = string>({
         item.icon
       )}
       <span>{item.label}</span>
+      <TabBadge value={item.badge} />
     </Pressable>
   )
   return (

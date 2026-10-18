@@ -55,3 +55,24 @@ it.each([false, true])(
     expect(buttons[2]?.textContent).not.toContain('Done')
   },
 )
+
+it('draws only the symbol for an iconOnly button that also has a title', () => {
+  const host = document.createElement('div')
+  host.innerHTML = renderToStaticMarkup(
+    <>
+      <ToolbarContext value={true}>
+        <Button iconOnly symbol="flag" aria-label="Flag" onPress={() => {}}>
+          Flag
+        </Button>
+      </ToolbarContext>
+      <Button iconOnly symbol="folder" aria-label="Move to Folder" onPress={() => {}}>
+        Move to Folder
+      </Button>
+    </>,
+  )
+  const [toolbarButton, plainButton] = [...host.querySelectorAll('button')]
+  expect(toolbarButton?.getAttribute('aria-label')).toBe('Flag')
+  expect(toolbarButton?.textContent).not.toContain('Flag')
+  expect(plainButton?.getAttribute('aria-label')).toBe('Move to Folder')
+  expect(plainButton?.textContent).not.toContain('Move to Folder')
+})

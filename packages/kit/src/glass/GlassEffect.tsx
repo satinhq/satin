@@ -29,6 +29,9 @@ import {
   type GlassShape,
   type GlassLayer as GlassLayerDescriptor,
 } from './regions.ts'
+// Presenters must never contribute intrinsic size to the host they measure,
+// including before the framework stylesheet is applied.
+const presenterStyle = { position: 'absolute' } as const
 const LayerContext = createContext<GlassLayerDescriptor | undefined>(undefined)
 const ContainerContext = createContext<{ id: string; spacing: number } | undefined>(undefined)
 
@@ -324,7 +327,12 @@ export function GlassEffect({
       }}
     >
       {!slotOwned && (
-        <canvas ref={canvas} aria-hidden="true" data-satin-glass-region-canvas="true" />
+        <canvas
+          ref={canvas}
+          style={presenterStyle}
+          aria-hidden="true"
+          data-satin-glass-region-canvas="true"
+        />
       )}
       {container ? (
         <div
@@ -381,7 +389,12 @@ export function GlassEffectContainer({
           isolation: 'isolate',
         }}
       >
-        <canvas ref={canvas} aria-hidden="true" data-satin-glass-region-canvas="true" />
+        <canvas
+          ref={canvas}
+          style={presenterStyle}
+          aria-hidden="true"
+          data-satin-glass-region-canvas="true"
+        />
         {children}
       </div>
     </ContainerContext>
@@ -653,10 +666,16 @@ export function GlassBackground({
   }, [interactive, liquid?.regions, id])
   return (
     <>
-      <canvas ref={canvas} aria-hidden="true" data-satin-glass-region-canvas="true" />
+      <canvas
+        ref={canvas}
+        style={presenterStyle}
+        aria-hidden="true"
+        data-satin-glass-region-canvas="true"
+      />
       {draggableSelection ? (
         <canvas
           ref={overlay}
+          style={presenterStyle}
           aria-hidden="true"
           data-satin-glass-region-canvas="true"
           data-satin-glass-lift="region"

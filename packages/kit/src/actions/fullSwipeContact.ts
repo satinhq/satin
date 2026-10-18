@@ -1,5 +1,6 @@
 import { fullSwipeThreshold, rowSwipePosition, type SwipeWidths } from './rowScrub.ts'
 import { takeoverSample } from './swipeSpring.ts'
+import { advanceSwipeRampResponse, type SwipePoles } from './swipeResponse.ts'
 import { swipeEdge, type SwipeActions } from './types.ts'
 
 /**
@@ -18,9 +19,11 @@ import { swipeEdge, type SwipeActions } from './types.ts'
  *   (4 takeovers, normalized RMS 0.020).
  * - Leaving the zone disarms the release but keeps the anchor and the expanded pill.
  *   All 5 reversals (to x140, 220, 280, 340 and 380) cancel and close to rest.
- * - A release commits only if the last presented frame showed the takeover. A
- *   2100pt/s flick whose in-zone sample lands after lift-off cancels; a
- *   1300pt/s flick whose in-zone sample lands a frame earlier commits.
+ * - Lift-off cannot introduce a takeover. Input delivered before lift-off can:
+ *   iPad swipe-parity r12/r15 replay the same 835pt / 250ms flick. Native
+ *   commits with in-zone moves at 241.7ms and 249.1ms; Satin previously canceled
+ *   when no requestAnimationFrame fell between those moves and touchend.
+ *   Observe moving contacts at input cadence, independently of paint cadence.
  *
  * Non-destructive first actions never re-anchor. They keep the distance threshold,
  * read at release (leading Read: 205pt cancels, 210pt commits, row 1:1).
@@ -79,8 +82,38 @@ export type FullSwipeContactOptions = {
   /** Pill takeover already presented when this contact caught the row. */
   caught?: Partial<Record<Side, number>>
   reducedMotion?: boolean
+  trackingResponse?: SwipePoles
+  presentedPosition?: number
   now: number
+  /** Measured input origin for a contact beginning on a closed row. The scroll
+   * source still arbitrates ownership; its platform-specific pan slop is not
+   * the stock List recognizer's translation origin. `time` is the touch-down
+   * timestamp on the performance clock. */
+  origin?: { finger: number; offset: number; time: number }
 }
+
+/**
+ * Where a closed row's pan starts tracking, from the iOS 27 stock List on iPad.
+ *
+ * - Slow strokes: the pan is recognized 25pt from touch-down and the row follows
+ *   the finger from that point (r28/r31; a 140pt stroke holds at -115pt).
+ * - Fast strokes that cross 25pt within the first frames of the contact start
+ *   later. UIKit keeps its pan in "began" for one or more input samples and then
+ *   resets the translation to zero wherever the finger is (r123 pan telemetry).
+ *   For the same 110pt, 50ms delivered step, 18 native strokes (r107–r141) held
+ *   at 0, -32.5, -52.9, -74.1 or -85.1pt: each is the finger at one delivered
+ *   sample, so the restart time varies from stroke to stroke.
+ *
+ * Satin starts such a stroke at the median native restart: the finger position
+ * 25ms after touch-down (9 of 18 strokes restart at or before it, 9 after).
+ * Until then the row stays put, as native's does while its pan is beginning.
+ */
+export const swipePanStart = {
+  /** Pan recognition distance from touch-down. */
+  recognitionDistance: 25,
+  /** A pan recognized earlier than this after touch-down restarts its origin here. */
+  restartDelayMilliseconds: 25,
+} as const
 
 /**
  * One finger's mapping from the row's raw offset to its presented position, plus
@@ -110,11 +143,71 @@ export function createFullSwipeContact(options: FullSwipeContactOptions) {
       inline,
     ),
   }
-  /** Row-local x of the latest finger sample. */
-  let finger: number | undefined
+  let tracking = { position: options.presentedPosition ?? 0, velocity: 0 }
+  let trackingTarget = tracking.position
+  let trackingTime = options.now
+  function trackPosition(target: number, now: number) {
+    if (!options.trackingResponse || reducedMotion) return target
+    tracking = advanceSwipeRampResponse(
+      tracking,
+      trackingTarget,
+      target,
+      Math.max(0, now - trackingTime) / 1000,
+      options.trackingResponse,
+    )
+    trackingTarget = target
+    trackingTime = Math.max(now, trackingTime)
+    return tracking.position
+  }
+  /** Row-local x of the latest finger sample, and when it was delivered. */
+  let finger: number | undefined = options.origin?.finger
+  let fingerTime = options.origin?.time ?? options.now
+  let translating = options.origin === undefined
+  /** Sign of the recognized pan, and when it was recognized (performance clock). */
+  let panDirection = 0
+  let recognizedAt: number | undefined
+  /** Row-local finger x where the pan's translation is zero, once it has started. */
+  let panOrigin: number | undefined
+  /** The last sample before a fast pan's restart time, for interpolating to it. */
+  let beforeRestart: { x: number; time: number } | undefined
+
+  /** Advance the pan's recognition and start from one delivered sample. */
+  function followPan(x: number, time: number, lifted: boolean) {
+    const origin = options.origin
+    if (!origin || !translating || panOrigin !== undefined) return
+    const { recognitionDistance, restartDelayMilliseconds } = swipePanStart
+    if (!panDirection) {
+      const distance = x - origin.finger
+      if (Math.abs(distance) <= recognitionDistance) return
+      panDirection = Math.sign(distance)
+      recognizedAt = time
+    }
+    const restartAt = origin.time + restartDelayMilliseconds
+    if (recognizedAt! >= restartAt || lifted) {
+      // Recognized late enough, or lifted before the restart (unmeasured): the
+      // pan tracks from its recognition distance.
+      panOrigin = origin.finger + panDirection * recognitionDistance
+    } else if (time < restartAt) {
+      beforeRestart = { x, time }
+    } else {
+      // Interpolate the finger to the restart time, so the result does not
+      // depend on WebKit's touch delivery rate.
+      const previous = beforeRestart ?? { x, time }
+      const span = time - previous.time
+      const progress = span > 0 ? (restartAt - previous.time) / span : 1
+      panOrigin = previous.x + (x - previous.x) * progress
+    }
+  }
+
+  function translation(raw: number) {
+    const origin = options.origin
+    if (!origin) return raw
+    if (finger === undefined || panOrigin === undefined) return origin.offset
+    return origin.offset + finger - panOrigin
+  }
   /** Set once, at the first takeover of this contact; never moved afterward. */
   let anchor: { side: Side; offset: number; gap: number; time: number } | undefined
-  /** Zone state of the last evaluated frame; this is what a release reads. */
+  /** Zone state last evaluated during contact; lift-off only reads it. */
   let engaged = false
   const takeovers = {
     leading: springState(options.caught?.leading ?? 0, options.now),
@@ -138,20 +231,24 @@ export function createFullSwipeContact(options: FullSwipeContactOptions) {
     return sign * anchoredResistance(distance, width)
   }
 
-  /** Presented row position. `evaluate` is true for presented frames; a release
+  /** Presented row position. `evaluate` is true during contact; a release
    * sample is presented with `false`, so it cannot arm or anchor after lift-off. */
   function present(raw: number, now: number, evaluate = true) {
+    raw = translation(raw)
+    const ordinary = !anchor
+      ? trackPosition(rowSwipePosition(raw, width, configuration, widths), now)
+      : 0
     if (evaluate) {
       engaged = inZone(raw)
       if (engaged && !anchor) {
         const side = sideOf(raw)
         const sign = sides[side]
         const target = sign * (width - destructiveFullSwipe.anchorInset)
-        const before = rowSwipePosition(raw, width, configuration, widths)
+        const before = ordinary
         anchor = { side, offset: target - raw, gap: before - target, time: now }
       }
     }
-    if (!anchor) return rowSwipePosition(raw, width, configuration, widths)
+    if (!anchor) return ordinary
     // Once the jump is within a quarter point, finish it so the row stops writing.
     if (!jumpVisible(now)) anchor.gap = 0
     const remaining = destructiveJumpRemaining((now - anchor.time) / 1000)
@@ -166,9 +263,12 @@ export function createFullSwipeContact(options: FullSwipeContactOptions) {
   /** Pill takeover for one tray. Destructive edges take over with the anchor and keep
    * it through reversals; other edges follow the distance threshold. */
   function takeover(side: Side, raw: number, now: number) {
+    raw = translation(raw)
     const edge = edges[side]
     if (!edge.allowsFullSwipe) return 0
-    if (edge.actions.length === 1) return 1
+    // A lone Delete is still a partial reveal until the finger enters its zone.
+    // iPad r71/r103: native keeps the caption during the held partial stroke.
+    if (edge.actions.length === 1 && !isDestructive(edge)) return 1
     const target = isDestructive(edge)
       ? anchor?.side === side
         ? 1
@@ -182,6 +282,7 @@ export function createFullSwipeContact(options: FullSwipeContactOptions) {
 
   /** Whether releasing with `raw` performs the first action of the presented side. */
   function armed(raw: number) {
+    raw = translation(raw)
     const side = anchor?.side ?? sideOf(raw)
     const edge = edges[side]
     if (!edge.allowsFullSwipe || !firstActionEnabled(edge)) return false
@@ -190,16 +291,43 @@ export function createFullSwipeContact(options: FullSwipeContactOptions) {
   }
 
   return {
-    /** Record the finger's row-local x; the next presented frame evaluates it. */
-    track(x: number) {
+    /** Called only after the row wins horizontal ownership. Vertical contacts
+     * must never translate a row merely because their x coordinate changes. */
+    recognize() {
+      if (translating) return
+      translating = true
+      if (finger !== undefined) followPan(finger, fingerTime, false)
+    },
+    translation,
+    /** When the pan was recognized (performance clock), or undefined before. Native
+     * face appearance starts here, not at WebKit ownership. A contact that catches
+     * an open row has no recognition distance and reports its creation time. */
+    recognizedAt: () => (options.origin ? recognizedAt : options.now),
+    /** Record the finger's row-local x and its delivery time; observe/present
+     * evaluates it during contact. `lifted` marks the lift-off sample. */
+    track(x: number, time: number, lifted = false) {
       finger = x
+      fingerTime = time
+      followPan(x, time, lifted)
+    },
+    /** A delivered move may cross the zone between two animation frames.
+     * Never call for lift-off: its final coordinate cannot create a takeover. */
+    observe(raw: number, now: number) {
+      present(raw, now)
     },
     present,
+    velocity: () =>
+      options.trackingResponse && !anchor && !reducedMotion ? tracking.velocity : undefined,
     takeover,
     armed,
     anchored: () => anchor !== undefined,
     /** The jump is still visibly moving, so a frame must be presented without input. */
-    settling: jumpVisible,
+    settling: (now: number) =>
+      jumpVisible(now) ||
+      (!!options.trackingResponse &&
+        !anchor &&
+        !reducedMotion &&
+        (Math.abs(tracking.position - trackingTarget) > 0.01 || Math.abs(tracking.velocity) > 0.1)),
   }
 }
 

@@ -1,0 +1,109 @@
+{
+  "status": "DIAGNOSTIC_SIZE_FIT_NOT_PIXEL_PARITY",
+  "method": "least squares common size multiplier across 6 stable light row cases; 0.8..1.2 sec after release",
+  "originalFontPoints": 16,
+  "fittedFontPoints": 18.286915396741986,
+  "candidateFontPoints": 18.5,
+  "limitations": [
+    "Encoded ink bounds have threshold and subpixel sensitivity.",
+    "This predicts a candidate size; installed pixels must validate it."
+  ],
+  "cases": [
+    {
+      "review": "row-measurement-ipad",
+      "gesture": "two-line",
+      "sources": [
+        "5eee2a656fc5f18f3e8e7761d6f1c5c7ade098980eee33d26a8cb3341baca46e",
+        "357fb944ec61d8394c928eb2f3c72a6649cce1839e1dacb33b666a6d12d31bb5"
+      ],
+      "native": [
+        14.506666666666666,
+        18.773333333333333
+      ],
+      "satin": [
+        13.653333333333334,
+        17.066666666666666
+      ]
+    },
+    {
+      "review": "row-measurement-ipad",
+      "gesture": "three-line",
+      "sources": [
+        "5eee2a656fc5f18f3e8e7761d6f1c5c7ade098980eee33d26a8cb3341baca46e",
+        "357fb944ec61d8394c928eb2f3c72a6649cce1839e1dacb33b666a6d12d31bb5"
+      ],
+      "native": [
+        16.213333333333335,
+        18.773333333333333
+      ],
+      "satin": [
+        13.653333333333334,
+        16.213333333333335
+      ]
+    },
+    {
+      "review": "row-candidate-insetGrouped-phone-r103",
+      "gesture": "two-line",
+      "sources": [
+        "ce5d5d1e13c2841bb0de0fc25c3bd292a543230c90c7c6cb5372d99d16d2a739",
+        "8a583f757b4b54ffe4252812d0b8969f7cd4d168b34b56e68087593e2c16ed9a"
+      ],
+      "native": [
+        14.506666666666666,
+        18.773333333333333
+      ],
+      "satin": [
+        11.946666666666667,
+        17.066666666666666
+      ]
+    },
+    {
+      "review": "row-candidate-insetGrouped-phone-r103",
+      "gesture": "three-line",
+      "sources": [
+        "ce5d5d1e13c2841bb0de0fc25c3bd292a543230c90c7c6cb5372d99d16d2a739",
+        "8a583f757b4b54ffe4252812d0b8969f7cd4d168b34b56e68087593e2c16ed9a"
+      ],
+      "native": [
+        16.213333333333335,
+        18.773333333333333
+      ],
+      "satin": [
+        13.653333333333334,
+        17.066666666666666
+      ]
+    },
+    {
+      "review": "row-measurement-plain-ipad",
+      "gesture": "two-line",
+      "sources": [
+        "fc82c37ba7e8fc0ae18a4af49924048ebf9c0fdc2809e8caf7a86d7110e32960",
+        "ef6868ccc61bb3f888db663b3911d12cc32f4993cc70ceccacf083e516d4a862"
+      ],
+      "native": [
+        15.36,
+        19.626666666666665
+      ],
+      "satin": [
+        12.8,
+        17.066666666666666
+      ]
+    },
+    {
+      "review": "row-measurement-plain-ipad",
+      "gesture": "three-line",
+      "sources": [
+        "fc82c37ba7e8fc0ae18a4af49924048ebf9c0fdc2809e8caf7a86d7110e32960",
+        "ef6868ccc61bb3f888db663b3911d12cc32f4993cc70ceccacf083e516d4a862"
+      ],
+      "native": [
+        16.213333333333335,
+        19.626666666666665
+      ],
+      "satin": [
+        13.653333333333334,
+        17.066666666666666
+      ]
+    }
+  ]
+}

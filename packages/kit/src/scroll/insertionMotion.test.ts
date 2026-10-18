@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, expect, it, vi } from 'vitest'
 import { insertionProgress } from '../motion/composerMotion.ts'
+import { commitCarriedKeyboardRoom } from '../safe-area/keyboardCarrierGeometry.ts'
 import { createInsertionMotion, insertionMotion } from './insertionMotion.ts'
 
 const stops: (() => void)[] = []
@@ -104,6 +105,21 @@ it('animates an inset resize without clipping bubbles through the accessory, the
   expect(f.surface.style.clipPath).toBe('inset(0 0 80px 0)')
   f.motion.cancel()
   expect(f.surface.style.clipPath).toBe('inset(1px)')
+})
+
+it("does not replay a keyboard carrier's committed room as an insertion", () => {
+  const f = fixture()
+  // The carrier has shown the keyboard's travel on transforms; its commit moves the rows in layout.
+  commitCarriedKeyboardRoom(() => {
+    f.surface.style.paddingBottom = '380px'
+    f.move(-280)
+    f.motion.reconcile(true)
+  })
+  expect(f.animate).not.toHaveBeenCalled()
+  expect(insertionMotion(f.surface)).toBeUndefined()
+  // The committed layout is the new baseline.
+  f.motion.reconcile(true)
+  expect(f.animate).not.toHaveBeenCalled()
 })
 
 it('eases the displacement when a terminal typing row is replaced', () => {

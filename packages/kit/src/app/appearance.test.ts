@@ -6,17 +6,17 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-it('holds a pre-hide transient before any glass subscriber can publish it', () => {
+it('publishes a visible change immediately while protecting the pre-hide resume snapshot', () => {
   const state = fixture(null, true)
-  const subscriber = vi.fn()
-  state.store.subscribe(subscriber)
+  const visible: boolean[] = []
+  state.store.subscribe(() => visible.push(state.store.getSnapshot().dark))
   state.change(false)
-  subscriber.mockClear()
+  state.expectAppearance(false)
+  expect(visible).toEqual([false])
   state.hide()
   state.expectAppearance(true)
-  expect(subscriber).not.toHaveBeenCalled()
   state.show()
-  expect(subscriber).not.toHaveBeenCalled()
+  expect(visible).toEqual([false, true])
 })
 
 function fixture(
@@ -168,15 +168,18 @@ it('re-reads a hidden query update with no change event', () => {
   fixtureState.expectAppearance(false)
 })
 
-it.each([false, true])('confirms genuine visible change from %s after the pre-hide guard', dark => {
-  const fixtureState = fixture(null, dark)
-  expect(installAppearanceStore('other')).toBe(fixtureState.store)
-  fixtureState.change(!dark)
-  fixtureState.expectAppearance(dark)
-  fixtureState.advance(750)
-  fixtureState.expectAppearance(!dark)
-  expect(vi.getTimerCount()).toBe(0)
-})
+it.each([false, true])(
+  'publishes a visible change from %s before resume persistence settles',
+  dark => {
+    const fixtureState = fixture(null, dark)
+    expect(installAppearanceStore('other')).toBe(fixtureState.store)
+    fixtureState.change(!dark)
+    fixtureState.expectAppearance(!dark)
+    fixtureState.advance(750)
+    fixtureState.expectAppearance(!dark)
+    expect(vi.getTimerCount()).toBe(0)
+  },
+)
 
 it('pageshow and duplicate visibility events neither bypass nor extend the guard', () => {
   const fixtureState = fixture()

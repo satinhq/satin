@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client'
 import { beforeEach, expect, it, vi } from 'vitest'
 import { MaterialEffectRoot } from './MaterialEffectRoot.tsx'
 import { MaterialEffectContext } from './liquidContext.ts'
+import { setupPrelaunch } from '../app/prelaunch.test-helper.ts'
 const state = vi.hoisted(() => ({
   consumer: undefined as
     | undefined
@@ -17,6 +18,47 @@ const state = vi.hoisted(() => ({
 beforeEach(() => {
   state.consumer = undefined
   state.unmounts = 0
+})
+it('mounts content before CSS applies but admits the glass measurer only after the sentinel', async () => {
+  Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
+  setupPrelaunch()
+  document.head.querySelector('[data-test-framework-styles]')!.remove()
+  const link = document.createElement('link')
+  link.dataset.satinStyle = 'all'
+  const mount = document.createElement('div')
+  const chrome = document.createElement('div')
+  const scene = createRef<HTMLDivElement>()
+  const root = createRoot(mount)
+  document.body.append(link, mount, chrome)
+  try {
+    await act(async () => {
+      root.render(
+        <div ref={scene}>
+          <MaterialEffectRoot scene={scene} chrome={chrome} enabled capabilitySettled>
+            <Registration />
+            <p>App content</p>
+            <div data-satin-scroll="first" data-satin-primary="true" />
+          </MaterialEffectRoot>
+        </div>,
+      )
+    })
+    expect(mount.textContent).toContain('App content')
+    expect(state.consumer).toBeUndefined()
+    link.dispatchEvent(new Event('load'))
+    await act(() => new Promise<void>(resolve => requestAnimationFrame(() => resolve())))
+    expect(state.consumer).toBeUndefined()
+    const style = document.createElement('style')
+    style.textContent = ':root { --satin-styles-applied: 1; }'
+    document.head.append(style)
+    await act(() => new Promise<void>(resolve => requestAnimationFrame(() => resolve())))
+    expect(state.consumer).toBeDefined()
+    style.remove()
+  } finally {
+    act(() => root.unmount())
+    link.remove()
+    mount.remove()
+    chrome.remove()
+  }
 })
 it('keeps navigation readiness stable across recaptures of the same source', () => {
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })

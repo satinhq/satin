@@ -175,7 +175,14 @@ export function Text({
   // keep their measured glyph box. Two subheadline lines are 40 pt, not 36.33.
   const textLineHeight =
     lineLimit !== undefined && lineLimit > 1 ? metrics.lineAdvance : metrics.lineHeight
-  const lineHeight = `round(up, ${textLineHeight}px, var(--satin-device-pixel, 1px))`
+  // System font keywords follow the device's text size. Keep the single-line
+  // box proportional to that resolved font, not the nominal Large-category
+  // point size. iPad row-height r78: body 16/19.09375, footnote 12/14.3203125.
+  const lineBox =
+    lineLimit !== undefined && lineLimit > 1
+      ? `${textLineHeight}px`
+      : `${textLineHeight / metrics.size}em`
+  const lineHeight = `round(up, ${lineBox}, var(--satin-device-pixel, 1px))`
   const layout: CSSProperties = {
     ...({ '--satin-text-line-height': lineHeight } as CSSProperties),
     ...contentStyle({ padding, background: frame ? undefined : background, foregroundStyle }),

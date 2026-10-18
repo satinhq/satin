@@ -347,31 +347,30 @@ describe('definition build integration', () => {
       matchMedia: () => media,
       getComputedStyle: () => ({ getPropertyValue: () => (media.matches ? 'dark' : 'light') }),
     })
-    expect(document.documentElement.style.backgroundColor).toBe('#abcdef')
+    expect(properties['background-color']).toBe('#abcdef')
     expect(head).toContain('--satin-launch-background:#abcdef')
     expect(head).toContain('@media(prefers-color-scheme:dark)')
     expect(document.documentElement.dataset.satinAppearanceSession).toBe('false')
     media.matches = true
     change()
-    now += 750
-    timeouts.shift()!()
-    expect(document.documentElement.style.backgroundColor).toBe('#123456')
+    expect(properties['background-color']).toBe('#123456')
     expect(document.documentElement.dataset.satinAppearancePending).toBe('false')
     expect(elements.get('satin-theme-color')?.content).toBe('#123456')
     expect(callbacks).toHaveLength(0)
     expect(properties['--satin-launch-background']).toBe('#123456')
     expect(head).not.toContain('name="theme-color" media=')
     now = 1000
+    timeouts.shift()!()
     document.hidden = true
     lifecycle.get('visibilitychange')!()
     media.matches = false
     change()
     document.hidden = false
     lifecycle.get('pageshow')!()
-    expect(document.documentElement.style.backgroundColor).toBe('#123456')
+    expect(properties['background-color']).toBe('#123456')
     media.matches = true
     lifecycle.get('visibilitychange')!()
-    expect(document.documentElement.style.backgroundColor).toBe('#123456')
+    expect(properties['background-color']).toBe('#123456')
     expect(properties['--satin-background']).toBe('#123456')
     expect(properties['--satin-launch-background']).toBe('#123456')
     expect(elements.get('satin-theme-color')?.content).toBe('#123456')

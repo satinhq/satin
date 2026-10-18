@@ -4,6 +4,7 @@ import {
   insertionProgress,
 } from '../motion/composerMotion.ts'
 import type { KeyboardTranslation } from '../keyboard/translation.ts'
+import { committingCarriedKeyboardRoom } from '../safe-area/keyboardCarrierGeometry.ts'
 
 export const SCROLL_INSERTION_MOTION = 'satin-scroll-insertion-motion'
 const motions = new WeakMap<HTMLElement, KeyboardTranslation>()
@@ -80,8 +81,12 @@ export function createInsertionMotion(surface: HTMLElement, content: HTMLElement
     first = nextFirst
     last = nextLast
     firstTop = nextTop
+    // A keyboard carrier's commit is the end of motion it already showed on transforms.
+    // Replaying it as an insertion would move the transcript a second time.
+    const carriedKeyboardRoom = resized && committingCarriedKeyboardRoom()
     if (
       !pinned ||
+      carriedKeyboardRoom ||
       !(appended || firstInsert || resized || replacedTail || releasing) ||
       (Math.abs(distance) < 0.5 && !releasing) ||
       !allowsComposerMotion(content)

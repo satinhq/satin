@@ -1,6 +1,6 @@
 import { createBottomInsetGeometry } from './bottomInsetGeometry.ts'
 import { installKeyboardCarrier } from './keyboardCarrier.ts'
-import { editable } from '../keyboard/adapter.ts'
+import { currentKeyboardHeight, editable, onKeyboardMotion } from '../keyboard/adapter.ts'
 import { IgnoresSafeAreaContext } from './context.ts'
 import {
   createContext,
@@ -76,6 +76,8 @@ function BottomInset({ content, spacing, children, ...props }: InsetBodyProps) {
   const parent = useContext(BottomInsetContext)
   const measuredHeight = useRef(0)
   const systemInset = useRef(0)
+  const tabKeyboardHeight = useRef(0)
+  const carrierKeyboardHeight = useRef(0)
   const publish = useCallback(
     (measuredExtension?: number) => {
       const content = contentElement.current
@@ -84,7 +86,16 @@ function BottomInset({ content, spacing, children, ...props }: InsetBodyProps) {
       // WebKit can retain from the previous resize. Accessory height does not change it.
       const extension =
         measuredExtension ?? (-Number.parseFloat(getComputedStyle(content).marginBottom) || 0)
-      geometry.publish((parent.geometry?.value ?? 0) + measuredHeight.current + spacing + extension)
+      const accessoryInset =
+        (parent.geometry?.value ?? 0) + measuredHeight.current + spacing + extension
+      // A TabView keeps its entire navigator drawable behind the keyboard. Its scroll views
+      // consume occlusion as terminal room, never as a shorter screen frame.
+      geometry.publish(
+        Math.max(
+          accessoryInset + Math.max(0, carrierKeyboardHeight.current - extension),
+          tabKeyboardHeight.current,
+        ),
+      )
     },
     [geometry, parent.geometry, spacing],
   )
@@ -124,21 +135,50 @@ function BottomInset({ content, spacing, children, ...props }: InsetBodyProps) {
     if (inset.current) return parent.geometry?.attach(inset.current, publish, geometry)
   }, [parent.geometry, publish, geometry])
   useLayoutEffect(publish, [publish, spacing])
-  // The root boundary moves with the keyboard on the compositor (keyboardCarrier.ts). A TabView's
-  // boundary keeps its tab bar behind the keyboard and only pads its content cell: not carried.
+  useLayoutEffect(() => {
+    const host = inset.current
+    if (
+      parent.consumed ||
+      keyboardIgnored ||
+      !host?.parentElement?.hasAttribute('data-satin-tab-view')
+    )
+      return
+    tabKeyboardHeight.current = currentKeyboardHeight()
+    publish(systemInset.current)
+    const unsubscribe = onKeyboardMotion(({ height }) => {
+      tabKeyboardHeight.current = height
+      publish(systemInset.current)
+    })
+    return () => {
+      unsubscribe()
+      tabKeyboardHeight.current = 0
+      publish(systemInset.current)
+    }
+  }, [parent.consumed, keyboardIgnored, publish])
+  // Ordinary root accessories ride the keyboard. A TabView's dock stays behind it, with
+  // keyboard clearance delivered to its scroll views by the subscription above.
   const carried = !parent.consumed && !keyboardIgnored
   useLayoutEffect(() => {
     const host = inset.current
     const element = accessory.current
     if (!carried || !host || !element) return
     if (host.parentElement?.hasAttribute('data-satin-tab-view')) return
-    return installKeyboardCarrier(host, element, geometry, () => ({
-      systemInset: systemInset.current,
-      accessoryHeight: measuredHeight.current,
-      // Tab-hosted boundaries own covered rows and are excluded above.
-      coveredRows: 0,
-    }))
-  }, [carried, geometry])
+    return installKeyboardCarrier(
+      host,
+      element,
+      geometry,
+      () => ({
+        systemInset: systemInset.current,
+        accessoryHeight: measuredHeight.current,
+        // Tab-hosted boundaries own covered rows and are excluded above.
+        coveredRows: 0,
+      }),
+      height => {
+        carrierKeyboardHeight.current = height
+        publish(systemInset.current)
+      },
+    )
+  }, [carried, geometry, publish])
   // Native controls never end editing. WebKit moves focus at a press's mouse-down, so a press on
   // an accessory control (Send) would take the keyboard down with the field beside it.
   const keepEditing = (event: MouseEvent<HTMLDivElement>) => {

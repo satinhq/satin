@@ -1,3 +1,6 @@
+import { resetSwipeFace, showSwipeFace, swipeGeometryAnimations } from './swipeFace.ts'
+import { swipeContactResponse } from './swipeSpring.ts'
+import { swipeRowLayout } from './swipeRowLayout.ts'
 import { markRowSwipeRemoval } from '../list-form/rowMotion.ts'
 import { cancelOnNativeScroll } from '../scroll/nativeScroll.ts'
 import { SymbolImage } from '../symbols/Symbol.tsx'
@@ -16,8 +19,9 @@ import {
 import { createFullSwipeContact, type FullSwipeContact } from './fullSwipeContact.ts'
 import { CONTEXT_HOLD_MS, CONTEXT_STILL_MS } from './contextMotion.ts'
 import { contextPreviewSource } from './preview.ts'
+import { listenForRowTouches } from './rowTouchDelegate.ts'
 import { useMenuPresenter } from '../glass/menuPresenter.tsx'
-import { animateNative, settleSwipe } from './motion.ts'
+import { advanceCommittedSwipe, settleSwipe } from './motion.ts'
 import { withAnimation } from '../motion/matchedGeometry.tsx'
 import {
   useCallback,
@@ -102,7 +106,25 @@ function RowActionsEngine({
   const finishLift = useCallback(() => {
     liftTarget.current = null
   }, [])
-  const [offset, setOffset] = useState(0)
+  // Zero is the logical closed target, not a change of painted edge. Keep the
+  // last side while its WAAPI close runs; otherwise a trailing tray disappears
+  // at release (iPad swipe-parity r15, tap-close) instead of shrinking/fading.
+  const [{ offset, paintedSide }, setSwipeState] = useState({
+    offset: 0,
+    paintedSide: 'leading' as 'leading' | 'trailing',
+  })
+  const setOffset = useCallback((next: number) => {
+    // During a contact the scrub owns this attribute, including a reversal that
+    // closes without ever reaching a settled, nonzero React offset.
+    const side =
+      next === 0 ? host.current?.dataset.satinSwipeSide : next > 0 ? 'leading' : 'trailing'
+    setSwipeState(previous => {
+      const paintedSide = side === 'leading' || side === 'trailing' ? side : previous.paintedSide
+      return previous.offset === next && previous.paintedSide === paintedSide
+        ? previous
+        : { offset: next, paintedSide }
+    })
+  }, [])
   const definition = contextMenu ? contextDefinition(contextMenu) : undefined
   const presenter = useMenuPresenter({
     label: 'Actions',
@@ -139,10 +161,11 @@ function RowActionsEngine({
       updateRowCorners(content, bounds.width, bounds.height, swipeActions)
       // Single-line native List rows put the label inside the capsule. Taller
       // rows retain the measured icon capsule with its caption below.
-      const inline = content.offsetHeight < 70
+      const { inline, capsuleHeight, minimumButtonWidth } = swipeRowLayout(bounds.height)
       element.dataset.satinSwipeLabelLayout = inline ? 'inline' : 'below'
       element.querySelectorAll<HTMLElement>('[data-satin-swipe-tray]').forEach(tray => {
-        let width = inline ? 60 : 50
+        tray.style.setProperty('--satin-swipe-capsule-height', `${capsuleHeight}px`)
+        let width = minimumButtonWidth
         if (inline) {
           tray.querySelectorAll<HTMLElement>('[data-satin-swipe-label]').forEach(label => {
             const parts = [...label.children] as HTMLElement[]
@@ -152,7 +175,10 @@ function RowActionsEngine({
               (sum, part) => sum + (Number.parseFloat(getComputedStyle(part).width) || 0),
               0,
             )
-            width = Math.max(width, Math.ceil(ink + (parts.length > 1 ? 6 : 0) + 32))
+            // iPad stock List, swipe-parity r17 static UIKit calibration:
+            // inline content uses a 4pt gap and about 15pt capsule insets.
+            const gap = Number.parseFloat(getComputedStyle(label).columnGap) || 0
+            width = Math.max(width, Math.ceil(ink + Math.max(0, parts.length - 1) * gap + 30))
           })
         }
         tray.style.setProperty('--satin-swipe-button-width', `${width}px`)
@@ -177,6 +203,7 @@ function RowActionsEngine({
     setOffset(0)
     if (host.current) {
       delete host.current.dataset.satinRowScrubbing
+      resetSwipeFace(host.current)
       delete host.current.dataset.satinSwipeActive
       delete host.current.dataset.satinContextPending
     }
@@ -194,38 +221,50 @@ function RowActionsEngine({
       primaryParts(button).forEach(part => {
         part.getAnimations?.().forEach(animation => animation.cancel())
         part.style.transform = ''
+        part.style.opacity = ''
       })
     })
   }, [finishLift])
-  const dismissSwipe = useCallback(() => {
-    const element = host.current
-    const content = body.current
-    if (!element || !content || performing.current || live.current.open) return
-    // Sample once at the boundary; WAAPI owns all subsequent close frames.
-    const from = content.getBoundingClientRect().left - element.getBoundingClientRect().left
-    scrub.current?.cancel()
-    scrub.current = undefined
-    // The swipe is no longer open while its paint returns. Outside contacts
-    // must reach their own controls and must not restart this close animation.
-    live.current.offset = 0
-    setOffset(0)
-    const side = from >= 0 ? 'leading' : 'trailing'
-    const edge = swipeEdge(props.current.swipeActions, side)
-    const animation = settleSwipe(
-      content,
-      from,
-      0,
-      0,
-      element.querySelector<HTMLElement>(`[data-satin-swipe-tray="${side}"] > :first-child`) ??
-        undefined,
-      swipeOpenWidth(edge.actions.length, swipeWidths(element)[side]),
-      true,
-    )
-    if (animation) void animation.finished.then(close, () => {})
-    else close()
-  }, [close])
+  const dismissSwipe = useCallback(
+    (releasedAt = performance.now()) => {
+      const element = host.current
+      const content = body.current
+      if (!element || !content || performing.current || live.current.open) return
+      // Sample once at the boundary; WAAPI owns all subsequent close frames.
+      const from = content.getBoundingClientRect().left - element.getBoundingClientRect().left
+      scrub.current?.cancel()
+      scrub.current = undefined
+      // The swipe is no longer open while its paint returns. Outside contacts
+      // must reach their own controls and must not restart this close animation.
+      live.current.offset = 0
+      setOffset(0)
+      const side = from >= 0 ? 'leading' : 'trailing'
+      const edge = swipeEdge(props.current.swipeActions, side)
+      const animation = settleSwipe(
+        content,
+        from,
+        0,
+        0,
+        element.querySelector<HTMLElement>(`[data-satin-swipe-tray="${side}"] > :first-child`) ??
+          undefined,
+        swipeOpenWidth(edge.actions.length, swipeWidths(element)[side]),
+        true,
+        element.getBoundingClientRect().width,
+        edge.allowsFullSwipe,
+        { time: releasedAt, kind: 'tap' },
+      )
+      if (animation) void animation.finished.then(close, () => {})
+      else close()
+    },
+    [close],
+  )
   const perform = useCallback(
-    (action: SwipeActionItem, direction = live.current.offset, fullSwipe = false) => {
+    (
+      action: SwipeActionItem,
+      direction = live.current.offset,
+      fullSwipe = false,
+      releasedAt?: number,
+    ) => {
       if (performing.current || props.current.disabled || action.disabled) return
       if (!direction && !fullSwipe) {
         // Accessible/menu actions can open another presentation. Dismiss the old
@@ -244,7 +283,10 @@ function RowActionsEngine({
       const primary =
         element.querySelector<HTMLElement>(`[data-satin-swipe-tray="${side}"] > :first-child`) ??
         undefined
-      // Commit on release. The data change, not the action's tint/role, determines
+      // Call out synchronously in the committing input event, before settling.
+      // WebKit may still deny media activation after a drag; never defer this
+      // callback to an animation completion to try to manufacture activation.
+      // The data change, not the action's tint/role, determines
       // whether List retains this cell as a departing paint layer.
       const clearRemoval = fullSwipe ? markRowSwipeRemoval(element) : undefined
       try {
@@ -260,10 +302,7 @@ function RowActionsEngine({
       const removed = !element.isConnected || element.closest('[data-satin-row-exit]') !== null
       if (removed) {
         if (fullSwipe && element.isConnected) {
-          const target = (Math.sign(direction) || -1) * width
-          animateNative(content, 'commitAdvance', progress => ({
-            transform: `translate3d(${direction + (target - direction) * progress}px,0,0)`,
-          }))
+          advanceCommittedSwipe(content, direction, width, primary, edge.allowsFullSwipe)
         }
         return
       }
@@ -285,6 +324,7 @@ function RowActionsEngine({
         true,
         width,
         edge.allowsFullSwipe,
+        releasedAt === undefined ? undefined : { time: releasedAt, kind: 'commit' },
       )
       if (animation) void animation.finished.then(close, () => {})
       else close()
@@ -325,6 +365,7 @@ function RowActionsEngine({
         const openWidth = swipeOpenWidth(edge.actions.length, swipeWidths(element).trailing)
         element.dataset.satinSwipeSide = 'trailing'
         element.dataset.satinSwipeActive = 'true'
+        showSwipeFace(element, performance.now())
         live.current.offset = -openWidth
         setOffset(-openWidth)
         settleSwipe(
@@ -466,7 +507,7 @@ function RowActionsEngine({
       }
       const previous = last
       last = sample
-      contact?.track(sample.x - rowLeft)
+      contact?.track(sample.x - rowLeft, sample.time, sample.phase === 'end')
       session = reduceGestureArena(arena, session, sample).session
       if (!session) return
       // Transfer capture before canceling the child Pressable, which releases its own capture.
@@ -491,6 +532,7 @@ function RowActionsEngine({
         if (body.current) body.current.style.transform = `translate3d(${initial}px,0,0)`
       }
       const swipe = session.recognizers['row-swipe'].state === 'recognized'
+      if (swipe) contact?.recognize()
       const hold = session.recognizers['context-hold'].state === 'recognized'
       if (
         !hold &&
@@ -541,16 +583,22 @@ function RowActionsEngine({
             sample.x -
             session.start.x
           // A lift-off sample is presented but never evaluated: release reads the
-          // takeover that the last presented frame showed.
+          // takeover already observed during contact.
           if (scrub.current) {
+            if (sample.phase === 'move')
+              contact?.observe(scrub.current.rawPosition(), performance.now())
             current = scrub.current.position()
             live.current.offset = current
           } else paintFallback(raw, sample.time, sample.phase === 'move')
+          // The face fades in from pan recognition (25pt), not from WebKit
+          // ownership (about 10pt): a slow stroke crosses them 125ms apart.
+          const recognizedAt = contact?.recognizedAt()
+          if (recognizedAt !== undefined) showSwipeFace(element, recognizedAt)
         }
       }
       if (sample.phase === 'end' && initial !== 0 && !owned && !startedOnAction) {
         cancelPress()
-        dismissSwipe()
+        dismissSwipe(sample.time)
       }
       if (sample.phase === 'end' || sample.phase === 'cancel') {
         clearTimer()
@@ -576,9 +624,9 @@ function RowActionsEngine({
           const actions = edge.actions
           const first = actions[0]
           // The same rule that drives the takeover while held: a distance threshold,
-          // or a destructive takeover still shown by the last frame. Native closes a
+          // or a destructive takeover observed before lift-off. Native closes a
           // leading three-action row dragged back from 295pt.
-          if (first && contact?.armed(releaseRaw)) perform(first, current, true)
+          if (first && contact?.armed(releaseRaw)) perform(first, current, true, sample.time)
           else {
             const from = current
             // Native closes a destructive takeover that was reversed out of its zone.
@@ -603,9 +651,11 @@ function RowActionsEngine({
                 body.current,
                 from,
                 current,
-                previous
-                  ? (sample.x - previous.x) / Math.max(0.001, (sample.time - previous.time) / 1000)
-                  : 0,
+                contact?.velocity() ??
+                  (previous
+                    ? (sample.x - previous.x) /
+                      Math.max(0.001, (sample.time - previous.time) / 1000)
+                    : 0),
                 element.querySelector<HTMLElement>(
                   `[data-satin-swipe-tray="${from >= 0 ? 'leading' : 'trailing'}"] > :first-child`,
                 ) ?? undefined,
@@ -616,6 +666,7 @@ function RowActionsEngine({
                 initial !== 0,
                 rowWidth,
                 edge.allowsFullSwipe,
+                { time: sample.time, kind: 'drag' },
               )
             if (anchoredClose) {
               if (settling) void settling.finished.then(close, () => {})
@@ -651,7 +702,7 @@ function RowActionsEngine({
       contentFrame = body.current ? swipeContentTrack(body.current) : undefined
       navigationOwns = false
       startedOnAction = !!target.closest('[data-satin-swipe-action]')
-      const animations = body.current?.getAnimations?.() ?? []
+      const animations = body.current ? swipeGeometryAnimations(body.current) : []
       // A new contact takes over the presented pose, not the old spring's target.
       initial =
         animations.length && body.current
@@ -680,6 +731,7 @@ function RowActionsEngine({
       scrub.current?.cancel()
       // A new contact starts a new mapping: catching a settling row never inherits
       // the previous contact's anchor, only its presented pose and pill takeover.
+      if (initial === 0) resetSwipeFace(element)
       contact = createFullSwipeContact({
         width: rowWidth,
         configuration: props.current.swipeActions,
@@ -688,6 +740,9 @@ function RowActionsEngine({
         caught: initial ? caughtTakeovers(element, initial) : undefined,
         reducedMotion: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false,
         now: performance.now(),
+        trackingResponse: swipeContactResponse,
+        presentedPosition: initial,
+        origin: initial === 0 ? { finger: x - rowLeft, offset: 0, time } : undefined,
       })
       // A contact that touched down before the retired source re-armed cannot scroll
       // it; the touch path drives that contact while the clamp holds the source.
@@ -776,11 +831,16 @@ function RowActionsEngine({
       releaseScroll()
       touchId = undefined
     }
-    const leave = () => {
+    const leave = (event: PointerEvent) => {
+      // Touch Events own the contact through touchend. On iPad WebKit sends
+      // pointerup -> pointerleave -> touchend; treating that leave as cancel
+      // destroys a tap-close spring before its first frame (swipe-parity r22).
+      if (event.pointerType === 'touch') return
       if (!owned && !scrub.current && !navigationOwns) cancelContact()
     }
     const lostCapture = (event: PointerEvent) => {
       if (
+        event.pointerType !== 'touch' &&
         !owned &&
         !scrub.current &&
         !navigationOwns &&
@@ -812,16 +872,6 @@ function RowActionsEngine({
           cancelContact()
           return
         }
-      }
-      if (
-        event.pointerType === 'touch' &&
-        event.type === 'pointerup' &&
-        initial !== 0 &&
-        !owned &&
-        !startedOnAction
-      ) {
-        cancelPress()
-        dismissSwipe()
       }
       if (event.pointerType === 'touch' || pointerId !== event.pointerId) return
       consume(
@@ -901,8 +951,8 @@ function RowActionsEngine({
     for (const type of ['pointermove', 'pointerup', 'pointercancel'])
       element.addEventListener(type, pointer as EventListener, true)
     element.addEventListener('touchstart', touchStart, { passive: true })
-    for (const type of ['touchmove', 'touchend', 'touchcancel'])
-      element.addEventListener(type, touch as EventListener, { passive: false })
+    // Cancelable moves are delegated to the list: one WebKit touch region, not one per row.
+    const stopListeningForTouches = listenForRowTouches(element, touch)
     return () => {
       element.removeEventListener('pointerleave', leave)
       element.removeEventListener('lostpointercapture', lostCapture)
@@ -918,12 +968,14 @@ function RowActionsEngine({
       for (const type of ['pointermove', 'pointerup', 'pointercancel'])
         element.removeEventListener(type, pointer as EventListener, true)
       element.removeEventListener('touchstart', touchStart)
-      for (const type of ['touchmove', 'touchend', 'touchcancel'])
-        element.removeEventListener(type, touch as EventListener)
+      stopListeningForTouches()
       if (openRows.get(element.ownerDocument) === close) openRows.delete(element.ownerDocument)
     }
   }, [claim, close, dismissSwipe, show, perform, finishLift])
   const select = (action: SwipeActionItem) => perform(action)
+  const swipes =
+    !!swipeEdge(swipeActions, 'leading').actions.length ||
+    !!swipeEdge(swipeActions, 'trailing').actions.length
   const leadingDrag = !!swipeEdge(swipeActions, 'leading').actions.length || offset < 0
   const trailingDrag = !!swipeEdge(swipeActions, 'trailing').actions.length || offset > 0
   return (
@@ -942,13 +994,8 @@ function RowActionsEngine({
               ? 'left'
               : undefined
       }
-      data-satin-row-swipe={
-        !!(
-          swipeEdge(swipeActions, 'leading').actions.length ||
-          swipeEdge(swipeActions, 'trailing').actions.length
-        ) || undefined
-      }
-      data-satin-swipe-side={offset >= 0 ? 'leading' : 'trailing'}
+      data-satin-row-swipe={swipes || undefined}
+      data-satin-swipe-side={paintedSide}
       onContextMenu={event => {
         if (contextMenu) {
           event.preventDefault()
@@ -966,7 +1013,10 @@ function RowActionsEngine({
       <div ref={scrollSource} data-satin-row-scrub="true">
         <div data-satin-row-scrub-range="true">
           <div data-satin-row-scrub-sticky="true">
-            {(['leading', 'trailing'] as const).map(side => (
+            {/* A row without swipe actions renders no trays: a long transcript of context-menu
+                rows paid for 2400 empty positioned trays in every rendering update. A row whose
+                actions were removed while open keeps them until it has closed. */}
+            {(swipes || offset !== 0 ? (['leading', 'trailing'] as const) : []).map(side => (
               <div
                 key={side}
                 data-satin-swipe-tray={side}
@@ -1011,7 +1061,9 @@ function RowActionsEngine({
                     />
                     <span data-satin-swipe-direction={side} data-satin-swipe-label="true">
                       {action.icon ?? (action.symbol ? <SymbolImage name={action.symbol} /> : null)}
-                      {action.label ? <span>{action.label}</span> : null}
+                      {action.label ? (
+                        <span data-satin-swipe-caption="true">{action.label}</span>
+                      ) : null}
                     </span>
                   </Pressable>
                 ))}
@@ -1020,6 +1072,8 @@ function RowActionsEngine({
 
             <div ref={body} data-satin-row-action-content="true">
               {children}
+              {/* The swipe grey, faded in and out on the compositor (swipeFace.ts). */}
+              {swipes ? <span data-satin-swipe-face-tint="true" aria-hidden="true" /> : null}
             </div>
           </div>
         </div>

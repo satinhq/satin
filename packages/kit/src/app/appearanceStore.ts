@@ -57,11 +57,13 @@ export function installAppearanceStore(key = 'satin-appearance:v1'): AppearanceS
     // Storage denial must not prevent launch.
   }
   let systemDark = dark
+  let stableDark = dark
   let preferred: PreferredColorScheme = 'system'
   let snapshot: AppearanceSnapshot = { dark, pending: false }
   const listeners = new Set<() => void>()
-  // Installed iOS 27 emitted false light events 199–554 ms before hiding. This
-  // window quarantines active media events before publishing a stable appearance.
+  // WebKit emitted false active events 199–554 ms before hiding. Publish visible
+  // changes immediately, but keep the prior resume snapshot until the trait stays
+  // visible for this measured window. This timer never delays page publication.
   const backgroundWindowMs = 750
   let activeConfirmation: ReturnType<typeof setTimeout> | undefined
   type ResumeState = 'active' | 'hidden' | 'holding' | 'confirming'
@@ -108,6 +110,7 @@ export function installAppearanceStore(key = 'satin-appearance:v1'): AppearanceS
   }
   const observe = (nextDark: boolean) => {
     systemDark = nextDark
+    stableDark = nextDark
     save(nextDark)
     publish(nextDark)
   }
@@ -117,7 +120,8 @@ export function installAppearanceStore(key = 'satin-appearance:v1'): AppearanceS
   }
   const remember = () => {
     if (state !== 'hidden') {
-      backgroundDark = systemDark
+      backgroundDark = stableDark
+      systemDark = backgroundDark
       if (activeConfirmation !== undefined) clearTimeout(activeConfirmation)
       activeConfirmation = undefined
       cancelReconciliation()
@@ -212,13 +216,19 @@ export function installAppearanceStore(key = 'satin-appearance:v1'): AppearanceS
       return
     }
     if (state !== 'active') return
+    // A visible system change must reach the page in this notification. Resume
+    // reconciliation remains separate because WebKit can expose stale traits there.
+    systemDark = reading().dark
+    publish(systemDark)
+    latestEvent = undefined
+    record('active-published')
     if (activeConfirmation !== undefined) clearTimeout(activeConfirmation)
     activeConfirmation = setTimeout(() => {
       activeConfirmation = undefined
       if (document.hidden || state !== 'active') return
-      observe(reading().dark)
-      latestEvent = undefined
-      record('active-confirmed')
+      stableDark = systemDark
+      save(stableDark)
+      record('active-stable')
     }, backgroundWindowMs)
   })
   document.addEventListener('visibilitychange', () => {

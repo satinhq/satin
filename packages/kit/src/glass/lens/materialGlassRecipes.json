@@ -48,22 +48,22 @@
     ],
     "face": [
       [
-        0.8630544242470686,
-        -0.32620244161341183,
-        -0.03285201216775808,
-        0.5200000065565109
+        0.8612474353825018,
+        -0.325519467095201,
+        -0.0327832294600887,
+        0.5203913042
       ],
       [
-        -0.09694050040245317,
-        0.6338847201757543,
-        -0.03294424930740245,
-        0.5200000125169754
+        -0.09673753474949846,
+        0.6325575470582816,
+        -0.03287527348157093,
+        0.5203913042
       ],
       [
-        -0.09699531174714363,
-        -0.3260815475988227,
-        0.9270768298118649,
-        0.5200000065565109
+        -0.09679223133492608,
+        -0.32539882619806537,
+        0.9251357963602036,
+        0.5203913042
       ]
     ],
     "bleedMatrix": [
@@ -161,14 +161,14 @@
       0
     ],
     "shadowResponse": [
-      4,
+      6.09035917,
       0.03999999910593033,
       0,
       1
     ],
     "shadowOffset": [
       0,
-      8
+      8.05076614
     ],
     "backgroundKey": [
       0.5333333333333333,
@@ -182,13 +182,13 @@
     ],
     "unitStatus": "Empirical 12/48/192-point phase fit with stratified edge samples. x=SDF units/point; y=source points/displacement unit; z=SDF offset; w=effective reduction-mip diffusion conversion. Native pyramid identity remains approximate.",
     "blurFill": [
-      8,
-      0.8999999761581421,
+      16,
+      0.9692585238831474,
       0,
-      0.5
+      0.48063949889014357
     ],
     "captureScale": 0.5,
-    "calibrationSource": "reference calibration"
+    "calibrationSource": "Default-setting regular material: registered flat-room, photograph and two-axis stripe forward fit; see the implementation contract"
   },
   "light-menu": {
     "units": [
@@ -548,14 +548,14 @@
       0
     ],
     "shadowResponse": [
-      4,
+      6.09035917,
       0.03999999910593033,
       0,
       1
     ],
     "shadowOffset": [
       0,
-      8
+      8.05076614
     ],
     "backgroundKey": [
       0.5333333333333333,
@@ -571,11 +571,11 @@
     "blurFill": [
       8,
       0,
-      0.8999999761581421,
-      0.5
+      0.7047274555046543,
+      0.5217465795776747
     ],
     "captureScale": 0.5,
-    "calibrationSource": "reference calibration"
+    "calibrationSource": "Default-setting regular material: registered flat-room, photograph and two-axis stripe forward fit; see the implementation contract"
   },
   "dark-menu": {
     "units": [

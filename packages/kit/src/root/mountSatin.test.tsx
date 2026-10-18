@@ -34,28 +34,49 @@ it('turns an app that crashes while mounting into a visible failure, not an endl
   vi.unstubAllGlobals()
 })
 
-it('waits for managed CSS before any application layout effect or glass renderer can mount', async () => {
+it('mounts app content immediately while managed styles are pending', async () => {
   setupPrelaunch()
   document.body.innerHTML = '<link data-satin-style="all"><div id="root"></div>'
   const link = document.querySelector('link')!
   const mounted = vi.fn()
-  function App() { useLayoutEffect(mounted, []); return <p>Ready</p> }
+  function App() {
+    useLayoutEffect(mounted, [])
+    return <p>Ready</p>
+  }
   const root = mountSatin(document.getElementById('root')!, <App />)
-  expect(mounted).not.toHaveBeenCalled()
+  expect(mounted).toHaveBeenCalledOnce()
   link.dispatchEvent(new Event('load'))
   await new Promise(resolve => setTimeout(resolve, 0))
   expect(mounted).toHaveBeenCalledOnce()
   root.unmount()
 })
 
-it('does not resurrect an unmounted app when its pending stylesheet finishes', async () => {
+it('does not remount an app when a stylesheet finishes after unmount', async () => {
   setupPrelaunch()
   document.body.innerHTML = '<link data-satin-style="all"><div id="root"></div>'
   const mounted = vi.fn()
-  function App() { useLayoutEffect(mounted, []); return null }
+  function App() {
+    useLayoutEffect(mounted, [])
+    return null
+  }
   const root = mountSatin(document.getElementById('root')!, <App />)
+  expect(mounted).toHaveBeenCalledOnce()
   root.unmount()
+  mounted.mockClear()
   document.querySelector('link')!.dispatchEvent(new Event('load'))
   await new Promise(resolve => setTimeout(resolve, 0))
   expect(mounted).not.toHaveBeenCalled()
+})
+
+it('does not hold app mounting behind delayed framework rules', () => {
+  setupPrelaunch()
+  document.head.querySelector('[data-test-framework-styles]')!.remove()
+  document.body.innerHTML = '<link data-satin-style="all"><div id="root"></div>'
+  const container = document.getElementById('root')!
+  const root = mountSatin(container, <span>Measured app content</span>)
+  try {
+    expect(container.textContent).toBe('Measured app content')
+  } finally {
+    root.unmount()
+  }
 })

@@ -81,3 +81,60 @@ it('keeps a failed launch visible until explicit recovery, even if readiness arr
   expect(controller.snapshot().state).toBe('failed')
   expect(controller.snapshot().error).toContain('Missing stylesheet')
 })
+
+it('reattaches the retired host for a later failure and detaches it after recovery', async () => {
+  vi.spyOn(Element.prototype, 'animate').mockReturnValue({
+    finished: Promise.resolve(),
+  } as unknown as Animation)
+  const controller = prelaunchController()
+  const host = document.querySelector<HTMLElement>('satin-prelaunch')!
+  controller.reveal()
+  await vi.waitFor(() => expect(host.isConnected).toBe(false))
+  const retry = vi.fn()
+  controller.error('Connection lost', 'Unable to Open App', retry)
+  expect(host.isConnected).toBe(true)
+  prelaunchDOM.querySelector('button')!.click()
+  expect(retry).toHaveBeenCalledOnce()
+  controller.recover()
+  expect(host.isConnected).toBe(false)
+  expect(prelaunchController()).toBe(controller)
+})
+
+it('keeps a disabled cover out of paint while retaining failure and recovery UI', () => {
+  setupPrelaunch(false)
+  const host = prelaunchDOM.host
+  const controller = prelaunchController()
+  expect(host.isConnected).toBe(false)
+  controller.error('Missing bundle')
+  expect(host.isConnected).toBe(true)
+  controller.recover()
+  expect(host.isConnected).toBe(false)
+  expect(controller.snapshot().coverVisible).toBe(false)
+})
+
+it('keeps retired observations numeric when WebKit no longer computes shadow styles', async () => {
+  vi.spyOn(Element.prototype, 'animate').mockReturnValue({
+    finished: Promise.resolve(),
+  } as unknown as Animation)
+  const controller = prelaunchController()
+  controller.reveal()
+  await vi.waitFor(() => expect(prelaunchDOM.host.isConnected).toBe(false))
+  const computedStyle = getComputedStyle
+  vi.spyOn(globalThis, 'getComputedStyle').mockImplementation(element =>
+    element.isConnected
+      ? computedStyle(element)
+      : ({
+          strokeDashoffset: '',
+          backgroundColor: '',
+          display: '',
+          opacity: '',
+        } as CSSStyleDeclaration),
+  )
+  const snapshot = controller.snapshot()
+  expect(Number.parseFloat(snapshot.offset)).toBe(100)
+  expect(snapshot.background).toBe('#f2f2f7')
+  expect(snapshot.coverVisible).toBe(false)
+  expect(snapshot.ringVisible).toBe(false)
+  expect(snapshot.box.every(Number.isFinite)).toBe(true)
+  expect(prelaunchDOM.host.isConnected).toBe(false)
+})

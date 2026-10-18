@@ -51,3 +51,7 @@ The launch cover and progress ring are embedded in the page and isolated from ap
 
 - [Deploy and update](deploy.md): put the app on the web and ship new versions.
 - [Notifications](notifications.md): ask for permission and send reminders.
+
+## Update before launch
+
+At each new-document launch, lookup has an 800 ms deadline. Offline, failed or unanswered lookup opens the cached build. A discovered update downloads and installs behind the launch cover without a total download deadline. The existing isolated ring shows download bytes, reserves its final arc for activation, and remains visible for at least 800 ms on the successor. Eight seconds without new bytes, response-header activity or an installation phase transition counts as a stall; failed precache validation also falls back. The next launch retries. An already waiting worker can activate offline. A clean document returning after at least 15 minutes hidden is reloaded immediately into this same launch check. Short warm resumes keep their document. Unsaved drafts and active media prevent suspension replacement; an app is never reloaded later during visible use to finish a download.

@@ -847,7 +847,7 @@ function measureConsumerNodes(
     // The search drawer is navigation chrome pinned inside the scroll view (search/SearchDrawer.tsx):
     // its field and scope labels would show through their own glass.
     const excluded = element.closest(
-      '[data-satin-covered="true"], [aria-hidden="true"], [data-satin-liquid], [data-satin-navigation-title-stage], [data-satin-search], [data-satin-searchable] > [data-satin-list-title], [data-satin-searchable] > [data-satin-scroll-content] > [data-satin-scroll-title]',
+      '[data-satin-covered="true"], [aria-hidden="true"], [data-satin-liquid], [data-satin-navigation-title-stage], [data-satin-search], [data-satin-search-toolbar], [data-satin-searchable] > [data-satin-list-title], [data-satin-searchable] > [data-satin-scroll-content] > [data-satin-scroll-title]',
     )
     if (excluded && (!includeCoveredRoot || host.contains(excluded))) return
     const accessibleActions = element.closest('[data-satin-action-access]')

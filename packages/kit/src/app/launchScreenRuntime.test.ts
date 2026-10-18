@@ -33,6 +33,7 @@ it('shows an applied-update ring for 800 ms and completes it before revealing th
   const { showAppliedUpdate, setLaunchScreen } = await import('./launchScreenRuntime.ts')
   const cover = prelaunchDOM.getElementById('satin-launch-screen')!
   const ring = prelaunchDOM.getElementById('satin-launch-progress')!
+  const host = prelaunchDOM.host
   let finish!: () => void
   const finished = new Promise<void>(resolve => {
     finish = resolve
@@ -58,12 +59,14 @@ it('shows an applied-update ring for 800 ms and completes it before revealing th
   setLaunchScreen(false)
   await vi.advanceTimersByTimeAsync(2000)
   expect(cover.hidden).toBe(false)
+  expect(host.isConnected).toBe(true)
   expect(animate).toHaveBeenCalledOnce()
   finish()
   expect(await pending).toBe(true)
   await vi.advanceTimersByTimeAsync(0)
   expect(ring.querySelector('circle')?.getAttribute('stroke-dashoffset')).toBe('0')
   expect(cover.hidden).toBe(true)
+  expect(host.isConnected).toBe(false)
   expect(animate).toHaveBeenCalledWith([{ opacity: 1 }, { opacity: 0 }], {
     duration: 300,
     easing: 'ease-out',
@@ -197,6 +200,7 @@ it.each([false, true])(
     const cover = prelaunchDOM.getElementById('satin-launch-screen')!
     const ring = prelaunchDOM.getElementById('satin-launch-progress')!
     const circle = ring.querySelector('circle')!
+    const host = document.querySelector<HTMLElement>('satin-prelaunch')!
     const fades: { element: Element; finish: () => void }[] = []
     vi.spyOn(Element.prototype, 'animate').mockImplementation(function (this: Element) {
       let finish!: () => void
@@ -228,9 +232,11 @@ it.each([false, true])(
     expect(ring.hasAttribute('hidden')).toBe(true)
     expect(cover.hidden).toBe(false)
     expect(fades.map(fade => fade.element)).toEqual([ring, cover])
+    expect(host.isConnected).toBe(true)
     fades[1]!.finish()
     await vi.advanceTimersByTimeAsync(0)
     expect(cover.hidden).toBe(true)
+    expect(host.isConnected).toBe(false)
     // Worker activity can arrive after readiness. It must not restore retired chrome.
     setLaunchProgress({ loaded: 200, total: 200 })
     await vi.advanceTimersByTimeAsync(3000)

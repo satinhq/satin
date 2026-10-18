@@ -347,3 +347,10 @@ it('useScaledMetric scales relative to its text style and updates when the syste
     vi.unstubAllGlobals()
   }
 })
+
+it('sizes single-line system text boxes relative to the resolved Dynamic Type font', () => {
+  const body = renderToStaticMarkup(<Text>Onion</Text>)
+  const footnote = renderToStaticMarkup(<Text font="footnote">Greek Salad</Text>)
+  for (const markup of [body, footnote])
+    expect(markup).toContain('--satin-text-line-height:round(up, 1.193359375em,')
+})

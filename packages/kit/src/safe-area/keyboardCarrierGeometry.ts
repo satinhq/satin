@@ -26,6 +26,24 @@ export function clearKeyboardCarrierContent(surface: HTMLElement) {
   contents.delete(surface)
 }
 
+let committingRoom = false
+/**
+ * Commit the keyboard room a carrier has already shown on compositor transforms. Layout that
+ * moves during the commit is the end of that motion, not a new change to present.
+ */
+export function commitCarriedKeyboardRoom(commit: () => void) {
+  committingRoom = true
+  try {
+    commit()
+  } finally {
+    committingRoom = false
+  }
+}
+/** True while a keyboard carrier commits room it has already presented (see above). */
+export function committingCarriedKeyboardRoom() {
+  return committingRoom
+}
+
 export function setKeyboardCarrierPose(element: HTMLElement, read: () => Pose) {
   poses.set(element, read)
 }

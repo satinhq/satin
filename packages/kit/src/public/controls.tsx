@@ -266,6 +266,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
     'data-satin-button-symbol': symbol,
     'data-satin-control-tinted': configuration.tint ? 'true' : undefined,
   }
+  // `iconOnly` with a symbol draws just the symbol. A title passed as children is
+  // not drawn; the required aria-label names the button.
+  const visibleChildren = symbol && rest.iconOnly ? undefined : children
   const content = (
     <>
       {symbol && (
@@ -273,11 +276,11 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
           name={symbol}
           style={{
             ...(toolbar ? { fontSize: 22 } : {}),
-            marginInlineEnd: children == null || symbolTitle ? undefined : '0.3em',
+            marginInlineEnd: visibleChildren == null || symbolTitle ? undefined : '0.3em',
           }}
         />
       )}
-      {symbolTitle === undefined && children}
+      {symbolTitle === undefined && visibleChildren}
     </>
   )
   if (typeof style === 'object')

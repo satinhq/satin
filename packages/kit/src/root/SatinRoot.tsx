@@ -8,7 +8,6 @@ import { installKeyboardAdapter } from '../keyboard/adapter.ts'
 import {
   setLaunchScreen,
   showLaunchFailure,
-  prelaunchController,
   setLaunchProgress,
   showAppliedUpdate,
   completeLaunchProgress,
@@ -358,7 +357,6 @@ export function SatinRoot({
                 return ready
               }),
           prepareLaunchContent(rootRef.current!, contentPreparation.signal),
-          prelaunchController().stylesReady(),
         ])
         if (cancelled || !bundleReady) return
         if (app.updateProfile === 'release' && !import.meta.env.DEV) {
@@ -373,7 +371,14 @@ export function SatinRoot({
               }
               setLaunchProgress(progress)
             },
-            { canActivate: () => !cancelled },
+            {
+              canActivate: () => !cancelled,
+              // Retries can advance while the visible ring holds its previous
+              // maximum. Readiness follows transfer activity, not arc position.
+              onActivity: () => {
+                if (!cancelled) downloadActivity.current = performance.now()
+              },
+            },
           )
           if (cancelled || result === 'reloading') return
           // The parser also detects updates activated after the old process

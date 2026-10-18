@@ -21,6 +21,7 @@ import type { RegisteredTabBar } from './liquidContext.ts'
 import { GlassPresentation } from './GlassPresentation.tsx'
 import { MaterialEffectContext } from './liquidContext.ts'
 import { isSupportedTabCount } from './tabBarModel.ts'
+import { prelaunchController, showLaunchFailure } from '../app/launchScreenRuntime.ts'
 
 /** One renderer per app. Registration is semantic; backdrop discovery is framework-owned. */
 export function MaterialEffectRoot({
@@ -49,6 +50,26 @@ export function MaterialEffectRoot({
   const backend =
     requestedFallback || automaticFallback ? ('fallback' as const) : ('webgpu' as const)
   const [regions] = useState(() => new GlassRegionRegistry())
+  const [stylesApplied, setStylesApplied] = useState(
+    () => !document.querySelector('link[data-satin-style]'),
+  )
+  useEffect(() => {
+    if (stylesApplied) return
+    let disposed = false
+    void prelaunchController()
+      .stylesReady()
+      .then(
+        () => {
+          if (!disposed) setStylesApplied(true)
+        },
+        error => {
+          if (!disposed) showLaunchFailure(error instanceof Error ? error.message : String(error))
+        },
+      )
+    return () => {
+      disposed = true
+    }
+  }, [stylesApplied])
   const regionCount = useSyncExternalStore(
     regions.subscribe,
     () => regions.size,
@@ -191,7 +212,13 @@ export function MaterialEffectRoot({
   // Error visibility and launch readiness remain separate from ownership.
   const diagnosticGlassOff = import.meta.env.SATIN_DIAGNOSTIC_GLASS_OFF === true
   const active =
-    !diagnosticGlassOff && enabled && supported && scroller && chrome && (tabs || hasRegions)
+    stylesApplied &&
+    !diagnosticGlassOff &&
+    enabled &&
+    supported &&
+    scroller &&
+    chrome &&
+    (tabs || hasRegions)
   // Navigation waits for glass sources only while they can still arrive: never after a
   // failure with no rebuild in flight (a failed startup, or a failed rebuild). The error
   // stays reported; navigation proceeds without glass sources.

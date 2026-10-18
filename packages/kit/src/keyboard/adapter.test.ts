@@ -472,6 +472,68 @@ it('starts the keyboard carrier in the frame before keyboard readers re-render',
   dispose()
 })
 
+it("keeps the root's keyboard layout out of a carried motion's first frame", () => {
+  const root = new Node(),
+    field = new Node()
+  const viewport = Object.assign(new EventTarget(), {
+    height: 894,
+    width: 440,
+    offsetTop: 0,
+    scale: 1,
+  })
+  vi.stubGlobal(
+    'window',
+    Object.assign(new EventTarget(), {
+      visualViewport: viewport,
+      innerWidth: 440,
+      innerHeight: 894,
+      scrollX: 0,
+      scrollY: 0,
+    }),
+  )
+  vi.stubGlobal('document', Object.assign(new EventTarget(), { activeElement: field }))
+  vi.stubGlobal('HTMLInputElement', Node)
+  vi.stubGlobal('HTMLTextAreaElement', class extends Node {})
+  let frames: FrameRequestCallback[] = []
+  const drawFrame = () => {
+    const callbacks = frames
+    frames = []
+    for (const callback of callbacks) callback(0)
+  }
+  vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => frames.push(callback))
+  vi.stubGlobal('cancelAnimationFrame', () => {})
+  const dispose = installKeyboardAdapter(root as unknown as HTMLElement)
+  drawFrame()
+  const publishedHeight = () =>
+    root.style.setProperty.mock.calls.filter(([name]) => name === '--satin-keyboard-height').at(-1)
+  const rootAtCarrier: (string | undefined)[] = []
+  const stopCarrier = onKeyboardMotion(() => rootAtCarrier.push(root.dataset.satinKeyboard))
+  const before = root.dataset.satinKeyboard
+
+  viewport.height = 550
+  viewport.dispatchEvent(new Event('resize'))
+  // The carrier measures, and its frame is drawn, with the root as it was.
+  expect(rootAtCarrier).toEqual([before])
+  expect(root.dataset.satinKeyboard).toBe(before)
+  expect(publishedHeight()?.[1]).not.toBe('344px')
+  expect(root.dataset.satinKeyboardMoving).toBe('true')
+  drawFrame()
+  expect(root.dataset.satinKeyboard).toBe(before)
+  // After that frame the root publishes the keyboard.
+  vi.advanceTimersByTime(0)
+  expect(root.dataset.satinKeyboard).toBe('visible')
+  expect(publishedHeight()?.[1]).toBe('344px')
+  stopCarrier()
+
+  // Without a carrier nothing moves on the compositor, so the root publishes in the report's task
+  // (the keyboard's dismiss key: the field stays focused).
+  viewport.height = 894
+  viewport.dispatchEvent(new Event('resize'))
+  expect(root.dataset.satinKeyboard).toBe('hidden')
+  expect(publishedHeight()?.[1]).toBe('0px')
+  dispose()
+})
+
 it('carries a keyboard dismissed while its field stays focused without waiting for a rotation to settle', () => {
   const root = new Node(),
     field = new Node()
@@ -507,8 +569,14 @@ it('carries a keyboard dismissed while its field stays focused without waiting f
   expect(carried).toEqual([344])
   // The keyboard's own dismiss key: the field keeps focus and the viewport returns to the exact
   // layout height at the same width. That is the keyboard leaving, not a rotation.
+  // WebKit may first report intermediate growth, which starts the rotation-settle timer.
+  viewport.height = 700
+  viewport.dispatchEvent(new Event('resize'))
+  expect(carried).toEqual([344])
   viewport.height = 894
   viewport.dispatchEvent(new Event('resize'))
+  expect(carried).toEqual([344, 0])
+  vi.advanceTimersByTime(150)
   expect(carried).toEqual([344, 0])
   // A rotation's growth (a different height) still waits for the geometry to settle.
   viewport.height = 550
@@ -557,7 +625,9 @@ it("times a keyboard's motion from the visual viewport's report, not the window 
   const dispose = installKeyboardAdapter(root as unknown as HTMLElement)
   drawFrame()
   const leads: number[] = []
-  const stop = onKeyboardMotion(({ leadMs }) => leads.push(Math.round(leadMs)))
+  const stop = onKeyboardMotion(({ startTime }) =>
+    leads.push(Math.round(performance.now() - startTime)),
+  )
 
   // iPad: WebKit stamps the visual viewport's report when the keyboard starts to move, but a busy
   // page dispatches it ~200 ms later, after a window resize stamped at the dispatch. The motion

@@ -109,7 +109,6 @@ describe('defineSatinApp prototype', () => {
 
     expect(script).toContain('prefers-color-scheme: dark')
     expect(script).toContain('"dark":{"background":"#000000"}')
-    expect(script).toContain("querySelector('#satin-theme-color')")
     expect(script).not.toContain("querySelector('#satin-status-bar-style')")
   })
 

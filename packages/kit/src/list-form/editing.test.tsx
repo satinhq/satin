@@ -69,6 +69,8 @@ it('gives ForEach rows swipe-to-delete that reports the row offset, using source
   )
   const remove = rows()[1].querySelector<HTMLButtonElement>('[data-satin-action-access] button')
   expect(remove?.textContent).toBe('Delete')
+  // Stock onDelete supplies its trash glyph, including multiline rows.
+  expect(rows()[1].querySelector('[data-satin-swipe-action] [data-satin-symbol="trash"]')).not.toBeNull()
   await act(async () => remove!.click())
   expect(onDelete).toHaveBeenCalledWith([1])
 })

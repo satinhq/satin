@@ -17,7 +17,7 @@ describe('text input policy', () => {
     ['tel', 'tel', 'tel', 'tel'],
     ['number', 'text', 'numeric', 'off'],
     ['decimal', 'text', 'decimal', 'off'],
-    ['search', 'search', 'search', 'off'],
+    ['search', 'search', 'text', 'off'],
     ['username', 'text', 'text', 'username'],
     ['new-password', 'password', 'text', 'new-password'],
     ['current-password', 'password', 'text', 'current-password'],

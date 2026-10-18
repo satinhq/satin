@@ -12,8 +12,9 @@ export function contextPreviewSource(anchor: HTMLElement, target?: Element | nul
   if (!content) return anchor
   // A press during the previous lift's dismissal finds that lift's placeholder beside the
   // content. It is not content: counting it lifted the wrapper instead.
+  // The swipe face tint is paint, not content.
   const children = [...content.children].filter(
-    child => !child.matches('[data-satin-context-placeholder]'),
+    child => !child.matches('[data-satin-context-placeholder], [data-satin-swipe-face-tint]'),
   )
   const only = children.length === 1 ? children[0] : null
   return only instanceof HTMLElement ? only : content

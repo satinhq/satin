@@ -3,23 +3,28 @@ import { encodePass, viewOf, type Target } from './passes.ts'
 import type { ScrollEdge } from './scrollEdgeBackdrop.ts'
 
 const vertex = `@vertex fn vertex(@builtin(vertex_index) i:u32)->@builtin(position) vec4f {let p=array<vec2f,3>(vec2f(-1,1),vec2f(3,1),vec2f(-1,-3))[i];return vec4f(p,0,1);}`
-/** Separable Gaussian in texel space; bilinear taps every `step` texels, edge-clamped (as CSS blur()). */
+/** Separable Gaussian in texel space; bilinear taps every `step` texels, edge-clamped (as CSS blur()).
+ * size.z/size.w optionally mix in a wider Gaussian (sigma, weight); each part is normalised, so the
+ * weight is its share of the result. Per axis, the mix is an approximation of the 2D mixture. */
 const blur = `${vertex}
 struct P { axis:vec4f, size:vec4f }
 @group(0) @binding(0) var<uniform> p:P;
 @group(0) @binding(1) var s:sampler;
 @group(0) @binding(2) var source:texture_2d<f32>;
 @fragment fn fragment(@builtin(position) pos:vec4f)->@location(0) vec4f {
- let sigma=p.axis.z; let step=p.axis.w; let reach=ceil(3.0*sigma/step);
+ let sigma=p.axis.z; let step=p.axis.w; let wide=max(p.size.z,sigma); let share=p.size.w;
+ let reach=ceil(3.0*wide/step);
  var sum=vec4f(0); var weight=0.0;
  for(var i=-reach;i<=reach;i+=1.0){
-  let o=i*step; let w=exp(-.5*(o/sigma)*(o/sigma));
+  let o=i*step;
+  let w=(1.0-share)*exp(-.5*(o/sigma)*(o/sigma))/sigma+share*exp(-.5*(o/wide)*(o/wide))/wide;
   let uv=clamp((pos.xy+p.axis.xy*o)/p.size.xy,vec2f(.5)/p.size.xy,vec2f(1)-vec2f(.5)/p.size.xy);
   sum+=textureSampleLevel(source,s,uv,0)*w; weight+=w;
  }
  return sum/weight;
 }`
-/** out = mix(base, mix(blurred, tint, tint.a), mask * strength) inside the edge rectangle. */
+/** out = mix(base, saturate(mix(blurred, tint, tint.a)), mask * strength) inside the edge
+ * rectangle; viewportScale.z is the saturation (1 leaves the tinted colour unchanged). */
 const composite = `${vertex}
 struct P { origin:vec4f, edge:vec4f, fade:vec4f, tint:vec4f, cap:vec4f, viewportScale:vec4f, mask:array<vec4f,10>, zoomClip:vec4f, zoomRadius:vec4f, occlusion:array<vec4f,8>, occlusionRadius:array<vec4f,8> }
 @group(0) @binding(0) var<uniform> p:P;
@@ -59,7 +64,10 @@ struct P { origin:vec4f, edge:vec4f, fade:vec4f, tint:vec4f, cap:vec4f, viewport
    }
   }
  }
- let treated=vec4f(mix(g.rgb,p.tint.rgb,p.tint.a),g.a);
+ let tinted=mix(g.rgb,p.tint.rgb,p.tint.a);
+ let luma=dot(tinted,vec3f(.2126,.7152,.0722));
+ let saturated=vec3f(luma)+(tinted-vec3f(luma))*p.viewportScale.z;
+ let treated=vec4f(clamp(saturated,vec3f(0),vec3f(1)),g.a);
  let material=mix(b,treated,mask*p.fade.y);
  var capMask=0.0;
  if(inside&&p.cap.a>0.0){capMask=clamp((p.fade.w-point.y)/max(1e-3,p.fade.w-p.fade.z),0.0,1.0)*p.cap.a;}
@@ -137,19 +145,24 @@ export function encodeScrollEdges(
   for (const edge of edges) {
     const sigmaX = (edge.sigma * resolution) / scale[0]
     const sigmaY = (edge.sigma * resolution) / scale[1]
+    const wideX = ((edge.wide?.sigma ?? 0) * resolution) / scale[0]
+    const wideY = ((edge.wide?.sigma ?? 0) * resolution) / scale[1]
+    const share = edge.wide?.weight ?? 0
     // A tint-only edge (sigma 0, edgesUnderSurface) composites the source itself.
     if (edge.sigma > 0) {
+      // A wide part keeps the near part's tap spacing coarse enough for its longer reach.
+      const step = (near: number) => Math.max(1, near / (edge.wide ? 4 : 8))
       draw(
         blurPipeline,
         h,
-        [1, 0, sigmaX, Math.max(1, sigmaX / 8), size[0], size[1], 0, 0],
+        [1, 0, sigmaX, step(sigmaX), size[0], size[1], wideX, share],
         [source],
         'edge-blur',
       )
       draw(
         blurPipeline,
         v,
-        [0, 1, sigmaY, Math.max(1, sigmaY / 8), size[0], size[1], 0, 0],
+        [0, 1, sigmaY, step(sigmaY), size[0], size[1], wideY, share],
         [h],
         'edge-blur',
       )
@@ -177,7 +190,7 @@ export function encodeScrollEdges(
         ...edge.tint,
         ...(edge.cap?.color ?? [0, 0, 0, 0]),
         ...scale,
-        0,
+        edge.saturation ?? 1,
         0,
         ...Array.from({ length: 10 }, (_, index) => {
           const stop = edge.mask?.[index]

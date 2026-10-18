@@ -225,6 +225,8 @@ export class Backdrop {
       e.solid - rect[1],
       e.mask?.map(([y, alpha]) => [y - rect[1], alpha]),
       e.sigma,
+      e.wide ? [e.wide.sigma, e.wide.weight] : null,
+      e.saturation ?? 1,
       e.tint,
       e.strength,
       e.cap ? [e.cap.color, e.cap.solid - rect[1], e.cap.end - rect[1]] : null,

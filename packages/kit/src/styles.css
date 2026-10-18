@@ -2,6 +2,11 @@
 @layer theme, base, satin, components, utilities;
 
 @layer satin {
+  /* Startup admission reads these rules before mounting any measuring components. */
+  :root {
+    --satin-styles-applied: 1;
+  }
+
   html[data-satin-document='true'],
   body[data-satin-document='true'],
   [data-satin-mount='true'] {
@@ -14,7 +19,11 @@
     --satin-touch-callout-policy: none;
     --satin-user-select-policy: none;
 
-    position: fixed;
+    /* Keep the clipped shell in the layout viewport's containing block. Fixed
+     document roots can freeze WebKit's opaque status strip at its launch colour
+     after a touch, even when the document background changes. This framework
+     policy must also win over legacy app rules such as #root { position: fixed }. */
+    position: absolute !important;
     inset: 0;
     width: 100%;
     height: 100%;
@@ -338,6 +347,7 @@
   }
 
   [data-satin-tab-item='true'] {
+    position: relative;
     display: flex;
     min-width: 0;
     height: 100%;
@@ -837,6 +847,13 @@
 
   [data-satin-pressable='true'][data-satin-press-state='pressed'][data-satin-press-transition='return'] {
     transition-duration: var(--satin-pressable-release-duration);
+  }
+
+  /* A swipe presents its actions' opacity every frame (actions/rowScrub.ts and motion.ts).
+   The pressable's 400ms release fade would lag each write: More reached its native
+   opacity 300ms late and dimmed 300ms late at a takeover (iPad swipe-parity o1/o4). */
+  [data-satin-swipe-action][data-satin-pressable='true'] {
+    transition: none;
   }
 
   /* Interactive glass answers a press itself (lift, highlight, spring: INTERACTIVE_GLASS_PRESS);
@@ -2157,6 +2174,7 @@
   }
 
   .satin-lens-tab-item {
+    position: relative;
     display: grid;
     grid-template-rows: 28px 12px;
     align-content: center;
@@ -2193,6 +2211,7 @@
     height: 36px;
   }
   [data-satin-tab-layout='compact'] .satin-lens-tab-items .satin-lens-tab-item {
+    position: relative;
     display: flex;
     flex-direction: row;
     align-items: center;
@@ -2218,6 +2237,7 @@
     height: var(--satin-sidebar-toggleHeight);
   }
   [data-satin-tab-layout='top'] .satin-lens-tab-items .satin-lens-tab-item {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -3351,11 +3371,9 @@
   [data-satin-list='insetGrouped'][data-satin-list-margins='wide'] {
     --satin-list-layout-margin: 20px;
   }
-  [data-satin-layout-horizontal='regular'] [data-satin-list='insetGrouped'] {
-    --satin-row-hit-leading: 20px;
-    --satin-row-hit-trailing: 20px;
-    padding-inline: 20px;
-  }
+  /* The containing screen's size class must not override this List's measured
+   width. iPad swipe-parity r71: a 393pt List has 16pt margins inside a
+   1024pt regular-width screen; the full-width List has 20pt margins. */
   [data-satin-list-section='true'] {
     margin-block: 0;
     margin-bottom: var(--satin-list-section-spacing, var(--satin-list-section-default-gap, 35px));
@@ -3494,32 +3512,42 @@
     top: 0;
     z-index: 2;
   }
-  /* Pinned, the header owns the bar's scroll edge material (the bar's own edge steps aside,
-   NavigationChrome): one hard-edged layer from the scroll view's top through the header, under
-   its label, ending in a hairline. iOS 27 native reference rough-edges, pinned header 116-156 pt over a
-   blue/orange grid: uniform from 0 to 156; blur sigma ~6 pt (the 8 pt grid gap keeps half its
-   contrast); light brightens the content x1.2 under 51% white, dark lays 55% black over it; the
-   1 px line is 10% black (light) or 10% white (dark). */
-  [data-satin-list='plain'] [data-satin-section-header-pinned='true']::before {
+  /* Pinned, the header carries the bar's scroll edge material (the bar's own edge yields to it,
+   navigationEdge.ts, and keeps only its fitted-viewport cap): its ::before, ::after and material
+   element are the near, wide and finish layers, from the scroll view's top through the header,
+   under its label, ending in a hard edge with native's 1 px line, 10% black (light) or white
+   (dark). The bar edge cannot simply extend down: it sits above content and would blur the label.
+   Native over a pinned header is the same material as over the bar alone (iOS 27.0 List fixture,
+   header pinned at 116-156 pt). */
+  [data-satin-edge-material] {
+    display: none;
+  }
+  [data-satin-list='plain'] [data-satin-section-header-pinned='true']::before,
+  [data-satin-list='plain'] [data-satin-section-header-pinned='true']::after,
+  [data-satin-list='plain'] [data-satin-section-header-pinned='true'] > [data-satin-edge-material] {
     content: '';
+    display: block;
     position: absolute;
-    z-index: -1;
     left: 0;
     right: 0;
     bottom: 0;
     top: calc(-1 * var(--satin-pinned-header-reach, 0px));
     pointer-events: none;
-    background: rgb(255 255 255 / 51%);
-    -webkit-backdrop-filter: brightness(1.2) blur(6px);
-    backdrop-filter: brightness(1.2) blur(6px);
+  }
+  [data-satin-list='plain'] [data-satin-section-header-pinned='true']::before {
+    z-index: -3;
+  }
+  [data-satin-list='plain'] [data-satin-section-header-pinned='true']::after {
+    z-index: -2;
+  }
+  [data-satin-list='plain'] [data-satin-section-header-pinned='true'] > [data-satin-edge-material] {
+    z-index: -1;
     box-shadow: inset 0 calc(-1 * var(--satin-device-pixel)) rgb(0 0 0 / 10%);
   }
   :root[data-satin-appearance='dark']
     [data-satin-list='plain']
-    [data-satin-section-header-pinned='true']::before {
-    background: rgb(0 0 0 / 55%);
-    -webkit-backdrop-filter: blur(6px);
-    backdrop-filter: blur(6px);
+    [data-satin-section-header-pinned='true']
+    > [data-satin-edge-material] {
     box-shadow: inset 0 calc(-1 * var(--satin-device-pixel)) rgb(255 255 255 / 10%);
   }
   [data-satin-list='plain'][data-satin-list-navigation='large'] [data-satin-section-header='true'] {
@@ -3547,14 +3575,30 @@
     background: var(--satin-list-separator, #e8e8e8);
     pointer-events: none;
   }
+  /* Generic editable rows must carry their padding inside the moving face.
+   Padding on the stationary section item leaves part of the row outside swipe
+   clipping, hit testing and ResizeObserver geometry. Preserve the existing
+   row-box values; native measurements separately determine capsule geometry. */
   [data-satin-section-item]:not(
-    :has(
-      [data-satin-row],
-      [data-satin-field-style='row'],
-      [data-satin-list-section],
-      [data-satin-list-row-options]
+      :has(
+        [data-satin-row],
+        [data-satin-field-style='row'],
+        [data-satin-list-section],
+        [data-satin-list-row-options]
+      )
+    ):not(:has(> [data-satin-row-actions])),
+  :where(
+      [data-satin-section-item]:not(
+          :has(
+            [data-satin-row],
+            [data-satin-field-style='row'],
+            [data-satin-list-section],
+            [data-satin-list-row-options]
+          )
+        )
+        > [data-satin-row-actions]
     )
-  ),
+    [data-satin-row-action-content],
   [data-satin-list-row-options]:not(:has([data-satin-row], [data-satin-field-style='row'])),
   [data-satin-row='true'] {
     box-sizing: border-box;
@@ -3581,15 +3625,40 @@
     font-size: calc(17px * var(--satin-text-scale, 1));
   }
   [data-satin-section-item]:not(
-    :has(
-      [data-satin-row],
-      [data-satin-field-style='row'],
-      [data-satin-list-section],
-      [data-satin-list-row-options]
+      :has(
+        [data-satin-row],
+        [data-satin-field-style='row'],
+        [data-satin-list-section],
+        [data-satin-list-row-options]
+      )
+    ):not(:has(> [data-satin-row-actions])),
+  :where(
+      [data-satin-section-item]:not(
+          :has(
+            [data-satin-row],
+            [data-satin-field-style='row'],
+            [data-satin-list-section],
+            [data-satin-list-row-options]
+          )
+        )
+        > [data-satin-row-actions]
     )
-  ),
+    [data-satin-row-action-content],
   [data-satin-list-row-options]:not(:has([data-satin-row], [data-satin-field-style='row'])) {
     padding-block: var(--satin-row-inset-top, 14px) var(--satin-row-inset-bottom, 14px);
+  }
+  /* Stock plain Button rows, iPad r71/r72/r78: both measured widths and list
+   styles retain 15pt above/below the label. Arbitrary section content, such as
+   an album grid, keeps its existing allocation; it is not a native Button row. */
+  [data-satin-section-item]:has(> [data-satin-button-style='plain']),
+  [data-satin-row-action-content]:has(> [data-satin-button-style='plain']) {
+    padding-block: var(--satin-row-inset-top, 15px) var(--satin-row-inset-bottom, 15px);
+  }
+  /* A List Button is a row box, not an inline glyph in an anonymous line.
+   r87's installed probe isolates the extra outer-button baseline allocation. */
+  [data-satin-section-item] > [data-satin-button-style='plain'],
+  [data-satin-row-action-content] > [data-satin-button-style='plain'] {
+    display: block;
   }
   [data-satin-section-item]:has(> [data-satin-segmented]),
   [data-satin-list-row-options]:has(> [data-satin-segmented]) {
@@ -4202,11 +4271,8 @@
     bottom: auto;
     height: var(--satin-keyboard-layout-height);
   }
-  /* The fitted scene and top-layer presentations have fixed containing blocks,
-   so moving the root alone cannot compensate WebKit's focus pan. */
-  [data-satin-root='true'][data-satin-keyboard='visible'] [data-satin-status-band-source='scene'] {
-    top: var(--satin-keyboard-offset-top, 0px);
-  }
+  /* The absolute scene follows the root's focus-pan correction. Top-layer
+   presentations still need their own viewport offset. */
   [data-satin-root='true'][data-satin-keyboard='visible']
     .satin-presentation:is([data-satin-presentation='alert'], [data-satin-presentation='sheet']) {
     top: var(--satin-keyboard-offset-top, 0px);
@@ -4369,6 +4435,14 @@
     width: 7px;
     height: 7px;
     padding: 0;
+  }
+  /* Label-only iPad tabs reserve badge space in the measured item width. The glass ink plane
+   clips to its capsule, so an out-of-bounds overlay would cut off the count. */
+  [data-satin-tab-placement='top'] [data-satin-tab-badge],
+  [data-satin-tab-layout='top'] .satin-lens-tab-item [data-satin-tab-badge] {
+    position: static;
+    flex-shrink: 0;
+    margin-inline-start: 0.5em;
   }
 
   /* The detail native scrub range excludes the retained sidebar. */
@@ -5115,13 +5189,63 @@
   [data-satin-navigation-layout='split'] > [data-satin-pane][data-satin-navigation-edge-host] {
     --satin-scroll-edge-reach: calc(var(--satin-inset-top) + var(--satin-sidebar-tabs-height));
   }
-  /* Scrolled, the bar's edge material is one uniform blur and tint that stops in a hard edge at
-   the bottom of the bar row, on iPhone and iPad, over ScrollView, List and Form content alike
-   (iOS 27 native reference edge-* stripes: iPhone 17 Pro Max 115 pt, iPad Pro 13 stack 85 pt, split detail
-   139 pt; light over black reads luma 140, dark over white 104, 8 pt stripes keep 0.11 contrast).
+  /* The scroll edge material. Native uses one material for the bar's scroll edge and for a plain
+   List's pinned section header; it does not change when a header pins (iOS 27.0 Simulator, iPhone
+   17 Pro Max, stock List fixture over solid colours, a black/white split and album art; light and
+   dark). Measured response, with K a blur and S CSS saturate():
+     out = S(lift + gain * K(content))
+     light: lift 0.532 (black reads 136), gain 0.5; clipped at white
+     dark:  lift 0.031 (black reads 8),   gain 0.4
+     S 1.25, after the wash: blue 0 136 255 reads 121 206 255 in light.
+     K = 37% of a 4 pt Gaussian + 63% of a 24 pt one (dark: 45% + 55%).
+   The wide part spreads colour into its surroundings, so artwork reads as a soft wash rather than
+   blurred blobs. CSS has one blur per layer, so the material is three stacked layers, bottom to
+   top:
+     near:   blur 4 pt, brightened;
+     wide:   blur 24 pt of what is below (content and near) under a fill, at an opacity;
+     finish: saturate everything below.
+   WebKit gives a backdrop filter nested inside another backdrop, filter, opacity or mask element
+   nothing to sample, so the three layers are always siblings under a plain parent. The values
+   follow from the response (navigation/scrollEdgeMaterial.ts `edgeMaterialLayers`, checked against
+   these lines by scrollEdgeBackdrop.test.ts). The users are the bar's edge (the edge element and
+   its two layer siblings, NavigationChrome) and a pinned header (its ::before, ::after and
+   material element, ListForm). */
+  :root {
+    --satin-edge-near-filter: blur(4px) brightness(1.068);
+    --satin-edge-wide-fill: rgb(255 255 255 / 0.644);
+    --satin-edge-wide-opacity: 0.827;
+  }
+  html[data-satin-appearance='dark'] {
+    --satin-edge-near-filter: blur(4px) brightness(0.62);
+    --satin-edge-wide-fill: rgb(22 22 22 / 0.5);
+    --satin-edge-wide-opacity: 0.71;
+  }
+  [data-satin-scroll-edge],
+  [data-satin-list='plain'] [data-satin-section-header-pinned='true']::before {
+    -webkit-backdrop-filter: var(--satin-edge-near-filter);
+    backdrop-filter: var(--satin-edge-near-filter);
+  }
+  /* While the bar's edge ramps in, its two upper layers follow its strength (navigationEdge.ts). */
+  [data-satin-scroll-edge-layer='wide'],
+  [data-satin-list='plain'] [data-satin-section-header-pinned='true']::after {
+    background: var(--satin-edge-wide-fill);
+    -webkit-backdrop-filter: blur(24px);
+    backdrop-filter: blur(24px);
+    opacity: calc(var(--satin-edge-wide-opacity) * var(--satin-scroll-edge-strength, 1));
+  }
+  [data-satin-scroll-edge-layer='finish'],
+  [data-satin-list='plain'] [data-satin-section-header-pinned='true'] > [data-satin-edge-material] {
+    -webkit-backdrop-filter: saturate(1.25);
+    backdrop-filter: saturate(1.25);
+    opacity: var(--satin-scroll-edge-strength, 1);
+  }
+  /* Scrolled, the bar's edge material is uniform and stops in a hard edge at the bottom of the bar
+   row, on iPhone and iPad, over ScrollView, List and Form content alike (iOS 27 native reference edge-*
+   stripes: iPhone 17 Pro Max 115 pt, iPad Pro 13 stack 85 pt, split detail 139 pt).
    The bar row is 54 pt below the reach; the last 2 pt only anti-alias the edge.
-   Measurements and pairs: the implementation contract */
-  [data-satin-scroll-edge] {
+   Geometry and pairs: the implementation contract */
+  [data-satin-scroll-edge],
+  [data-satin-scroll-edge-layer] {
     display: block;
     position: absolute;
     pointer-events: none;
@@ -5129,9 +5253,6 @@
     right: 0;
     top: calc(-1 * var(--satin-scroll-edge-reach));
     height: calc(var(--satin-scroll-edge-reach) + 54px + var(--satin-inline-title-extra, 0px));
-    background: rgb(255 255 255 / 0.55);
-    -webkit-backdrop-filter: blur(4.5px);
-    backdrop-filter: blur(4.5px);
     -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 2px), transparent);
     mask-image: linear-gradient(to bottom, #000 calc(100% - 2px), transparent);
   }
@@ -5142,11 +5263,10 @@
   /* Native applies the edge only to content scrolled under the bar; at rest the
    material and its tint are absent (rest/scrolled reference pairs). NavigationChrome
    drives visibility and strength from the primary scroller's content. */
-  [data-satin-scroll-edge]:not([data-satin-scroll-edge-visible='true']) {
+  [data-satin-scroll-edge]:not([data-satin-scroll-edge-visible='true']),
+  [data-satin-scroll-edge]:not([data-satin-scroll-edge-visible='true'])
+    ~ [data-satin-scroll-edge-layer] {
     visibility: hidden;
-  }
-  html[data-satin-appearance='dark'] [data-satin-scroll-edge] {
-    background: rgb(0 0 0 / 0.59);
   }
 
   /* Native searchable headers use a short, progressively fading treatment.
@@ -5165,6 +5285,10 @@
     background: rgb(0 0 0 / 0.64);
     -webkit-backdrop-filter: blur(1.5px);
     backdrop-filter: blur(1.5px);
+  }
+  /* The searchable treatment is a single layer. */
+  [data-satin-scroll-edge][data-satin-scroll-edge-search] ~ [data-satin-scroll-edge-layer] {
+    display: none;
   }
   [data-satin-search-edge][data-satin-search-edge-covered]::before {
     background: rgb(255 255 255 / 0.55);
@@ -5186,10 +5310,12 @@
    an exposed edge. This separate layer stays opaque at the pane top even while
    the underlying material ramps in. It sits below title and control layers.
    Fitted viewports share the band controller's exact colour, including motion.
-   Cover viewports retain the measured translucent material through the inset. */
+   Cover viewports retain the measured translucent material through the inset.
+   While a pinned plain-list header carries the material (the edge has yielded to it), the cap
+   stays: the top of the screen looks the same with or without a pinned header, as natively. */
   html:is([data-satin-viewport-fit='auto'], [data-satin-viewport-fit='contain'])
-    [data-satin-scroll-edge-visible='true']
-    + [data-satin-scroll-edge-cap] {
+    :is([data-satin-scroll-edge-visible='true'], [data-satin-scroll-edge-yielded])
+    ~ [data-satin-scroll-edge-cap] {
     display: block;
     position: absolute;
     pointer-events: none;
@@ -5568,16 +5694,32 @@
     border-radius: 0;
     clip-path: var(--satin-row-trailing-clip);
     overflow: hidden;
-    background: #e5e5ea;
+  }
+  /* The swiped row face fades between the resting cell colour and the swipe grey: a
+   grey layer behind the row's content, whose opacity actions/swipeFace.ts animates on
+   native's measured time response. Opacity runs on the compositor; the colour stays
+   here so appearance changes apply. */
+  [data-satin-row-swipe='true'] [data-satin-row-action-content] {
+    isolation: isolate;
+  }
+  [data-satin-swipe-face-tint] {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background: var(--satin-swipe-face-color);
+    opacity: 0;
+    pointer-events: none;
   }
   [data-satin-swipe-active='true'][data-satin-swipe-side='leading']
     [data-satin-row-action-content] {
     clip-path: var(--satin-row-leading-clip);
   }
-  :where(html[data-satin-appearance='dark'])
-    [data-satin-swipe-active='true']
-    [data-satin-row-action-content] {
-    background: #2c2c2e;
+  [data-satin-row-action-content] {
+    --satin-swipe-face-color: #e5e5ea;
+  }
+  :where(html[data-satin-appearance='dark']) [data-satin-row-action-content] {
+    --satin-swipe-face-color: #2c2c2e;
   }
   /* Native regular-width context menu ink: 15pt with a 20pt content inset. */
   /* Public toolbar placements share the framework's live chrome geometry. */
@@ -5713,11 +5855,11 @@
    Explicit headers already supply their own measured layout. Rows placed straight in a grouped
    List form that same implicit section (iOS 27 native reference loose-inline: first card at 151 pt on
    iPhone; installed iPad pushed detail: 35 pt below the bar). */
-  [data-satin-list-navigation='inline']
+  [data-satin-list-navigation='inline']:is([data-satin-list='insetGrouped'], [data-satin-list='grouped'])
   > [data-satin-list-section]:first-child:not(:has([data-satin-section-header])),
 /* A component returning Section has a display:contents row wrapper. Its margin cannot
    reserve the header gap; the section's own box must receive it. */
-[data-satin-list-navigation='inline']
+[data-satin-list-navigation='inline']:is([data-satin-list='insetGrouped'], [data-satin-list='grouped'])
   > [data-satin-list-direct-row]:first-child
   > [data-satin-list-section]:first-child:not(:has([data-satin-section-header])),
 [data-satin-list-navigation='inline']:is(
@@ -5726,7 +5868,7 @@
   )
   > [data-satin-section-item]:first-child,
 /* A search drawer belongs to the bar: the first content after it is still the List's first. */
-[data-satin-list-navigation='inline']
+[data-satin-list-navigation='inline']:is([data-satin-list='insetGrouped'], [data-satin-list='grouped'])
   > [data-satin-search-suggestions]
   + [data-satin-list-section]:not(:has([data-satin-section-header])),
 [data-satin-list-navigation='inline']:is(
@@ -5737,10 +5879,16 @@
   + [data-satin-section-item] {
     margin-top: 35px;
   }
-  [data-satin-list-navigation='inline']
+  [data-satin-list-navigation='inline']:is(
+      [data-satin-list='insetGrouped'],
+      [data-satin-list='grouped']
+    )
     > [data-satin-scroll-content]
     > [data-satin-list-section]:first-child:not(:has([data-satin-section-header])),
-  [data-satin-list-navigation='inline']
+  [data-satin-list-navigation='inline']:is(
+      [data-satin-list='insetGrouped'],
+      [data-satin-list='grouped']
+    )
     > [data-satin-scroll-content]
     > [data-satin-list-direct-row]:first-child
     > [data-satin-list-section]:first-child:not(:has([data-satin-section-header])),
@@ -5750,7 +5898,10 @@
     )
     > [data-satin-scroll-content]
     > [data-satin-section-item]:first-child,
-  [data-satin-list-navigation='inline']
+  [data-satin-list-navigation='inline']:is(
+      [data-satin-list='insetGrouped'],
+      [data-satin-list='grouped']
+    )
     > [data-satin-scroll-content]
     > [data-satin-search-suggestions]
     + [data-satin-list-section]:not(:has([data-satin-section-header])),
@@ -5764,19 +5915,11 @@
     margin-top: 35px;
   }
 
-  /* Fitted translucent installs retain full-bottom document flow, but the app
-   frame follows the actual fixed viewport, never the larger document ruler. */
+  /* Fitted installs keep the app in the same absolute shell as the document.
+   A fixed root here reintroduces opaque status-strip colour retention. */
   html:is([data-satin-viewport-fit='auto'], [data-satin-viewport-fit='contain']) [data-satin-root] {
-    position: fixed;
+    position: absolute;
     background-color: var(--satin-status-band, var(--satin-background));
-  }
-  html:is(
-      [data-satin-viewport-fit='auto'],
-      [data-satin-viewport-fit='contain']
-    )[data-satin-document],
-  html:is([data-satin-viewport-fit='auto'], [data-satin-viewport-fit='contain'])
-    body[data-satin-document] {
-    background-color: var(--satin-status-band, var(--satin-background)) !important;
   }
   [data-satin-presentation-dimmer] {
     display: none;
@@ -5797,8 +5940,8 @@
   }
 
   /* WebKit retains old fixed-edge colours for viewport-sized containers. Give
-   the full-height scene an ordinary fixed top container, whose solid colour
-   can be resampled. The 12px box exceeds its >10px colour threshold; children
+   the full-height scene a short top container, whose solid colour can be
+   resampled. The 12px box exceeds its >10px colour threshold; children
    overflow to the measured app frame. It paints behind content, never over
    titles/glass, and does not reserve space or move the root. */
   [data-satin-status-band-source] {
@@ -5816,6 +5959,7 @@
   }
   html:is([data-satin-viewport-fit='auto'], [data-satin-viewport-fit='contain'])
     [data-satin-status-band-source='scene'] {
+    position: absolute;
     background-color: var(--satin-status-band, var(--satin-background));
   }
   html:is([data-satin-viewport-fit='auto'], [data-satin-viewport-fit='contain'])
@@ -6294,9 +6438,9 @@
     height: var(--satin-swipe-capsule-height);
     align-self: center;
   }
-  /* The tall native row reserves 19 1/3pt below the circle for its caption. */
+  /* iPad r78/r87: 14.5pt caption plus a 4pt gap below the capsule. */
   [data-satin-swipe-label-layout='below'] [data-satin-swipe-title='true'] {
-    height: calc(var(--satin-swipe-capsule-height) + 19.333333px);
+    height: calc(var(--satin-swipe-capsule-height) + 18.5px);
     align-self: center;
   }
   [data-satin-swipe-fill] {
@@ -6347,6 +6491,12 @@
   [data-satin-swipe-fill] {
     top: 0;
   }
+  /* iPad r71/r72 vs r103/r104: six settled two/three-line row samples fit
+   the trash ink at 18.29pt, rounded to the device's half-point grid. This icon
+   has its own native size; it must not inherit the row's 16pt body font. */
+  [data-satin-swipe-label-layout='below'] [data-satin-swipe-label] > [data-satin-symbol='trash'] {
+    font-size: 18.5px;
+  }
   [data-satin-swipe-label] {
     height: var(--satin-swipe-capsule-height);
     width: var(--satin-swipe-button-width);
@@ -6360,12 +6510,12 @@
     [data-satin-swipe-label]
     > span:last-child {
     position: absolute;
-    top: calc(var(--satin-swipe-capsule-height) + 2px);
+    top: calc(var(--satin-swipe-capsule-height) + 4px);
     left: -10px;
     width: calc(var(--satin-swipe-button-width) + 20px);
     text-align: center;
-    font-size: 13px;
-    line-height: 16px;
+    font-size: 12px;
+    line-height: 14.5px;
     color: var(--satin-secondary-label, #8e8e93);
   }
   /* Reserve the native lift's transient 2% paint outside the row without changing
@@ -6836,12 +6986,30 @@
 
   [data-satin-row-actions][data-satin-swipe-active='true'] {
     background: var(--satin-background, #f2f2f7);
+    /* Stock inset List clips the moving face at the stationary row boundary
+     (iPad swipe-parity r23 F605). A translated face must not paint in the gutter. */
+    /* Do not change overflow during contact: WebKit drops its active scroll pan
+     when an ancestor changes scrolling topology (swipe-parity r25).
+     r71/r103 retain the section's stationary leading corner while the face
+     moves. border-box follows the inherited corner radii; inset(0) squares it. */
+    clip-path: border-box;
   }
 
-  [data-satin-swipe-label-layout='inline'] [data-satin-swipe-label] {
+  [data-satin-swipe-label-layout='inline'] [data-satin-swipe-label],
+  [data-satin-swipe-label-layout='inline'] [data-satin-swipe-label] > span:last-child {
+    /* Stock List, swipe-parity r17: UILabel 12pt / 14.5pt and image/title gap 4pt. */
+    column-gap: 4px;
     font:
-      13px/16px -apple-system,
+      12px/14.5px -apple-system,
       sans-serif;
+  }
+
+  /* Short rows draw the inline symbol heavier than their 12pt title. Stock List on a
+   physical iPad: the inline trash has the same 11.1 x 13.7pt box as ours but 1.45x
+   the ink; bold strokes give 1.47x regular, semibold 1.29x. Taller rows keep the
+   regular icon above their caption (ink within the glyph's 5% width difference). */
+  [data-satin-swipe-label-layout='inline'] [data-satin-swipe-label] > [data-satin-symbol] {
+    font-weight: 700;
   }
 
   /* Inline section corners follow the same reveal track as the moving row face. */
@@ -6975,10 +7143,9 @@
       calc(var(--satin-keyboard-inset) - var(--satin-keyboard-covered-rows, 0px))
     );
   }
-  /* A carried boundary (safe-area/keyboardCarrier.ts) commits the keyboard's room once per keyboard
-   change, at the endpoint where nothing is clipped; its accessory and pinned transcript move on
-   compositor transforms in between. No per-frame padding: WebKit draws no page frames while the
-   keyboard travels, so a layout animation would stand still and then jump. */
+  /* A carried boundary commits resting keyboard room at the motion endpoint. Its accessory
+   and pinned transcript move on compositor transforms while the scroll frame stays full height.
+   Per-frame padding depends on document rendering and can stall during system keyboard motion. */
   @property --satin-keyboard-committed {
     syntax: '<length>';
     inherits: false;
@@ -7005,6 +7172,16 @@
    placement, so keyboard/composer motion still uses the boundary's original shrinking frame. */
   [data-satin-bottom-boundary='root'] > [data-satin-inset-content='true'] {
     margin-bottom: calc(-1 * var(--satin-bottom-system-inset, var(--satin-inset-bottom, 0px)));
+  }
+  /* Keyboard transport moves the accessory and transcript, never the scroll frame. The
+   system-bottom offset cancels the existing content extension. Terminal keyboard room is
+   published by SafeAreaInset when the carrier commits, after its compositor motion. */
+  [data-satin-bottom-boundary='root'][data-satin-keyboard-carrier='true']
+    > [data-satin-inset-content='true'] {
+    position: absolute;
+    /* Explicit grid lines would bound this absolute child to the padded grid tracks. */
+    grid-area: auto;
+    inset: 0 0 var(--satin-bottom-system-inset, var(--satin-inset-bottom, 0px));
   }
   [data-satin-inset-accessory='true'] {
     --satin-scroll-inset-bottom: 0px;
@@ -7305,20 +7482,19 @@
   [data-satin-tab-view] > [data-satin-bottom-boundary='root']:has([data-satin-tab-inset]) {
     --satin-bottom-system-inset: var(--satin-glass-tab-bar-bottom-gap);
     --satin-keyboard-covered-rows: var(--satin-inset-accessory-height, 0px);
-    /* Native TabView leaves its dock behind the keyboard. Only its content cell avoids it. */
+    /* Native TabView leaves its dock behind the keyboard. */
     padding-bottom: var(--satin-bottom-system-inset);
   }
-  [data-satin-tab-view]
-    > [data-satin-bottom-boundary='root']:has([data-satin-tab-inset])
-    > [data-satin-inset-content] {
+  /* Top tabs have no bottom dock, but still own a root inset. Neither idiom may shrink the
+   navigator to the visual viewport: WebKit can defer layout until dismissal has finished,
+   leaving a blank band beneath a pushed screen. SafeAreaInset publishes keyboard room to
+   scroll content while the screen and its clipping ancestors retain the full layout frame. */
+  [data-satin-tab-view] > [data-satin-bottom-boundary='root'] {
+    padding-bottom: var(--satin-bottom-system-inset, var(--satin-inset-bottom, 0px));
+  }
+  [data-satin-tab-view] > [data-satin-bottom-boundary='root'] > [data-satin-inset-content] {
     box-sizing: border-box;
-    padding-bottom: max(
-      0px,
-      calc(
-        var(--satin-keyboard-inset) - var(--satin-keyboard-covered-rows) -
-          var(--satin-bottom-system-inset)
-      )
-    );
+    padding-bottom: 0px;
   }
 
   /* Native sidebarAdaptable's outer tab column is separate from a split-view sidebar. */
@@ -9060,7 +9236,7 @@
   html[data-satin-document='true'][data-satin-flow-shell='true'],
   body[data-satin-document='true'][data-satin-flow-shell='true'],
   [data-satin-mount='true'][data-satin-flow-shell='true'] {
-    position: relative;
+    position: relative !important;
     inset: auto;
     height: auto;
     overflow: visible;
@@ -9140,5 +9316,11 @@
   }
   [data-satin-search-pad] [data-satin-search-toolbar-clear] {
     top: 0;
+  }
+
+  [data-satin-tab-sidebar] [role='tab'] [data-satin-tab-badge] {
+    position: static;
+    flex-shrink: 0;
+    margin-left: auto;
   }
 }

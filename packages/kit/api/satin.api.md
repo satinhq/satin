@@ -4615,12 +4615,14 @@ export type TabDeclaration<R extends Routes> = StackDeclaration<R> & {
     label: string;
     icon?: ReactNode;
     symbol?: SymbolName;
+    /** A count or attention dot. Zero or null hides the badge; Tab can override it live. */
+    badge?: number | 'dot' | null;
     /** `search` marks the search tab, drawn apart from the other tabs. */
     role?: 'search';
     /** Wraps the tab's stack, for per-tab providers. Render `<NavigationStack />` inside it. */
     content?: ComponentType;
 };
-// Resolved: StackDeclaration<R> & { id: string; label: string; icon?: ReactNode; symbol?: SymbolName | undefined; role?: "search" | undefined; content?: ComponentType | undefined; }
+// Resolved: StackDeclaration<R> & { id: string; label: string; icon?: ReactNode; symbol?: SymbolName | undefined; badge?: number | "dot" | null | undefined; role?: "search" | undefined; content?: ComponentType | undefined; }
 ```
 
 ## TabId
@@ -4645,8 +4647,10 @@ Type
 /** Names the declared tab to render. */
 export type TabProps<D = RegisteredNavigation> = {
     id: TabId<D>;
+    /** Live badge override. Omit to inherit the declaration; zero or null hides it. */
+    badge?: number | 'dot' | null;
 };
-// Resolved: { id: TabId<D>; }
+// Resolved: { id: TabId<D>; badge?: number | "dot" | null | undefined; }
 ```
 
 ## TabSection
@@ -11846,6 +11850,10 @@ app: AppDefinition;
 // public/runtime.d.ts :: args
 ...args: NavigationArguments<RouteProps<R, K>>
 
+// public/runtime.d.ts :: badge
+/** Live badge override. Omit to inherit the declaration; zero or null hides it. */
+badge?: number | 'dot' | null;
+
 // public/runtime.d.ts :: bottomAccessory
 bottomAccessory?: ReactNode;
 
@@ -12194,6 +12202,8 @@ tab?: TabId<D>;
 /** Names the declared tab to render. */
 export type TabProps<D = RegisteredNavigation> = {
     id: TabId<D>;
+    /** Live badge override. Omit to inherit the declaration; zero or null hides it. */
+    badge?: number | 'dot' | null;
 };
 
 // public/runtime.d.ts :: TabView
@@ -12484,6 +12494,10 @@ storageQuota: Readonly<{
     requestPersistence: typeof requestPersistentStorage;
 }>
 
+// public/structure.d.ts :: badge
+/** A count or attention dot. Zero or null hides the badge; Tab can override it live. */
+badge?: number | 'dot' | null;
+
 // public/structure.d.ts :: content
 /** Wraps the tab's stack, for per-tab providers. Render `<NavigationStack />` inside it. */
 content?: ComponentType;
@@ -12638,6 +12652,8 @@ export type TabDeclaration<R extends Routes> = StackDeclaration<R> & {
     label: string;
     icon?: ReactNode;
     symbol?: SymbolName;
+    /** A count or attention dot. Zero or null hides the badge; Tab can override it live. */
+    badge?: number | 'dot' | null;
     /** `search` marks the search tab, drawn apart from the other tabs. */
     role?: 'search';
     /** Wraps the tab's stack, for per-tab providers. Render `<NavigationStack />` inside it. */

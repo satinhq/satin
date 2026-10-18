@@ -4,6 +4,96 @@ import { expect, it, vi } from 'vitest'
 import { act, createElement } from 'react'
 import { createRoot } from 'react-dom/client'
 import { Row } from '../list-form/ListForm.tsx'
+import { symbolWeightForFont } from '../symbols/metrics.ts'
+
+it('uses the measured stock inline caption size and image gap', () => {
+  const style = document.createElement('style')
+  style.textContent = frameworkStyleDeclarations()
+  const host = document.createElement('div')
+  host.dataset.satinSwipeLabelLayout = 'inline'
+  host.innerHTML =
+    '<button data-satin-swipe-action><span data-satin-swipe-label><svg></svg><span>Delete</span></span></button>'
+  document.head.append(style)
+  document.body.append(host)
+  try {
+    const label = host.querySelector<HTMLElement>('[data-satin-swipe-label]')!
+    // Native r17 UILabel and UIImageView frames, after the open spring settles.
+    expect(getComputedStyle(label).fontSize).toBe('12px')
+    expect(getComputedStyle(label).lineHeight).toBe('14.5px')
+    expect(getComputedStyle(label).columnGap).toBe('4px')
+    const caption = label.querySelector('span')!
+    // The below-icon caption has its own font rule; inline must override it too.
+    expect(getComputedStyle(caption).fontSize).toBe('12px')
+    expect(getComputedStyle(caption).lineHeight).toBe('14.5px')
+  } finally {
+    host.remove()
+    style.remove()
+  }
+})
+
+it("draws a short row's inline symbol bold and a tall row's symbol regular, as stock List does", () => {
+  const style = document.createElement('style')
+  style.textContent = frameworkStyleDeclarations()
+  document.head.append(style)
+  const hosts = (['inline', 'below'] as const).map(layout => {
+    const host = document.createElement('div')
+    host.dataset.satinSwipeLabelLayout = layout
+    host.innerHTML =
+      '<button data-satin-swipe-action><span data-satin-swipe-label>' +
+      '<svg data-satin-symbol="trash"></svg><span>Delete</span></span></button>'
+    document.body.append(host)
+    return host
+  })
+  try {
+    const [inline, below] = hosts.map(host => host.querySelector('svg')!)
+    // Same glyph box as native, 1.45x its regular ink: Satin's bold stroke (1.47x).
+    expect(symbolWeightForFont(getComputedStyle(inline!).fontWeight)).toBe('bold')
+    expect(symbolWeightForFont(getComputedStyle(below!).fontWeight)).toBe('regular')
+    const title = hosts[0]!.querySelector('[data-satin-swipe-label] > span')!
+    expect(symbolWeightForFont(getComputedStyle(title).fontWeight)).toBe('regular')
+  } finally {
+    for (const host of hosts) host.remove()
+    style.remove()
+  }
+})
+
+it('presents swipe action opacity without the pressable release fade', () => {
+  const style = document.createElement('style')
+  style.textContent = frameworkStyleDeclarations()
+  const host = document.createElement('div')
+  host.innerHTML =
+    '<button data-satin-pressable="true" data-satin-swipe-action></button><button data-satin-pressable="true"></button>'
+  document.head.append(style)
+  document.body.append(host)
+  try {
+    const [action, ordinary] = [...host.querySelectorAll('button')]
+    // Every frame writes the action's opacity; a transition would lag each write.
+    expect(getComputedStyle(action!).transition).toMatch(/^none/)
+    expect(getComputedStyle(ordinary!).transition).toContain('opacity')
+  } finally {
+    host.remove()
+    style.remove()
+  }
+})
+
+it('clips an active swipe at the stationary row boundary', () => {
+  const style = document.createElement('style')
+  style.textContent = frameworkStyleDeclarations()
+  const host = document.createElement('div')
+  host.dataset.satinRowActions = 'true'
+  host.dataset.satinSwipeActive = 'true'
+  document.head.append(style)
+  document.body.append(host)
+  try {
+    expect(getComputedStyle(host).clipPath).toBe('border-box')
+    const activeOverflow = getComputedStyle(host).overflow
+    delete host.dataset.satinSwipeActive
+    expect(getComputedStyle(host).overflow).toBe(activeOverflow)
+  } finally {
+    host.remove()
+    style.remove()
+  }
+})
 
 it('rounds every lifted row independently of its resting section corners', () => {
   const style = document.createElement('style')
@@ -110,5 +200,44 @@ it('keeps section corners throughout a quick tap and lifts only after a recogniz
     style.remove()
     vi.useRealTimers()
     vi.unstubAllGlobals()
+  }
+})
+
+it('uses the measured below-pill caption box without the old extra vertical space', () => {
+  const style = document.createElement('style')
+  style.textContent = frameworkStyleDeclarations()
+  const host = document.createElement('div')
+  host.dataset.satinSwipeLabelLayout = 'below'
+  host.innerHTML =
+    '<button data-satin-swipe-action data-satin-swipe-icon="true" data-satin-swipe-title="true"><span data-satin-swipe-label><svg></svg><span>Delete</span></span></button>'
+  document.head.append(style)
+  document.body.append(host)
+  try {
+    const button = host.querySelector('button')!
+    const caption = host.querySelector('[data-satin-swipe-label] > span')!
+    expect(getComputedStyle(caption).fontSize).toBe('12px')
+    expect(getComputedStyle(caption).lineHeight).toBe('14.5px')
+    expect(getComputedStyle(caption).top).toContain('+ 4px')
+    expect(getComputedStyle(button).height).toContain('+ 18.5px')
+  } finally {
+    host.remove()
+    style.remove()
+  }
+})
+
+it('sizes the below-caption trash independently of the row body font', () => {
+  const style = document.createElement('style')
+  style.textContent = frameworkStyleDeclarations()
+  const host = document.createElement('div')
+  host.dataset.satinSwipeLabelLayout = 'below'
+  host.style.fontSize = '16px'
+  host.innerHTML = '<span data-satin-swipe-label><svg data-satin-symbol="trash"></svg></span>'
+  document.head.append(style)
+  document.body.append(host)
+  try {
+    expect(getComputedStyle(host.querySelector('svg')!).fontSize).toBe('18.5px')
+  } finally {
+    host.remove()
+    style.remove()
   }
 })

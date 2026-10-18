@@ -15,8 +15,13 @@ export function capturePrelaunch() {
     return root
   })
 }
-export function setupPrelaunch() {
+export function setupPrelaunch(cover = true) {
   capturePrelaunch()
+  document.head.querySelector('[data-test-framework-styles]')?.remove()
+  const style = document.createElement('style')
+  style.setAttribute('data-test-framework-styles', '')
+  style.textContent = ':root { --satin-styles-applied: 1; }'
+  document.head.append(style)
   installLaunchScreenRuntime({
     markup:
       '<div id="satin-launch-screen"><div class="satin-launch-icon"><img src="data:,icon"><svg id="satin-launch-progress" hidden><circle stroke-dashoffset="100" /></svg></div></div>',
@@ -25,5 +30,6 @@ export function setupPrelaunch() {
     background: '#f2f2f7',
     darkBackground: '#000000',
     darkInk: '#ffffff',
+    cover,
   })
 }

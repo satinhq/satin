@@ -1,6 +1,7 @@
 import type { NavigationGlassRoute } from '../../navigation/glassTransition.ts'
 import { atRest, presentationTravel } from '../presentationFrame.ts'
 import { zoomGlassMotion, zoomRestRect } from '../../navigation/zoomGlass.ts'
+import { SCROLL_EDGE_MATERIAL, edgeMaterialPass } from '../../navigation/scrollEdgeMaterial.ts'
 /** The navigation bar's scroll-edge material as the glass renderer sees it.
  * Natively, bar buttons sit above the scroll-edge effect and refract the already
  * blurred, tinted backdrop. Satin paints that effect with CSS for DOM content, which
@@ -25,7 +26,12 @@ export type ScrollEdge = {
   mask?: readonly (readonly [number, number])[]
   /** Gaussian standard deviation, points (CSS blur()). */
   sigma: number
-  /** Straight tint colour and alpha painted over the blurred backdrop. */
+  /** A second, wider Gaussian mixed into the blur with this weight (the scroll edge material). */
+  wide?: { sigma: number; weight: number }
+  /** Saturation boost applied after the tint (CSS saturate()); 1 when absent. */
+  saturation?: number
+  /** Straight tint colour and alpha painted over the blurred backdrop. Channels may exceed 1 to
+   * express a brightening material; the result is clamped. */
   tint: readonly [number, number, number, number]
   /** Element opacity: 0 at rest, ramping to 1 as content scrolls under the bar. */
   strength: number
@@ -38,14 +44,6 @@ export type ScrollEdge = {
     end: number
   }
 }
-/* The bar's material (styles.css [data-satin-scroll-edge]): one uniform blur and tint ending in
- * a hard edge at the bottom of the bar row, whose last 2 pt only anti-alias it. iOS 27 native reference
- * edge-* stripes, iPhone and iPad: light over black luma 140, dark over white 104, 8 pt stripes
- * keep 0.11 contrast (the implementation contract). */
-export const SCROLL_EDGE_MATERIAL = {
-  light: { sigma: 4.5, tint: [1, 1, 1, 0.55] as const },
-  dark: { sigma: 4.5, tint: [0, 0, 0, 0.59] as const },
-} as const
 export const SCROLL_EDGE_FADE_PT = 2
 /** The cap (styles.css [data-satin-scroll-edge-cap]) keeps the band colour through the status band,
  * then fades out over the resting seam's 28 pt. The renderer approximates that eased fade linearly. */
@@ -61,13 +59,33 @@ export const SEARCH_HEADER_MATERIAL = {
  * and saturated channels are not clipped before attenuation. Empirical fit RMS 2.58 / 255; see the implementation contract */
 export const SEARCH_FIELD_DARK_TRANSMISSION = 0.8456002308235339
 
-/** A pinned plain-list header's hard-edged material (styles.css,
- * [data-satin-section-header-pinned]). Light's brightness(1.2) has no tint equivalent; 56% white
- * reproduces its result on mid-tone content. */
-export const PINNED_HEADER_MATERIAL = {
-  light: { sigma: 6, tint: [1, 1, 1, 0.56] as const },
-  dark: { sigma: 6, tint: [0, 0, 0, 0.55] as const },
-} as const
+export { SCROLL_EDGE_MATERIAL }
+
+/** The fitted-viewport cap beside an edge (styles.css [data-satin-scroll-edge-cap]), if shown. */
+function readCap(host: HTMLElement, travel: ReturnType<typeof presentationTravel>) {
+  const cap = host.querySelector<HTMLElement>('[data-satin-scroll-edge-cap]')
+  const capBox = cap && (zoomRestRect(cap) ?? atRest(cap.getBoundingClientRect(), travel))
+  if (!cap || !capBox || capBox.height <= 0) return
+  const channels = getComputedStyle(cap)
+    .backgroundColor.match(/^rgba?\(([^)]+)\)$/)?.[1]
+    ?.split(/[\s,/]+/)
+    .filter(Boolean)
+    .map(Number)
+  if (!channels || channels.length < 3) return
+  return {
+    box: capBox,
+    fill: {
+      color: [
+        channels[0]! / 255,
+        channels[1]! / 255,
+        channels[2]! / 255,
+        channels[3] ?? 1,
+      ] as const,
+      solid: capBox.y + capBox.height - SCROLL_EDGE_CAP_FADE_PT,
+      end: capBox.y + capBox.height,
+    },
+  }
+}
 
 /** Visible scroll-edge layers in `root`, in viewport coordinates. */
 export function readScrollEdges(
@@ -75,8 +93,10 @@ export function readScrollEdges(
   dark: boolean,
   routes: readonly NavigationGlassRoute[] = [],
 ): ScrollEdge[] {
-  const material = SCROLL_EDGE_MATERIAL[dark ? 'dark' : 'light']
+  const material = edgeMaterialPass(SCROLL_EDGE_MATERIAL[dark ? 'dark' : 'light'])
   const edges: ScrollEdge[] = []
+  // Caps of edges that yielded to a pinned header; composited last, above the header's material.
+  const yieldedCaps: ScrollEdge[] = []
   const origins = routes.map(route => {
     if (zoomGlassMotion(route.motion) || zoomGlassMotion(route.screen)) return 0
     const parentX = route.screen.parentElement?.getBoundingClientRect().x ?? 0
@@ -88,41 +108,28 @@ export function readScrollEdges(
     )
   })
   for (const edge of root.querySelectorAll<HTMLElement>('[data-satin-scroll-edge]')) {
-    if (
-      edge.getAttribute('data-satin-scroll-edge-visible') !== 'true' ||
-      !edge.getClientRects().length
-    )
-      continue
     const host = edge.parentElement
-    if (!host) continue
+    if (!host || !edge.getClientRects().length) continue
     // A sheet's bars are read in the sheet's resting frame, like its glass (presentationFrame.ts).
     const travel = presentationTravel(edge)
+    if (edge.getAttribute('data-satin-scroll-edge-visible') !== 'true') {
+      const cap = edge.hasAttribute('data-satin-scroll-edge-yielded') && readCap(host, travel)
+      // Cap only: no material (strength 0), then the cap's fill over the pinned header's material.
+      if (cap && !routes.length)
+        yieldedCaps.push({
+          rect: [cap.box.x, cap.box.y, cap.box.width, cap.box.height],
+          solid: cap.box.y + cap.box.height,
+          sigma: 0,
+          tint: [0, 0, 0, 0],
+          strength: 0,
+          cap: cap.fill,
+        })
+      continue
+    }
     const box = zoomRestRect(edge) ?? atRest(edge.getBoundingClientRect(), travel)
     const strength = edge.style.opacity === '' ? 1 : Number(edge.style.opacity)
     if (!(strength > 0) || box.width <= 0 || box.height <= 0) continue
-    const cap = host.querySelector<HTMLElement>('[data-satin-scroll-edge-cap]')
-    const capBox = cap && (zoomRestRect(cap) ?? atRest(cap.getBoundingClientRect(), travel))
-    const capColor =
-      capBox && capBox.height > 0 && cap
-        ? getComputedStyle(cap).backgroundColor.match(/^rgba?\(([^)]+)\)$/)
-        : undefined
-    const channels = capColor?.[1]
-      ?.split(/[\s,/]+/)
-      .filter(Boolean)
-      .map(Number)
-    const topFill =
-      capBox && capBox.height > 0 && channels && channels.length >= 3
-        ? {
-            color: [
-              channels[0]! / 255,
-              channels[1]! / 255,
-              channels[2]! / 255,
-              channels[3] ?? 1,
-            ] as const,
-            solid: capBox.y + capBox.height - SCROLL_EDGE_CAP_FADE_PT,
-            end: capBox.y + capBox.height,
-          }
-        : undefined
+    const topFill = readCap(host, travel)?.fill
     const screen = host.hasAttribute('data-satin-transition-edge')
       ? host.closest<HTMLElement>('[data-satin-screen-container]')
       : null
@@ -152,8 +159,7 @@ export function readScrollEdges(
       rect: [box.x - translation, box.y, box.width, box.height],
       ...(navigation ? { navigation } : {}),
       solid: box.y + box.height - (searchable ? 0 : SCROLL_EDGE_FADE_PT),
-      sigma: treatment.sigma,
-      tint: treatment.tint,
+      ...treatment,
       strength: Math.min(1, strength),
       ...(topFill ? { cap: topFill } : {}),
     })
@@ -163,8 +169,7 @@ export function readScrollEdges(
   // content and showed it sharp inside the field (reference dark resting edge). At rest only: during
   // push/pop the transition owns the bar and its edges.
   if (!routes.length) edges.push(...readSearchEdges(root, dark))
-  // While a plain-list header is pinned, its material stands in for the bar's edge.
-  const pinned = PINNED_HEADER_MATERIAL[dark ? 'dark' : 'light']
+  // While a plain-list header is pinned, it carries the same material in place of the bar's edge.
   for (const header of root.querySelectorAll<HTMLElement>(
     "[data-satin-section-header-pinned='true']",
   )) {
@@ -175,12 +180,11 @@ export function readScrollEdges(
     edges.push({
       rect: [box.x, top, box.width, box.bottom - top],
       solid: box.bottom,
-      sigma: pinned.sigma,
-      tint: pinned.tint,
+      ...material,
       strength: 1,
     })
   }
-  return edges
+  return [...edges, ...yieldedCaps]
 }
 
 /** The field's input diffusion follows the searchable header. Its dark transmission is

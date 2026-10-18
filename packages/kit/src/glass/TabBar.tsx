@@ -1,3 +1,4 @@
+import { TabBadge } from '../tabs/TabBadge.tsx'
 import { PadSearchBarMotion } from '../search/padSearchBarMotion.ts'
 import { PadSearchPresentationContext } from '../search/PadSearchPresentationContext.tsx'
 import { useControlStyle } from '../public/controlStyle.tsx'
@@ -35,7 +36,7 @@ export type TabBarItem = Readonly<{
   accessibilityLabel?: string
   panelId?: string
   tabId?: string
-  badge?: number | 'dot'
+  badge?: number | 'dot' | null
   disabled?: boolean
   icon?: ReactNode
   symbol?: SymbolName
@@ -367,15 +368,11 @@ export function TabBar({
                     item.icon
                   )}
                 </SymbolSelectionContext>
-                {item.badge !== undefined && (
-                  <span data-satin-tab-badge={item.badge === 'dot' ? 'dot' : 'number'}>
-                    {item.badge === 'dot' ? null : item.badge}
-                  </span>
-                )}
               </span>
               <span data-satin-tab-label="true">
                 {sidebar ? <TopTabLabel item={item} /> : item.label}
               </span>
+              <TabBadge value={item.badge} />
             </Pressable>
           )
         })}

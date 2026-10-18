@@ -343,6 +343,21 @@ it("never enters a presentation content plane's own scroll views (their own plan
   expect(row.getBoundingClientRect).not.toHaveBeenCalled()
 })
 
+it.each(['data-satin-search', 'data-satin-search-toolbar'])(
+  'keeps %s chrome out of its own backdrop while retaining results',
+  marker => {
+    const content = html(`<div id="content">
+      <div ${marker}><div><label>Search</label><input placeholder="Search"></div></div>
+      <div id="result">Atlas</div></div>`).querySelector<HTMLElement>('#content')!
+    box(content, 0, 0, 440, 900)
+    for (const element of content.querySelectorAll('*')) box(element, 20, 30, 300, 44)
+    const layout = measureMirrorLayout(content, 'root', true)!
+    expect(layout.nodes.filter(node => node.kind === 'text').map(node => node.text)).toEqual([
+      'Atlas',
+    ])
+  },
+)
+
 it('moves and occludes page edge material with the resident navigation pose', () => {
   const backdrop = Backdrop.for(owner())
   backdrop.setEdges([

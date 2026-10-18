@@ -151,7 +151,12 @@ it('fires a full swipe on release and springs a surviving row back to rest', () 
   })
   vi.stubGlobal('PointerEvent', class extends Event {})
   const animate = stubAnimations()
-  const select = vi.fn()
+  let releasing = false
+  const select = vi.fn(() => {
+    expect(releasing).toBe(true)
+    // Activation-gated APIs must be called before release returns or any settle starts.
+    expect(animate).not.toHaveBeenCalled()
+  })
   render(
     <Row
       label="Set"
@@ -172,14 +177,19 @@ it('fires a full swipe on release and springs a surviving row back to rest', () 
     height: 52,
   } as DOMRect)
   const send = (type: string, x: number) =>
-    act(() =>
-      host.dispatchEvent(
-        Object.assign(new Event(type, { bubbles: true, cancelable: true }), {
-          changedTouches: [{ identifier: 9, clientX: x, clientY: 26 }],
-          touches: type === 'touchend' ? [] : [{}],
-        }),
-      ),
-    )
+    act(() => {
+      releasing = type === 'touchend'
+      try {
+        host.dispatchEvent(
+          Object.assign(new Event(type, { bubbles: true, cancelable: true }), {
+            changedTouches: [{ identifier: 9, clientX: x, clientY: 26 }],
+            touches: type === 'touchend' ? [] : [{}],
+          }),
+        )
+      } finally {
+        releasing = false
+      }
+    })
   send('touchstart', 390)
   send('touchmove', 10)
   expect(select).not.toHaveBeenCalled()
@@ -218,7 +228,9 @@ it.each([205, 210])('uses the native tall-row leading commit boundary at %ipt', 
   host
     .querySelector<HTMLElement>('[data-satin-swipe-tray="leading"]')!
     .style.setProperty('--satin-swipe-button-width', '50')
-  contact([20, 20 + distance])
+  // The native boundary is recognized translation; delivered travel also
+  // includes the stock recognizer's 25pt origin offset.
+  contact([20, 20 + distance + 25])
   expect(read).toHaveBeenCalledTimes(distance === 210 ? 1 : 0)
 })
 
@@ -806,6 +818,9 @@ it('shows a custom preview in place of its source, as stock contextMenu(preview:
     </MaterialEffectContext>,
   )
   const card = node.querySelector<HTMLElement>('.album-card')!
+  // Context-only content renders no swipe trays: a 1200-message transcript paid for them in
+  // every rendering update of a keyboard dismissal.
+  expect(node.querySelector('[data-satin-swipe-tray]')).toBeNull()
   act(() => {
     card.dispatchEvent(new KeyboardEvent('keydown', { key: 'ContextMenu', bubbles: true }))
   })
@@ -1048,18 +1063,21 @@ function revealedRowWithPinnedChat() {
     width: 400,
     height: 52,
   } as DOMRect)
-  const touch = (type: string, x: number) =>
-    act(() =>
-      host.dispatchEvent(
-        Object.assign(new Event(type, { bubbles: true, cancelable: true }), {
-          changedTouches: [{ identifier: 9, clientX: x, clientY: 26 }],
-          touches: type === 'touchend' ? [] : [{ identifier: 9, clientX: x, clientY: 26 }],
-        }),
-      ),
-    )
-  touch('touchstart', 300)
-  touch('touchmove', 200)
-  touch('touchend', 200)
+  const touch = (type: string, x: number, time = performance.now()) =>
+    act(() => {
+      const event = Object.assign(new Event(type, { bubbles: true, cancelable: true }), {
+        changedTouches: [{ identifier: 9, clientX: x, clientY: 26 }],
+        touches: type === 'touchend' ? [] : [{ identifier: 9, clientX: x, clientY: 26 }],
+      })
+      Object.defineProperty(event, 'timeStamp', { value: time })
+      host.dispatchEvent(event)
+    })
+  // An ordinary swipe: its 100pt move arrives after the 25ms in which a fast
+  // stroke would restart its pan (fullSwipeContact swipePanStart).
+  const down = performance.now()
+  touch('touchstart', 300, down)
+  touch('touchmove', 200, down + 100)
+  touch('touchend', 200, down + 400)
   vi.spyOn(content, 'getBoundingClientRect').mockReturnValue({ left: -80 } as DOMRect)
   const pinned = [...node.querySelectorAll('button')].find(
     button => button.textContent === 'Pinned chat',
@@ -1100,6 +1118,24 @@ it('finishes the row return while repeated taps act on another control', async (
   expect(content.style.borderRadius).toBe('')
 })
 
+it('keeps the trailing tray painted until its close animation finishes', async () => {
+  const { tap, host, content } = revealedRowWithPinnedChat()
+  let finishReturn!: () => void
+  content.animate = vi.fn(() => ({
+    finished: new Promise<void>(resolve => {
+      finishReturn = resolve
+    }),
+    cancel() {},
+  })) as unknown as typeof content.animate
+  expect(host.dataset.satinSwipeSide).toBe('trailing')
+  tap()
+  // The logical target is closed, but CSS must still select the outgoing tray.
+  expect(host.dataset.satinSwipeSide).toBe('trailing')
+  expect(host.dataset.satinSwipeActive).toBe('true')
+  await act(async () => finishReturn())
+  expect(host.dataset.satinSwipeActive).toBeUndefined()
+})
+
 it('still catches the presented row when the contact starts on that row', () => {
   const { content, touch, navigate } = revealedRowWithPinnedChat()
   const cancel = vi.fn()
@@ -1110,6 +1146,42 @@ it('still catches the presented row when the contact starts on that row', () => 
   expect(cancel).toHaveBeenCalledOnce()
   expect(navigate).not.toHaveBeenCalled()
   touch('touchend', 180)
+})
+
+it('closes once on touchend after WebKit releases and leaves its touch pointer', async () => {
+  const { host, content, touch } = revealedRowWithPinnedChat()
+  let finishReturn!: () => void
+  const cancel = vi.fn()
+  const animate = vi.fn(() => ({
+    finished: new Promise<void>(resolve => {
+      finishReturn = resolve
+    }),
+    cancel,
+  }))
+  content.animate = animate as unknown as typeof content.animate
+  content.getAnimations = () =>
+    animate.mock.results.map(result => result.value as unknown as Animation)
+  const pointer = (type: string) =>
+    act(() =>
+      host.dispatchEvent(
+        Object.assign(
+          new PointerEvent(type, { bubbles: type !== 'pointerleave', cancelable: true }),
+          { pointerType: 'touch', pointerId: 9, isPrimary: true, button: 0 },
+        ),
+      ),
+    )
+  pointer('pointerdown')
+  touch('touchstart', 180)
+  pointer('pointerup')
+  pointer('lostpointercapture')
+  pointer('pointerleave')
+  expect(animate).not.toHaveBeenCalled()
+  touch('touchend', 180)
+  expect(animate).toHaveBeenCalledOnce()
+  expect(cancel).not.toHaveBeenCalled()
+  expect(host.dataset.satinSwipeActive).toBe('true')
+  await act(async () => finishReturn())
+  expect(host.dataset.satinSwipeActive).toBeUndefined()
 })
 
 describe('destructive full swipe on the touch fallback', () => {
@@ -1147,15 +1219,19 @@ describe('destructive full swipe on the touch fallback', () => {
       width: 400,
       height: 80,
     } as DOMRect)
-    const send = (type: string, x: number) =>
-      act(() =>
-        host.dispatchEvent(
-          Object.assign(new Event(type, { bubbles: true, cancelable: true }), {
-            changedTouches: [{ identifier: 4, clientX: x, clientY: 40 }],
-            touches: type === 'touchend' ? [] : [{}],
-          }),
-        ),
-      )
+    // Contact response is time-based. Dispatch a sampled stroke rather than
+    // compressing every move into one synchronous instant.
+    let clock = performance.now()
+    vi.spyOn(performance, 'now').mockImplementation(() => clock)
+    const send = (type: string, x: number) => {
+      clock += 1000 / 60
+      const event = Object.assign(new Event(type, { bubbles: true, cancelable: true }), {
+        changedTouches: [{ identifier: 4, clientX: x, clientY: 40 }],
+        touches: type === 'touchend' ? [] : [{}],
+      })
+      Object.defineProperty(event, 'timeStamp', { value: clock })
+      act(() => host.dispatchEvent(event))
+    }
     const drag = (path: number[], release = path.at(-1)!) => {
       send('touchstart', path[0]!)
       for (const x of path.slice(1)) send('touchmove', x)

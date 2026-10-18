@@ -68,6 +68,45 @@ it('makes a glass readiness timeout visible immediately', () => {
     'readiness-timeout',
   )
 })
+it('keeps launching when a release app falls back to the CSS material', () => {
+  installLaunchWatchdog(10_000)
+  window.dispatchEvent(
+    new CustomEvent('satin-glass-error', {
+      detail: { code: 'gpu-unavailable', message: 'navigator.gpu is undefined', fallback: true },
+    }),
+  )
+  expect(prelaunchDOM.getElementById('satin-launch-error')).toBeNull()
+})
+it('launches a release build on a device without WebGPU', () => {
+  vi.stubEnv('DEV', false)
+  vi.stubEnv('MODE', 'production')
+  vi.stubEnv('SATIN_STRICT_GLASS', '')
+  try {
+    installLaunchWatchdog(10_000)
+    reportGlassError('gpu-unavailable', new Error('navigator.gpu is undefined'), 'startup')
+    expect(prelaunchDOM.getElementById('satin-launch-error')).toBeNull()
+  } finally {
+    vi.unstubAllEnvs()
+  }
+})
+it('keeps launching while a release renderer recovers from a null adapter', () => {
+  vi.stubEnv('DEV', false)
+  vi.stubEnv('MODE', 'production')
+  vi.stubEnv('SATIN_STRICT_GLASS', '')
+  try {
+    installLaunchWatchdog(10_000)
+    reportGlassError(
+      'adapter-unavailable',
+      new Error('navigator.gpu.requestAdapter returned null'),
+      'startup',
+      undefined,
+      { recovering: true },
+    )
+    expect(prelaunchDOM.getElementById('satin-launch-error')).toBeNull()
+  } finally {
+    vi.unstubAllEnvs()
+  }
+})
 it('does not replace a revealed app', () => {
   installLaunchWatchdog(10_000)
   window.dispatchEvent(new Event('satin-launch-revealed'))

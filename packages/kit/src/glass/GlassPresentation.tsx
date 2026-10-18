@@ -1,3 +1,4 @@
+import { TabBadge } from '../tabs/TabBadge.tsx'
 import { strictGlassRequested } from './failurePolicy.ts'
 import { TopTabLabel } from '../tabs/presentation.tsx'
 import { readDeviceIdiom } from '../layout/deviceIdiom.ts'
@@ -1389,17 +1390,7 @@ export function GlassPresentation({ consumer }: { consumer?: GlassPresentationCo
                         label
                       )}
                     </small>
-                    {consumer?.tabs?.items[index]?.badge !== undefined && (
-                      <span
-                        data-satin-tab-badge={
-                          consumer.tabs.items[index].badge === 'dot' ? 'dot' : 'number'
-                        }
-                      >
-                        {consumer.tabs.items[index].badge === 'dot'
-                          ? null
-                          : consumer.tabs.items[index].badge}
-                      </span>
-                    )}
+                    <TabBadge value={consumer?.tabs?.items[index]?.badge} />
                   </button>
                 ))}
               </div>

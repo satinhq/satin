@@ -6,6 +6,7 @@ import {
   setKeyboardCarrierContent,
   clearKeyboardCarrierContent,
   clearKeyboardCarrierPose,
+  commitCarriedKeyboardRoom,
 } from './keyboardCarrierGeometry.ts'
 import {
   currentKeyboardHeight,
@@ -20,17 +21,15 @@ import { KEYBOARD_DURATION_MS, KEYBOARD_HOLD_MS, keyboardKeyframes } from '../ke
  * and transcript ride the keyboard.
  *
  * Why not animate the inset's padding: that is layout, and layout needs the page to draw. On the
- * installed iPad WebKit draws one page frame after it reports the keyboard and then none until the
- * keyboard has arrived (~390 ms on the tested iPad). A padding animation stands still for
- * that whole time and then jumps. Transform animations run on the compositor and keep moving.
+ * installed iPad WebKit can defer page frames while the system keyboard continues moving.
+ * A padding animation waits for those frames and then jumps. Compositor transforms keep moving.
  *
  * So each keyboard change is one run on the keyboard's own curve (keyboard/motion.ts):
  * - the accessory (the composer) and the content of each scroll view that is pinned to its bottom
  *   (`defaultScrollAnchor="bottom"`) move together on compositor transforms;
- * - the inset's layout changes once per run, at the endpoint where nothing is clipped. A keyboard
- *   that rises keeps the taller scrollport until the composer has arrived, then commits the shorter
- *   one; a keyboard that falls commits the taller one first and the transforms lead back to it.
- *   Committing a shorter scrollport first would clip the transcript above the composer.
+ * - the scroll frame stays full height. Keyboard clearance is terminal scroll room, so neither
+ *   direction resizes the transcript when the system starts moving. Both directions commit
+ *   their resting inset after the transform reaches its endpoint, in one rendering update.
  * - a run that starts while another is moving starts from the pose on screen, never from rest.
  *
  * The editor stays live and keeps its text, selection and focus: nothing is snapshotted or scaled.
@@ -44,14 +43,16 @@ export function installKeyboardCarrier(
     coveredRows: number
     accessoryHeight: number
   }>,
+  commitScrollInset: (height: number) => void = () => {},
 ) {
   // The keyboard height the boundary's layout is committed to, and the one last reported.
   let committed = currentKeyboardHeight()
   let keyboardHeight = committed
   type Run = {
     animations: Map<HTMLElement, Animation>
+    pinnedOffsets: Map<HTMLElement, number>
     finish: () => void
-    retime: (leadMs: number) => void
+    retime: (startTime: number) => void
     refreshOverlays: () => void
   }
   let run: Run | undefined
@@ -97,22 +98,26 @@ export function installKeyboardCarrier(
   const commit = (height: number) => {
     committed = height
     boundary.style.setProperty(COMMITTED_HEIGHT, `${height}px`)
+    commitScrollInset(height)
   }
   commit(committed)
   boundary.dataset.satinKeyboardCarrier = 'true'
 
+  // Each carried element keeps its compositor animation while the keyboard is up.
+  const transports = createKeyboardTransports()
+  /** End the current run. Its elements stay at rest on their parked animations. */
   const stopRun = () => {
     const current = run
     run = undefined
-    for (const animation of current?.animations.values() ?? []) animation.cancel()
+    for (const element of current?.animations.keys() ?? []) transports.park(element)
   }
 
-  const carry = ({ height, leadMs }: KeyboardMotion) => {
+  const carry = ({ height, startTime: reportedStart }: KeyboardMotion) => {
     synchronizeAccessoryHeight()
     // The same change reported again with an earlier stamp: the keyboard started sooner than the
     // first report said. Keep the run and move it onto the keyboard's clock.
     if (height === keyboardHeight) {
-      run?.retime(leadMs)
+      run?.retime(reportedStart)
       return
     }
     const startHeight = keyboardHeight
@@ -125,8 +130,7 @@ export function installKeyboardCarrier(
     const shownAccessory = run ? accessory.getBoundingClientRect().top : accessoryRestTop
     const runAccessoryOffset = run ? shownAccessory - accessoryRestTop : 0
     const shownContent = surfaces.map(contentTop)
-    // A first dismissal can commit taller layout before a content pose has ever
-    // been registered. Preserve its pre-commit origin as well as its native scroll.
+    // Preserve the capture origin and native scroll before the first carried run.
     surfaces.forEach(({ surface, content }, index) => {
       if (originTops.has(content)) return
       originTops.set(content, shownContent[index]!)
@@ -137,38 +141,30 @@ export function installKeyboardCarrier(
         () => contentStart(content) + surface.scrollTop - contentOrigins.get(content)!.top,
       )
     })
+    // A downward transform temporarily extends scrollable overflow. Compare a continuing
+    // pinned run with its native offset, not that animated overflow; a real user scroll wins.
+    const pinned = surfaces.map(({ surface, anchorsToBottom }) => {
+      const previousOffset = run?.pinnedOffsets.get(surface)
+      return (
+        anchorsToBottom &&
+        (isAtBottom(surface) ||
+          (previousOffset !== undefined && Math.abs(surface.scrollTop - previousOffset) <= 1))
+      )
+    })
     stopRun()
-    const pinned = surfaces.map(view => view.anchorsToBottom && isAtBottom(view.surface))
     const measured = measuredRoom()
     const room = (keyboard: number) =>
       Math.max(measured.systemInset, keyboard - measured.coveredRows)
     const layoutPadding = room(committed)
     const travel = room(height) - layoutPadding
-    const keyboardRises = travel > 0
-    let scrollTravel: number[]
-    if (keyboardRises) {
-      // Keep the taller scrollport while moving. A pinned transcript will scroll by the travel
-      // when the shorter one is committed; it rides up by that much on the way.
-      scrollTravel = surfaces.map(({ surface }, index) =>
-        pinned[index]
-          ? bottomOffset(surface, surface.clientHeight - travel) - surface.scrollTop
-          : 0,
-      )
-    } else {
-      commit(height)
-      const offsets = surfaces.map(({ surface }) => surface.scrollTop)
-      surfaces.forEach(({ surface }, index) => {
-        if (pinned[index]) scrollToBottom(surface)
-      })
-      scrollTravel = surfaces.map(({ surface }, index) => surface.scrollTop - offsets[index]!)
-    }
-    accessoryRestTop += layoutPadding - room(committed)
-    // The accessory sits on the keyboard's room at every instant, as native's keyboard layout
-    // guide does: on the safe area until the keyboard's top passes it, then on the keyboard. A run
-    // that starts away from that pose (a reversal) blends its difference out on the same curve.
+    // The native composer interpolates between the two safe-area rooms on the keyboard's curve. The
+    // system inset contributes throughout the travel, not as a clamp near the endpoint.
+    // A reversal blends its difference from that path out on the same curve.
     const committedPadding = room(committed)
-    const keyboardAt = (progress: number) => startHeight + (height - startHeight) * progress
-    const accessoryLayoutAt = (progress: number) => committedPadding - room(keyboardAt(progress))
+    const startRoom = room(startHeight)
+    const endRoom = room(height)
+    const accessoryLayoutAt = (progress: number) =>
+      committedPadding - (startRoom + (endRoom - startRoom) * progress)
     // The committed padding is the only layout displacement of the root accessory.
     // Reversals still read the shown pose, but never force layout after a commit just to recover it.
     const accessoryFrom = runAccessoryOffset + committedPadding - layoutPadding
@@ -188,7 +184,7 @@ export function installKeyboardCarrier(
       return shownOverlays[index]! - top
     })
     restPose(accessory, accessoryRestTop)
-    const contentTo = surfaces.map((_, index) => (keyboardRises ? -scrollTravel[index]! : 0))
+    const contentTo = surfaces.map((_, index) => (pinned[index] ? -travel : 0))
     const accessoryShare = (progress: number) =>
       Math.abs(accessoryTo - accessoryFrom) < 0.5
         ? progress
@@ -197,37 +193,57 @@ export function installKeyboardCarrier(
     let finishTimer: ReturnType<typeof setTimeout> | undefined
     // Commit from the page's own frame once the curve has ended: the layout and the removed
     // transforms then reach the screen together, while the compositor holds the end pose.
-    const scheduleFinish = (lead: number) => {
+    const scheduleFinish = () => {
       clearTimeout(finishTimer)
       finishTimer = setTimeout(
         () => requestAnimationFrame(finish),
-        Math.max(0, KEYBOARD_DURATION_MS - lead),
+        Math.max(0, startTime + KEYBOARD_DURATION_MS - performance.now()),
       )
     }
     const current: Run = {
       animations: new Map(),
+      pinnedOffsets: new Map(
+        surfaces.flatMap(({ surface }, index) =>
+          pinned[index] ? [[surface, surface.scrollTop] as const] : [],
+        ),
+      ),
       refreshOverlays: () => refreshOverlays(),
       finish: () => finish(),
-      retime: lead => {
-        const start = performance.now() - lead
+      retime: start => {
         for (const animation of current.animations.values()) animation.startTime = start
         startTime = start
-        trace('retime', { height, leadMs: Math.round(lead) })
-        scheduleFinish(lead)
+        trace('retime', { height, leadMs: Math.round(performance.now() - start) })
+        scheduleFinish()
         announce()
       },
     }
     const finish = () => {
       if (run !== current) return
-      trace('commit', { height, rises: keyboardRises })
-      if (keyboardRises) {
-        const stillPinned = surfaces.map(view => view.anchorsToBottom && isAtBottom(view.surface))
-        commit(height)
-        surfaces.forEach(({ surface }, index) => {
-          if (stillPinned[index]) scrollToBottom(surface)
-        })
-      }
+      trace('commit', { height, rises: travel > 0 })
+      const stillPinned = surfaces.map(({ surface }) => {
+        const offset = current.pinnedOffsets.get(surface)
+        return (
+          offset !== undefined && (isAtBottom(surface) || Math.abs(surface.scrollTop - offset) <= 1)
+        )
+      })
+      // A reader can scroll away during transport. Preserve the visible row at the commit,
+      // not the native offset that still includes the transform being removed.
+      const readingTops = surfaces.map((view, index) =>
+        pinned[index] && !stillPinned[index] ? contentTop(view) : undefined,
+      )
+      // Remove transport before publishing the new inset: scroll anchoring must measure the
+      // final layout, never the positive transform's temporary scrollable overflow.
       stopRun()
+      // The scroll views' new room moves nothing on screen: the transforms just removed showed it.
+      commitCarriedKeyboardRoom(() => commit(height))
+      // The keyboard has gone: release the animations so the resting page carries no transform.
+      if (height === 0) transports.releaseAll()
+      surfaces.forEach((view, index) => {
+        const { surface } = view
+        if (stillPinned[index]) scrollToBottom(surface)
+        else if (readingTops[index] !== undefined)
+          surface.scrollTop += contentTop(view) - readingTops[index]!
+      })
       accessoryRestTop = accessory.getBoundingClientRect().top
       restPose(accessory, accessoryRestTop)
       for (const view of surfaces) restPose(view.content, contentTop(view))
@@ -235,17 +251,15 @@ export function installKeyboardCarrier(
       announce()
     }
     run = current
-    let startTime = performance.now() - leadMs
+    // Layout preparation may be expensive for a long transcript. It must not shift
+    // the OS curve or extend its endpoint deadline. Every carrier uses the same epoch.
+    let startTime = reportedStart
     const totalMs = KEYBOARD_DURATION_MS + KEYBOARD_HOLD_MS
     const move = (element: HTMLElement, translateAt: (progress: number) => number) => {
       if (Math.abs(translateAt(0)) < 0.5 && Math.abs(translateAt(1)) < 0.5) return
       const frames = keyboardKeyframes(translateAt, totalMs)
-      const animation = element.animate(frames, {
-        duration: totalMs,
-        fill: 'both',
-      })
       // Pin the curve to the keyboard's clock, not to the next frame this page happens to draw.
-      animation.startTime = startTime
+      const animation = transports.drive(element, frames, totalMs, startTime)
       current.animations.set(element, animation)
       const layoutOffset = (restTops.get(element) ?? 0) - (originTops.get(element) ?? 0)
       const stops = keyboardTranslationStops(frames)
@@ -274,7 +288,7 @@ export function installKeyboardCarrier(
       const retained = new Set(next.map(({ content }) => content))
       for (const { content } of overlays) {
         if (retained.has(content)) continue
-        current.animations.get(content)?.cancel()
+        transports.release(content)
         current.animations.delete(content)
         clearKeyboardCarrierPose(content)
         restTops.delete(content)
@@ -289,11 +303,11 @@ export function installKeyboardCarrier(
       overlays = next
       announce()
     }
-    if (leadMs < KEYBOARD_DURATION_MS) {
+    if (performance.now() - startTime < KEYBOARD_DURATION_MS) {
       move(accessory, accessoryAt)
       overlays.forEach(({ content, share }, index) => {
         const from = overlayFrom[index]!
-        const to = keyboardRises ? accessoryTo * share : 0
+        const to = accessoryTo * share
         move(content, progress => from + (to - from) * accessoryShare(progress))
       })
       surfaces.forEach(({ content }, index) => {
@@ -306,7 +320,7 @@ export function installKeyboardCarrier(
     trace('start', {
       height,
       startHeight,
-      leadMs: Math.round(leadMs),
+      leadMs: Math.round(performance.now() - startTime),
       travel,
       accessoryFrom: Math.round(accessoryFrom),
       accessoryTo: Math.round(accessoryTo),
@@ -317,7 +331,7 @@ export function installKeyboardCarrier(
       finish()
       return
     }
-    scheduleFinish(leadMs)
+    scheduleFinish()
   }
 
   // A backgrounded app is snapshotted at rest.
@@ -347,11 +361,62 @@ export function installKeyboardCarrier(
     geometryObserver.disconnect()
     document.removeEventListener('visibilitychange', visibilityChanged)
     stopRun()
+    transports.releaseAll()
     for (const element of originTops.keys()) clearKeyboardCarrierPose(element)
     for (const { surface } of contentOrigins.values()) clearKeyboardCarrierContent(surface)
     announce()
     delete boundary.dataset.satinKeyboardCarrier
     boundary.style.removeProperty(COMMITTED_HEIGHT)
+    commitScrollInset(0)
+  }
+}
+
+/** Two identical keyframes: the transform an element has at rest. */
+const AT_REST: Keyframe[] = [{ transform: 'translateY(0px)' }, { transform: 'translateY(0px)' }]
+
+/**
+ * The compositor animations that carry elements with the keyboard, one per element, kept while
+ * the keyboard is up.
+ *
+ * Starting a new transform animation on a long transcript is expensive in WebKit, and it falls
+ * in the very rendering update that has to put the composer in motion: the composer stands
+ * still while the keyboard moves. Retargeting an animation that already exists is cheap
+ * (1,200 messages in iOS-family WebKit: 57 ms to start one, 11 ms to retarget one). So the
+ * keyboard's first motion creates each element's animation, later motions retarget it, and
+ * between motions it is parked, paused at rest. Once the keyboard has gone they are released,
+ * so a page without a keyboard carries no transform.
+ */
+function createKeyboardTransports() {
+  const animations = new Map<HTMLElement, Animation>()
+  const effect = (animation: Animation) => animation.effect as KeyframeEffect
+  return {
+    /** Run `frames` on the keyboard's clock, starting at `startTime`. */
+    drive(element: HTMLElement, frames: Keyframe[], duration: number, startTime: number) {
+      let animation = animations.get(element)
+      if (animation) effect(animation).setKeyframes(frames)
+      else {
+        animation = element.animate(frames, { duration, fill: 'both' })
+        animations.set(element, animation)
+      }
+      animation.play()
+      animation.startTime = startTime
+      return animation
+    },
+    /** Hold the element at rest, keeping its animation for the next motion. */
+    park(element: HTMLElement) {
+      const animation = animations.get(element)
+      if (!animation) return
+      effect(animation).setKeyframes(AT_REST)
+      animation.pause()
+    },
+    release(element: HTMLElement) {
+      animations.get(element)?.cancel()
+      animations.delete(element)
+    },
+    releaseAll() {
+      for (const animation of animations.values()) animation.cancel()
+      animations.clear()
+    },
   }
 }
 

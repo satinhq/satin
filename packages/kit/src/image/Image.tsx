@@ -72,6 +72,20 @@ function reservedPlaceholder(
   )
 }
 
+/** Failed content needs a visible state even when its caller supplies no background.
+ * Keep it in the image itself so DOM, glass captures and transition clones agree. */
+function unavailableArtwork(width: ImageProps['width'], height: ImageProps['height']) {
+  const w = Number(width) > 0 ? Number(width) : 64
+  const h = Number(height) > 0 ? Number(height) : 64
+  const size = Math.min(48, Math.min(w, h) * 0.6)
+  return (
+    'data:image/svg+xml,' +
+    encodeURIComponent(
+      `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><rect width="100%" height="100%" fill="#8e8e93" fill-opacity=".12"/><svg x="${(w - size) / 2}" y="${(h - size) / 2}" width="${size}" height="${size}" viewBox="0 0 32 32" fill="none" stroke="#8e8e93" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="7" width="22" height="18" rx="3"/><path d="m6 22 7-7 6 6 3-3 4 4M4 4l24 24"/><circle cx="21" cy="12" r="2"/></svg></svg>`,
+    )
+  )
+}
+
 /** Bundled artwork. Intrinsic dimensions and variants come from a ?satin-image import. */
 function Artwork({
   remote = false,
@@ -153,6 +167,7 @@ function Artwork({
   const intrinsicWidth = width ?? asset?.width
   const intrinsicHeight = height ?? asset?.height
   const placeholder = reservedPlaceholder(intrinsicWidth, intrinsicHeight, asset?.placeholder)
+  const unavailable = unavailableArtwork(intrinsicWidth, intrinsicHeight)
   const reservedWidth = Number(intrinsicWidth)
   const reservedHeight = Number(intrinsicHeight)
   const reserved =
@@ -171,7 +186,7 @@ function Artwork({
   // owner's Now Playing queue showed 4–7 empty 60 Hz frames per toggle (queue-art clip,
   // October 11). Cold loads keep async decoding behind the placeholder.
   const source = admissionFailed
-    ? placeholder
+    ? unavailable
     : failed?.url === url
       ? failed.source
       : ready
@@ -285,7 +300,7 @@ function Artwork({
       })
       .catch(async error => {
         if (!current) return decodedImage(placeholder)
-        const fallback = lastPainted.current?.url === url ? lastPainted.current.source : placeholder
+        const fallback = lastPainted.current?.url === url ? lastPainted.current.source : unavailable
         setFailed({ url, source: fallback })
         target.dataset.satinImageState = 'error'
         reportedError.current = url
@@ -317,6 +332,7 @@ function Artwork({
     viewport,
     painted,
     placeholder,
+    unavailable,
     admissionFailed,
     failed,
     reportPhase,

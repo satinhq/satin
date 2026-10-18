@@ -349,7 +349,11 @@ export type TabViewProps<D = RegisteredNavigation> = {
   tabViewStyle?: 'automatic' | 'sidebarAdaptable'
 }
 /** Names the declared tab to render. */
-export type TabProps<D = RegisteredNavigation> = { id: TabId<D> }
+export type TabProps<D = RegisteredNavigation> = {
+  id: TabId<D>
+  /** Live badge override. Omit to inherit the declaration; zero or null hides it. */
+  badge?: number | 'dot' | null
+}
 /** Renders one declared tab inside a `TabView`. Its id, label and root stack come from
  * `defineNavigation`. */
 export function Tab<D = RegisteredNavigation>({ id }: TabProps<D>) {
@@ -405,7 +409,7 @@ function DeclaredTabView({
       setSelection(props.selection)
   }, [props.selection, selection, setSelection])
   const used = new Set<string>()
-  function declared(id: string) {
+  function declared(id: string, badge?: number | 'dot' | null) {
     const tab = runtime.structure.tabs!.find(tab => tab.id === id)
     if (!tab) throw new Error(`Unknown tab: ${id}`)
     if (used.has(id)) throw new Error(`Duplicate tab id: ${id}`)
@@ -418,6 +422,7 @@ function DeclaredTabView({
         icon={tab.icon}
         symbol={tab.symbol}
         role={tab.role}
+        badge={badge === undefined ? tab.badge : badge}
       >
         <DeclaredTab id={tab.id} />
       </EngineTab>
@@ -428,7 +433,7 @@ function DeclaredTabView({
     const result = Children.map(composition, child => {
       if (child == null) return null
       if (isValidElement<TabProps<{ tabs: { id: string }[] }>>(child) && child.type === Tab)
-        return declared(child.props.id)
+        return declared(child.props.id, child.props.badge)
       if (isValidElement<TabSectionProps>(child) && child.type === TabSection)
         return (
           <TabSection {...child.props}>
@@ -436,7 +441,7 @@ function DeclaredTabView({
               if (tab == null) return null
               if (!isValidElement<TabProps<{ tabs: { id: string }[] }>>(tab) || tab.type !== Tab)
                 throw new Error('TabSection children must be Tab declarations')
-              return declared(tab.props.id)
+              return declared(tab.props.id, tab.props.badge)
             })}
           </TabSection>
         )

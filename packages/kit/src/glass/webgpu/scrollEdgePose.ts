@@ -23,6 +23,7 @@ export function poseScrollEdges(edges: readonly ScrollEdge[], pose?: NavigationP
           rect: [left, top, right - left, bottom - top] as const,
           solid: y(edge.solid),
           sigma: edge.sigma * zoom.scale,
+          wide: edge.wide ? { ...edge.wide, sigma: edge.wide.sigma * zoom.scale } : undefined,
           mask: edge.mask?.map(([position, alpha]) => [y(position), alpha] as const),
           cap: edge.cap
             ? { ...edge.cap, solid: y(edge.cap.solid), end: y(edge.cap.end) }

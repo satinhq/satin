@@ -1,3 +1,4 @@
+import { chromeSampleDemand } from './chromeSampleDemand.ts'
 import { uncoveredCapturePlane } from './productionPlanes.ts'
 import { SupersededImage } from '../../image/resource.ts'
 import { contextBackdrop } from './contextBackdrop.ts'
@@ -954,15 +955,7 @@ function drawMenuTriggerInk(
 function sampleDemand(runtime: ProductionGlassRuntime): SampleRect[] {
   const chrome = runtime
     .currentSpecs()
-    .map(
-      spec =>
-        [
-          spec.frameX - spec.sampleInsetX,
-          spec.frameY - spec.sampleInsetY,
-          spec.sampleWidth,
-          spec.sampleHeight,
-        ] as const,
-    )
+    .map(spec => chromeSampleDemand(spec, runtime.options.geometry.tabBarPlacement))
   return [...chrome, ...runtime.appRegions.sampleRects()]
 }
 

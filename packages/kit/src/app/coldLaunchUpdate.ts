@@ -9,7 +9,8 @@ import {
 } from '../sw/protocol.ts'
 
 export const COLD_LAUNCH_UPDATE_BUDGET_MS = 800
-const ACTIVATION_BUDGET_MS = 3_000
+// Match the generated worker's eight-second body inactivity deadline.
+export const UPDATE_STALL_MS = 8_000
 const UPDATED_KEY = 'satin:just-updated:v1:'
 // The notification is consumable; permission to reload is not. A new process
 // gets a fresh document, while the reload successor burns this document latch.
@@ -79,13 +80,14 @@ function readBuildId(worker: ServiceWorker | null): Promise<string | null> {
   })
 }
 
-function persistUpdated(scope: string, updated: JustUpdated): boolean {
+function persistUpdated(scope: string, updated: JustUpdated, ringStart: 0 | 100 = 0): boolean {
   try {
-    // New documents own the ring. Older deployed clients omit ringStart after
-    // completing their old-document ring; the successor preserves that full arc.
+    // Cold downloads carry their completed arc into the successor. Silent
+    // background applies start confirmation at zero. Older clients omitted
+    // ringStart after completing their arc; the successor keeps it full.
     sessionStorage.setItem(
       UPDATED_KEY + scope,
-      JSON.stringify({ at: Date.now(), ...updated, ringStart: 0 }),
+      JSON.stringify({ at: Date.now(), ...updated, ringStart }),
     )
     return Boolean(sessionStorage.getItem(UPDATED_KEY + scope))
   } catch {
@@ -118,7 +120,7 @@ export function consumeJustUpdated(scope: string): JustUpdated | null {
   }
 }
 
-/** Optional downloads stay silent until a safe document replacement is committed. */
+/** Lookup is bounded; a discovered update stays covered while it makes progress. */
 export async function prepareColdLaunchUpdate(
   scope: string,
   onProgress: (progress: DownloadProgress | null) => void,
@@ -126,6 +128,7 @@ export async function prepareColdLaunchUpdate(
     readonly background?: boolean
     readonly foreground?: boolean
     readonly canActivate?: () => boolean
+    readonly onActivity?: () => void
   } = {},
 ): Promise<'current' | 'reloading'> {
   const started = performance.now()
@@ -216,11 +219,20 @@ export async function prepareColdLaunchUpdate(
     let activationTarget: ServiceWorker | null = null
     let observed: ServiceWorker | null = null
     let checkTimer: ReturnType<typeof setTimeout> | undefined
-    let activationTimer: ReturnType<typeof setTimeout> | undefined
+    let activityTimer: ReturnType<typeof setTimeout> | undefined
+    let loaded = 0
+    let received = 0
+    let activity = 0
+    const resetActivity = () => {
+      options.onActivity?.()
+      clearTimeout(checkTimer)
+      clearTimeout(activityTimer)
+      activityTimer = setTimeout(() => finish('current', 'update-stalled'), UPDATE_STALL_MS)
+    }
     const previousId = documentWorker.buildId
     const cleanup = () => {
       clearTimeout(checkTimer)
-      clearTimeout(activationTimer)
+      clearTimeout(activityTimer)
       discovery.abort()
       registration.removeEventListener('updatefound', inspect)
       observed?.removeEventListener('statechange', inspect)
@@ -250,13 +262,13 @@ export async function prepareColdLaunchUpdate(
       }
       // Refuse a reload unless its successor can read the fuse. Without storage,
       // claim is still safe, but the current document must remain in place.
-      if (!persistUpdated(scope, { previous, current })) {
+      if (!persistUpdated(scope, { previous, current }, resume ? 0 : 100)) {
         finish('current', 'reload-fuse-unavailable')
         return
       }
       // The successor confirms the update. Keep this document's cover unchanged
       // through reload instead of playing a second ring before replacement.
-      clearTimeout(activationTimer)
+      clearTimeout(activityTimer)
       if (options.canActivate && !options.canActivate()) {
         finish('current', 'activation-no-longer-safe')
         return
@@ -279,11 +291,9 @@ export async function prepareColdLaunchUpdate(
       if (!resume) launchFuse().add(scope)
       activationTarget = worker
       clearTimeout(checkTimer)
-      // Keep the cover through the document reload.
-      activationTimer = setTimeout(
-        () => finish('current', 'activation-budget'),
-        ACTIVATION_BUDGET_MS,
-      )
+      // Activation is another observable phase, with an inactivity deadline.
+      resetActivity()
+      if (!resume) onProgress({ loaded: 95, total: 100 })
       const previousBuildId = await previousId
       if (finished) return
       if (options.canActivate && !options.canActivate()) {
@@ -304,6 +314,30 @@ export async function prepareColdLaunchUpdate(
     }
     const receive = (event: MessageEvent) => {
       if (finished) return
+      const data = event.data
+      if (event.source === observed && !activating) {
+        if (data?.type === 'SATIN_INSTALL_FAILURE') {
+          finish('current', 'install-failed')
+          return
+        }
+        if (
+          data?.type === 'SATIN_DOWNLOAD_PROGRESS' &&
+          Number.isFinite(data.loaded) &&
+          data.loaded >= 0 &&
+          Number.isFinite(data.total) &&
+          data.total > 0
+        ) {
+          const nextActivity = Number.isFinite(data.activity) ? data.activity : 0
+          // A retried response rewinds the worker byte count. Activity follows
+          // each attempt; the visible arc still keeps its highest value.
+          if (data.loaded > received || nextActivity > activity) resetActivity()
+          received = data.loaded
+          loaded = Math.max(loaded, data.loaded)
+          activity = Math.max(activity, nextActivity)
+          // Reserve the final arc for cache validation and activation.
+          if (!resume) onProgress({ loaded: Math.min(95, (loaded / data.total) * 95), total: 100 })
+        }
+      }
       if (event.data?.type === APP_SHELL_COLD_UPDATE_DENIED && event.source === activationTarget) {
         finish('current', 'activation-denied')
         return
@@ -334,6 +368,9 @@ export async function prepareColdLaunchUpdate(
       if (installing !== observed) {
         observed?.removeEventListener('statechange', inspect)
         observed = installing
+        loaded = received = activity = 0
+        resetActivity()
+        if (!resume) onProgress({ loaded: 0, total: 100 })
         observed.addEventListener('statechange', inspect)
         try {
           observed.postMessage?.({ type: 'SATIN_DOWNLOAD_PROGRESS_REQUEST' })
@@ -384,6 +421,7 @@ export async function prepareColdLaunchUpdate(
         )
           return
         discovered = true
+        resetActivity()
         trace('version-discovered')
       })
       // WebKit may settle update() after installation. updatefound, not that

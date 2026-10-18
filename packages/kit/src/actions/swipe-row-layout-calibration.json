@@ -1,0 +1,172 @@
+{
+  "nativeFixture": "Stock native list deletion, explicit height sweep",
+  "contentSizeCategory": "UICTContentSizeCategoryM",
+  "status": "LAYOUT_CALIBRATION_NOT_PIXEL_PARITY",
+  "sources": [
+    {
+      "take": "native-row-height-sweep-a",
+      "movieSHA256": "02808ed45fe3359647a52985fac6d728a606d2f9af841ed41049164de8c0cc48"
+    },
+    {
+      "take": "native-row-height-sweep-b",
+      "movieSHA256": "efc24c42164a84612c87ecd204302729b2e6f647a860891d45b1c67695fae0e5"
+    }
+  ],
+  "samples": [
+    {
+      "take": "native-row-height-sweep-a",
+      "gesture": "fifty-six",
+      "layoutSHA256": "d5f13aee887bcb7fc6184ec645305e52e6754cde56bf4cc9b954731af2f2171b",
+      "rowHeight": 56,
+      "pillWidth": 85,
+      "pillHeight": 48,
+      "pillTopInset": 4,
+      "captionTopInset": 20.5,
+      "captionHeight": 14.5,
+      "captionFontSize": 12
+    },
+    {
+      "take": "native-row-height-sweep-a",
+      "gesture": "fifty-eight",
+      "layoutSHA256": "3ff9bba1521fdec27e432da2c89b03c18db043c6446f85efadf7878e5ccc4adc",
+      "rowHeight": 58,
+      "pillWidth": 85,
+      "pillHeight": 50,
+      "pillTopInset": 4,
+      "captionTopInset": 21.5,
+      "captionHeight": 14.5,
+      "captionFontSize": 12
+    },
+    {
+      "take": "native-row-height-sweep-b",
+      "gesture": "fifty-nine",
+      "layoutSHA256": "74e311e49d80949ddd7a2ebc0a74b232098fc58daaae8cca1e14017c2813fbdf",
+      "rowHeight": 59,
+      "pillWidth": 85,
+      "pillHeight": 50,
+      "pillTopInset": 4.5,
+      "captionTopInset": 22,
+      "captionHeight": 14.5,
+      "captionFontSize": 12
+    },
+    {
+      "take": "native-row-height-sweep-b",
+      "gesture": "fifty-nine-half",
+      "layoutSHA256": "84daa39baa21a9d4eacda9f99e9db368a5691639448552880f5d50aa4be5f365",
+      "rowHeight": 59.5,
+      "pillWidth": 85,
+      "pillHeight": 50,
+      "pillTopInset": 4.5,
+      "captionTopInset": 22,
+      "captionHeight": 14.5,
+      "captionFontSize": 12
+    },
+    {
+      "take": "native-row-height-sweep-a",
+      "gesture": "sixty",
+      "layoutSHA256": "1a3f3cdb395dcf85d9f5862222b853af21d7c9ddba915b7d0b82e030cd1c5413",
+      "rowHeight": 60,
+      "pillWidth": 60,
+      "pillHeight": 33.5,
+      "pillTopInset": 4.25,
+      "captionTopInset": 41.75,
+      "captionHeight": 14.5,
+      "captionFontSize": 12
+    },
+    {
+      "take": "native-row-height-sweep-a",
+      "gesture": "sixty-two",
+      "layoutSHA256": "0d7dcfd239c1f62a4ad30f93aaa574868b1248378ffcaffed442d07497c5ba24",
+      "rowHeight": 62,
+      "pillWidth": 60,
+      "pillHeight": 35.5,
+      "pillTopInset": 4.25,
+      "captionTopInset": 43.75,
+      "captionHeight": 14.5,
+      "captionFontSize": 12
+    },
+    {
+      "take": "native-row-height-sweep-a",
+      "gesture": "sixty-four",
+      "layoutSHA256": "466dbd4594f63bd71c287b42763ed94046ef84eac99bb5d6c64d5ab94183b250",
+      "rowHeight": 64,
+      "pillWidth": 60,
+      "pillHeight": 37.5,
+      "pillTopInset": 4.25,
+      "captionTopInset": 45.75,
+      "captionHeight": 14.5,
+      "captionFontSize": 12
+    },
+    {
+      "take": "native-row-height-sweep-b",
+      "gesture": "seventy-two",
+      "layoutSHA256": "74fff376d913ac7805a961c4b52d565d7e6fdcbc43e1a40b5ab5b4061a1dfcee",
+      "rowHeight": 72,
+      "pillWidth": 60,
+      "pillHeight": 45.5,
+      "pillTopInset": 4.25,
+      "captionTopInset": 53.75,
+      "captionHeight": 14.5,
+      "captionFontSize": 12
+    },
+    {
+      "take": "native-row-height-sweep-b",
+      "gesture": "seventy-four",
+      "layoutSHA256": "c441c8d66037d93f77a78dd8d843d1d5b71ea95bddd797893d92eb933712c6c2",
+      "rowHeight": 74,
+      "pillWidth": 60,
+      "pillHeight": 47.5,
+      "pillTopInset": 4.25,
+      "captionTopInset": 55.75,
+      "captionHeight": 14.5,
+      "captionFontSize": 12
+    },
+    {
+      "take": "native-row-height-sweep-b",
+      "gesture": "seventy-six",
+      "layoutSHA256": "4b8d360b4560214dd18e24c64c93bf2f68807450dac6c9e01447abbae501a982",
+      "rowHeight": 76,
+      "pillWidth": 60,
+      "pillHeight": 49.5,
+      "pillTopInset": 4.25,
+      "captionTopInset": 57.75,
+      "captionHeight": 14.5,
+      "captionFontSize": 12
+    },
+    {
+      "take": "native-row-height-sweep-b",
+      "gesture": "seventy-six-half",
+      "layoutSHA256": "8e05f40ece7a38bec4b1928a588d2a7f71d0f4f619f81256bfcb79bafd880ad5",
+      "rowHeight": 76.5,
+      "pillWidth": 60,
+      "pillHeight": 49.5,
+      "pillTopInset": 4.25,
+      "captionTopInset": 57.75,
+      "captionHeight": 14.5,
+      "captionFontSize": 12
+    },
+    {
+      "take": "native-row-height-sweep-b",
+      "gesture": "seventy-seven",
+      "layoutSHA256": "f55c489b4231b8e2f61ad54efbfdd4f7224bdd5d53bf5f9ad152702fa28f11e1",
+      "rowHeight": 77,
+      "pillWidth": 50,
+      "pillHeight": 50,
+      "pillTopInset": 4.5,
+      "captionTopInset": 58.25,
+      "captionHeight": 14.5,
+      "captionFontSize": 12
+    }
+  ],
+  "fit": {
+    "inlineBelowRowHeight": 60,
+    "inlineVerticalAllowance": 8,
+    "belowCaptionVerticalAllowance": 26.5,
+    "maximumCapsuleHeight": 50,
+    "compressedCapsuleWidth": 60,
+    "circleCapsuleWidth": 50,
+    "captionLineHeight": 14.5,
+    "captionGap": 4
+  },
+  "limits": "UIKit layout receipts plus original USB recordings. Full source-pixel contour/opacity/cadence and candidate parity still require qualification."
+}

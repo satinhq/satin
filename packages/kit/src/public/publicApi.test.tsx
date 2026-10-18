@@ -110,6 +110,7 @@ vi.mock('../glass/TabBar.tsx', () => ({
         <button
           key={item.id}
           data-selected={item.id === selected}
+          data-test-badge={item.badge ?? undefined}
           onClick={() => onSelect(item.id)}
         >
           {item.id}
@@ -2281,3 +2282,57 @@ it.each(['unknown', 'duplicate', 'missing'] as const)(
     )
   },
 )
+
+it('passes declaration badges and live Tab overrides through retained navigation', () => {
+  const routes = defineRoutes({
+    home: route(() => <p>Home content</p>),
+    shopping: route(() => null),
+  })
+  const navigation = defineNavigation(routes, {
+    tabs: [
+      { id: 'home', label: 'Home', root: 'home', badge: 'dot' },
+      { id: 'shopping', label: 'Shopping', root: 'shopping', badge: 8 },
+    ],
+  })
+  let setBadge: (value: number | 'dot' | null | undefined) => void
+  function App() {
+    const [badge, update] = useState<number | 'dot' | null>()
+    setBadge = update
+    return (
+      <TabView<typeof navigation>>
+        <Tab<typeof navigation> id="home" />
+        <Tab<typeof navigation> id="shopping" badge={badge} />
+      </TabView>
+    )
+  }
+  act(() => {
+    root = runApp({ app, routes, navigation, content: App })
+  })
+  const badge = () =>
+    document.querySelector('nav button:last-child')?.getAttribute('data-test-badge')
+  const panel = document.querySelector('[data-satin-tab-panel="home"]')
+  expect(document.querySelector('nav button')?.getAttribute('data-test-badge')).toBe('dot')
+  expect(badge()).toBe('8')
+  for (const [value, expected] of [
+    [12, '12'],
+    ['dot', 'dot'],
+    [0, '0'],
+    [null, null],
+    [undefined, '8'],
+  ] as const) {
+    act(() => setBadge(value))
+    expect(badge()).toBe(expected)
+    expect(document.querySelector('[data-satin-tab-panel="home"]')).toBe(panel)
+  }
+})
+
+it('passes a badge without an explicit Tab composition', () => {
+  const routes = defineRoutes({ home: route(() => null) })
+  const navigation = defineNavigation(routes, {
+    tabs: [{ id: 'home', label: 'Home', root: 'home', badge: 3 }],
+  })
+  act(() => {
+    root = runApp({ app, routes, navigation, content: () => <TabView<typeof navigation> /> })
+  })
+  expect(document.querySelector('nav button')?.getAttribute('data-test-badge')).toBe('3')
+})

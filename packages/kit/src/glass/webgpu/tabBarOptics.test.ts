@@ -82,10 +82,10 @@ it('gives the tab bar its optics and keeps every other bar surface on the morph 
   for (const spec of [tabBar, toolbarButton, glassButton, openMenu])
     expect(usesBarKernel(spec)).toBe(true)
   expect(usesTabBarOptics(tabBar)).toBe(true)
-  expect(uniformsFor(tabBar).uTabBarOptics).toBe(1)
+  expect(uniformsFor(tabBar).uTabBarOptics).toEqual([1, 1])
   for (const spec of [toolbarButton, glassButton, openMenu]) {
     expect(usesTabBarOptics(spec)).toBe(false)
-    expect(uniformsFor(spec).uTabBarOptics).toBe(0)
+    expect(uniformsFor(spec).uTabBarOptics).toEqual([0, 1])
   }
 })
 
@@ -104,11 +104,12 @@ it('packs the bar uniforms in the order the bar shader declares their slots', ()
   const struct = /struct Parameters \{([^}]*)\}/.exec(shaders.bar.wgsl)![1]
   const slots = [...struct.matchAll(/(\w+)_slot: vec4<f32>/g)].map(match => match[1])
   expect(slots).toEqual([...shaders.bar.uniforms, 'kernelScale'])
-  expect(shaders.bar.uniforms.slice(-4)).toEqual([
+  expect(shaders.bar.uniforms.slice(-5)).toEqual([
     'uTabBarOptics',
     'uControlRim',
     'uControlSpecular',
     'uControlSize',
+    'uControlTransmission',
   ])
 })
 
@@ -118,14 +119,17 @@ it('switches each tab bar optic in the bar shader on uTabBarOptics', () => {
   // Full-resolution detail: other surfaces fall through to the level-0 pyramid taps.
   expect(wgsl).toContain('if ((level_2 <= 0f) && tabBarOptics()) {')
   expect(wgsl.match(/materialSharp\(/g)).toHaveLength(2)
-  // Wide fill: four taps at a whole level for the tab bar, two at the fractional level otherwise.
-  expect(wgsl).toMatch(
-    /if \(tabBarOptics\(\)\) \{\s+fill = materialFill\(uv_7, lod\);\s+\} else \{\s+fill = materialTwoTapFill\(uv_7, lod\);/,
-  )
+  // Wide fill is shared by regular controls; the independently measured search row opts out.
+  expect(wgsl).toContain('if (global.uTabBarOptics_slot.y > 0.5)')
+  expect(wgsl).toContain('fill = materialFill(uv_7, lod);')
+  expect(wgsl).toContain('fill = materialTwoTapFill(uv_7, lod);')
+  expect(
+    uniformsFor(surface({ id: 'region:search', materialProfile: 'searchField' })).uTabBarOptics,
+  ).toEqual([0, 0])
   // Highlight band: the 0.25 floor stays everywhere but the tab bar.
   expect(wgsl).toContain('select((0.25f + (0.75f * _e135)), _e135, tabBarOptics())')
-  // Inner shade: none outside the tab bar.
-  expect(wgsl).toContain('select(0f, innerShade.x, tabBarOptics())')
+  // Hardware interior shading is shared by all regular controls.
+  expect(wgsl).toContain('P = P * (1.0 - controlInteriorShade(signedPt_7, n_9))')
 })
 
 it('hands the resting selection to a separately rendered lens without changing its rest material', () => {
@@ -151,4 +155,25 @@ it('hands the resting selection to a separately rendered lens without changing i
     tabSelection: { ...pill.tabSelection!, restMix: 0 },
   } as SurfaceRenderSpec
   expect(selectionBaseUniforms(layout, target).uMaterialMix).toBe(0)
+})
+
+it('registers fractional bar contours on output pixels independently of pyramid rounding', () => {
+  for (const resolution of [2, 3])
+    for (const sampleWidth of [124.5, 124 + 1 / 3, 160]) {
+      const spec = surface({ id: 'region:button', sampleWidth })
+      const layout = {
+        spec,
+        appearance: 'dark',
+        resolution,
+        sampleWidth,
+        sampleHeight: spec.sampleHeight,
+      } as ResultLayout
+      const pyramid = { width: 256, height: 128 } as Target
+      const values = materialUniforms(layout, {} as RasterSetup, pyramid, 0.5)
+      const filterScale = values.__filterScale as readonly number[]
+      // The pixel centre at x=19.75 pt must stay there; coarse source storage
+      // previously moved it inward, attenuating the half-point exterior line.
+      expect((19.75 / sampleWidth) * filterScale[0]! * sampleWidth).toBeCloseTo(19.75, 10)
+      expect(filterScale).toEqual([1, 1])
+    }
 })

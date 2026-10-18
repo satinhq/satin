@@ -52,6 +52,11 @@ export function installLaunchScreenRuntime(options: PrelaunchOptions) {
   content.innerHTML = options.markup
   root.append(style, content)
   document.documentElement.append(host)
+  const presentHost = (visible: boolean) => {
+    if (visible) {
+      if (!host.isConnected) document.documentElement.append(host)
+    } else host.remove()
+  }
   const element = (id: string) => root.getElementById(id) as HTMLElement | null
   const cover = element('satin-launch-screen')!
   const failure = document.createElement('section')
@@ -60,6 +65,7 @@ export function installLaunchScreenRuntime(options: PrelaunchOptions) {
   failure.hidden = true
   let state = options.cover === false ? 'idle' : 'preparing'
   cover.hidden = options.cover === false
+  presentHost(!cover.hidden)
   const dark = matchMedia('(prefers-color-scheme: dark)')
   const appearance = (background: string, ink: string) => {
     host.style.setProperty('--satin-launch-background', background, 'important')
@@ -191,63 +197,76 @@ export function installLaunchScreenRuntime(options: PrelaunchOptions) {
       await fade(screen, 300)
       if (currentGeneration !== generation) return
       screen.hidden = true
+      // Retire the viewport-sized host too: its closed shadow tree can retain
+      // WebKit's opaque status-strip paint after the visible cover has gone.
+      // Retain the controller and shadow tree for a later failure's Retry UI.
+      presentHost(failure.isConnected && !failure.hidden)
       performance.mark('satin-launch-cover-retired')
     })()
     void retiring.then(() => {
       if (currentGeneration === generation) onRetired()
     })
   }
+  let styleError = false
+  const stylesheetChanged = (event: Event) => {
+    const link = event.target
+    if (!(link instanceof HTMLLinkElement) || !link.hasAttribute('data-satin-style')) return
+    if (event.type === 'load') link.media = link.dataset.satinStyle || 'all'
+    else styleError = true
+  }
+  document.addEventListener('load', stylesheetChanged, true)
+  document.addEventListener('error', stylesheetChanged, true)
+  let stylesReady: Promise<void> | undefined
   const controller: LaunchScreenController = {
     version: 1,
     stylesReady() {
-      return Promise.all(
-        [...document.querySelectorAll<HTMLLinkElement>('link[data-satin-style]')].map(link => {
-          if (link.dataset.satinStyleReady === 'true') return Promise.resolve()
-          return new Promise<void>((resolve, reject) => {
-            const cleanup = () => {
-              link.removeEventListener('load', loaded)
-              link.removeEventListener('error', failed)
-            }
-            const loaded = () => {
-              cleanup()
-              resolve()
-            }
-            const failed = () => {
-              cleanup()
-              reject(new Error('The app stylesheet failed to load. Please retry.'))
-            }
-            if (link.dataset.satinStyleError === 'true') {
-              failed()
-              return
-            }
-            link.addEventListener('load', loaded, { once: true })
-            link.addEventListener('error', failed, { once: true })
-          })
-        }),
-      ).then(() => {})
+      return (stylesReady ??= new Promise<void>((resolve, reject) => {
+        const managed = document.querySelector('link[data-satin-style]')
+        styleError ||= !!document.querySelector(
+          'link[data-satin-style][data-satin-style-error="true"]',
+        )
+        const check = () => {
+          if (styleError) reject(new Error('App stylesheet failed to load. Retry.'))
+          else if (
+            !managed ||
+            getComputedStyle(document.documentElement).getPropertyValue('--satin-styles-applied')
+          ) {
+            resolve()
+          } else requestAnimationFrame(check)
+        }
+        if (managed) requestAnimationFrame(check)
+        else check()
+      }))
     },
     appearance,
     snapshot() {
       const ring = ringElement()!
       const box = ring.getBoundingClientRect()
       const style = getComputedStyle(ring)
+      const circle = ring.querySelector('circle')!
+      // Detached WebKit trees have no computed style; retain the painted value.
       return {
         version: 1,
         state,
         error: failure.isConnected ? (failure.textContent ?? '') : '',
-        coverVisible: !cover.hidden,
+        coverVisible: host.isConnected && !cover.hidden,
         ringVisible:
+          host.isConnected &&
           !cover.hidden &&
           !ring.hasAttribute('hidden') &&
           style.display !== 'none' &&
           Number(style.opacity) > 0,
         label: ring.getAttribute('aria-label'),
-        offset: getComputedStyle(ring.querySelector('circle')!).strokeDashoffset,
+        offset:
+          getComputedStyle(circle).strokeDashoffset || circle.getAttribute('stroke-dashoffset')!,
         box: [box.x, box.y, box.width, box.height],
-        background: getComputedStyle(cover).backgroundColor,
+        background:
+          getComputedStyle(cover).backgroundColor ||
+          host.style.getPropertyValue('--satin-launch-background'),
       }
     },
     error(reason, title = 'Unable to Open App', retry, detail) {
+      presentHost(true)
       state = 'failed'
       failure.replaceChildren()
       const heading = document.createElement('h1')
@@ -283,6 +302,7 @@ export function installLaunchScreenRuntime(options: PrelaunchOptions) {
     },
     recover() {
       failure.remove()
+      presentHost(!cover.hidden)
       if (state === 'failed' && !revealed) {
         state = options.cover === false ? 'idle' : 'preparing'
         if (options.cover === false) cover.hidden = true
@@ -360,6 +380,7 @@ export function installLaunchScreenRuntime(options: PrelaunchOptions) {
     },
     restore() {
       if (revealed) return
+      presentHost(true)
       // The parser starts confirmation before React mounts. Its initial restore
       // must leave that animation running; an actual failed retirement can retry.
       if (appliedUpdate && !retiring) return

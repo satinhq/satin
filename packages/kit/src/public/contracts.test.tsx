@@ -42,3 +42,38 @@ it('rejects unsupported or incomplete JavaScript control contracts', () => {
     ),
   ).toThrow('onPresentedChange')
 })
+
+it('keeps search semantics and its return hint on a single-line field', async () => {
+  const { TextField } = await import('./controls.tsx')
+  const markup = renderToStaticMarkup(
+    <TextField label="Search" kind="search" value="" onChange={() => {}} />,
+  )
+  expect(markup).toContain('type="search"')
+  expect(markup).toContain('inputMode="text"')
+  expect(markup).toContain('enterKeyHint="search"')
+  const next = renderToStaticMarkup(
+    <TextField label="Search" kind="search" submitLabel="next" value="" onChange={() => {}} />,
+  )
+  expect(next).toContain('enterKeyHint="next"')
+})
+
+it('keeps multiline Return unless the caller requests an action key', async () => {
+  const { TextField } = await import('./controls.tsx')
+  const markup = renderToStaticMarkup(
+    <TextField axis="vertical" label="Notes" value="" onChange={() => {}} />,
+  )
+  expect(markup).not.toContain('enterKeyHint')
+  const search = renderToStaticMarkup(
+    <TextField
+      axis="vertical"
+      label="Search"
+      kind="search"
+      submitLabel="search"
+      value=""
+      onChange={() => {}}
+    />,
+  )
+  expect(search).toContain('inputMode="text"')
+  expect(search).toContain('enterKeyHint="search"')
+  expect(search).not.toContain('type="search"')
+})

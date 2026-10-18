@@ -100,7 +100,13 @@ export function ListItem({
   const deleteAction = useMemo<ActionItem | undefined>(
     () =>
       onDelete && offset !== undefined && !options?.deleteDisabled
-        ? { id: 'delete', label: 'Delete', role: 'destructive', onPress: () => onDelete([offset]) }
+        ? {
+            id: 'delete',
+            label: 'Delete',
+            symbol: 'trash',
+            role: 'destructive',
+            onPress: () => onDelete([offset]),
+          }
         : undefined,
     [onDelete, offset, options?.deleteDisabled],
   )

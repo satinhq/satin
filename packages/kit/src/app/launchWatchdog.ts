@@ -31,7 +31,7 @@ export function installLaunchWatchdog(budgetMs: number) {
       const target = event.target
       if (target instanceof HTMLLinkElement && target.rel === 'stylesheet') {
         target.dataset.satinStyleError = 'true'
-        showFailure('The app stylesheet failed to load. Please retry.')
+        showFailure('App stylesheet failed to load. Retry.')
       } else if (target instanceof HTMLScriptElement) {
         showFailure('The application script failed to load. Please retry.')
       } else if (event instanceof ErrorEvent) {
@@ -41,24 +41,15 @@ export function installLaunchWatchdog(budgetMs: number) {
     },
     true,
   )
-  document.addEventListener(
-    'load',
-    event => {
-      const link = event.target
-      if (link instanceof HTMLLinkElement && link.hasAttribute('data-satin-style')) {
-        link.media = link.getAttribute('data-satin-style') || 'all'
-        link.dataset.satinStyleReady = 'true'
-      }
-    },
-    true,
-  )
   window.addEventListener('unhandledrejection', event => {
     recordedError = event.reason instanceof Error ? event.reason.message : String(event.reason)
     showFailure('Launch failed. ' + recordedError.split('\n')[0]!.slice(0, 160))
   })
   window.addEventListener('satin-glass-error', event => {
-    const error = (event as CustomEvent<{ code: string; message: string }>).detail
+    const error = (event as CustomEvent<{ code: string; message: string; fallback?: true }>).detail
     recordedError = error.code + ': ' + error.message
+    // Release apps draw the fallback material instead (e.g. iOS without WebGPU).
+    if (error.fallback) return
     showFailure('Glass could not start: ' + error.code + '.')
   })
   const recover = () => {

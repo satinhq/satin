@@ -37,9 +37,12 @@ export function observeNavigationEdge(
     edge.removeAttribute('data-satin-scroll-edge-search')
     edge.style.removeProperty('--satin-scroll-edge-search-start')
   }
+  // While a header is pinned it carries the material; the edge yields to it and keeps only its
+  // fitted-viewport cap (styles.css), so the screen top looks the same with or without the header.
   const releasePinnedHeader = () => {
     pinnedHeader?.removeAttribute('data-satin-section-header-pinned')
     pinnedHeader = undefined
+    edge.removeAttribute('data-satin-scroll-edge-yielded')
   }
   const update = (snapshot?: NativeScrollSnapshot) => {
     const rect = (element: Element) => snapshot?.rect(element) ?? element.getBoundingClientRect()
@@ -66,6 +69,7 @@ export function observeNavigationEdge(
       releasePinnedHeader()
       pinnedHeader = pinned?.header
       pinnedHeader?.setAttribute('data-satin-section-header-pinned', 'true')
+      if (pinnedHeader) edge.setAttribute('data-satin-scroll-edge-yielded', '')
       pinnedReach = -1
     }
     if (pinned && pinned.reach !== pinnedReach) {
@@ -79,7 +83,11 @@ export function observeNavigationEdge(
           scrollEdgeStrength(rect(edge).bottom, firstContentTop(scroller, snapshot?.top, rect)))
     if (strength === applied) return
     applied = strength
-    edge.style.opacity = strength > 0 && strength < 1 ? String(strength) : ''
+    const partial = strength > 0 && strength < 1 ? String(strength) : ''
+    edge.style.opacity = partial
+    // The material's upper layers are the edge's siblings and follow it through the host.
+    if (partial) edge.parentElement?.style.setProperty('--satin-scroll-edge-strength', partial)
+    else edge.parentElement?.style.removeProperty('--satin-scroll-edge-strength')
     edge.setAttribute('data-satin-scroll-edge-visible', strength > 0 ? 'true' : 'false')
   }
   update()

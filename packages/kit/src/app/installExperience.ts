@@ -272,9 +272,9 @@ const minifyCss = (css: string) =>
  * are self-contained expressions, so renaming their locals cannot change what they do; the
  * JSON data block has a `type` attribute and is left alone.
  */
-/** Minifies every inline classic script (bare, or with only `data-` attributes). */
+/** Includes named head scripts; JSON, modules and external scripts are left alone. */
 export function minifyInlineScripts(html: string) {
-  const inline = /<script((?:\s+data-[\w-]+(?:="[^"]*")?)*)>([\s\S]*?)<\/script>/g
+  const inline = /<script((?:\s+(?:id|data-[\w-]+)(?:="[^"]*")?)*)>([\s\S]*?)<\/script>/g
   return html.replace(inline, (_tag, attributes: string, source: string) => {
     const result = minifySync('install-page.js', source)
     if (result.errors.length) {

@@ -675,7 +675,7 @@ Framework internals for Satin tooling and tests. App code must not import them; 
 | [`MotionRun`](../glass/lens/motion.d.ts) |  |  |  |
 | [`MotionSample`](../glass/lens/motion.d.ts) |  |  |  |
 | [`mountGlassWorkerExperiment`](../glass/worker/experiment.d.ts) |  |  |  |
-| [`mountSatin`](../root/mountSatin.d.ts) | Mount once from the app entry point, after resolving its initial screen. After managed styles load, the first commit runs synchronously so WebKit cannot defer it behind its launch presentation. Later updates retain React's normal scheduling. Do not call from a component or an effect, or suspend the initial screen. |  |  |
+| [`mountSatin`](../root/mountSatin.d.ts) | Mount once from the app entry point, after resolving its initial screen. The first commit runs synchronously so WebKit cannot defer it behind its launch presentation. Later updates retain React's normal scheduling. Do not call from a component or an effect, or suspend the initial screen. |  |  |
 | [`NATIVE_WIDGET_Y_REGISTRATION_PX`](../glass/lens/motion.d.ts) |  |  |  |
 | [`NAVIGATION_CURRENT_SEGMENT_WEIGHT`](../navigation/releaseVelocity.d.ts) |  |  |  |
 | [`NAVIGATION_DIM_OPACITY`](../navigation/motionTokens.d.ts) |  |  |  |
@@ -1873,10 +1873,10 @@ The declarations below have no dedicated reviewed behavior metadata. Type-only d
 
 ## Declaration graph fingerprints
 
-- `@satinhq/kit:751c878892f1b84d237adb15aba705fae1b0bab4094036e54aa10ca6115e2a7e`
+- `@satinhq/kit:5b502fa131b60af343ebbd357d1f227fee53f00ae67008cf80828ffc70e8b807`
 - `@satinhq/kit/vite:aae491af836b19471a7306a4f2fec9e5eb8cd68184ce26ec6aeea033e593a15e`
 - `@satinhq/kit/install:e080a0874c9490077cf9cbb117e03d5d58252226e9424d84101be7ee4454a422`
-- `@satinhq/kit/internal:ef9f8b828d9a5f3d775c7cf72cccbdeb98b919ec55379941f2f3d08ce6c4ac41`
+- `@satinhq/kit/internal:6494fcb7a68524c4155cf8871937213f0e6ca29751da0efaba30e07a9356d4c0`
 - `@satinhq/kit/unstable:59f001f3090a2b56ad18df3b0ef8b7d4546c5c7ccbbfc4f793da98d1ad27bf34`
 - `@satinhq/kit/server:7d2b996d9541bd82fd0936e0482554f3182ffe004be56928e590ad4c4c8c79bd`
 - `@satinhq/kit/testing:04a86ddf0741e53228777bd599cbd00ff503b9e216a1f86a9791fdbee1bd5e12`
@@ -1885,4 +1885,4 @@ The declarations below have no dedicated reviewed behavior metadata. Type-only d
 
 ## Framework source fingerprint
 
-SHA-256 of sorted TS/TSX/CSS source paths and bytes, excluding tests: 40d2340c8fd86ac09bd15e68f837c5ebd212c0b2e0b8c2cda725e13a156e65f0
+SHA-256 of sorted TS/TSX/CSS source paths and bytes, excluding tests: bf8b531e4843108ecb5b120707eed8b7fb7bc18d677db5b073d1e0d4dd14f70e

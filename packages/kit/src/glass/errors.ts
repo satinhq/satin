@@ -109,8 +109,17 @@ export function reportGlassError(
   // apps use CSS now; they must not wait for another foreground event to launch.
   if (transient && !release) return error
   console.error(`[Satin glass: ${code}] ${stage}: ${error.message}`, reason ?? '')
+  // A release app that switched to the fallback material keeps running, so the
+  // event says so. Launch must not turn a handled failure into "Unable to Open App".
+  // A release renderer that is still recovering (e.g. a null adapter while it retries) also
+  // keeps the app running, so it must not fail launch either.
+  const handledByFallback = release
   if (typeof window !== 'undefined')
-    window.dispatchEvent(new CustomEvent('satin-glass-error', { detail: error }))
+    window.dispatchEvent(
+      new CustomEvent('satin-glass-error', {
+        detail: handledByFallback ? { ...error, fallback: true } : error,
+      }),
+    )
   for (const listener of listeners) listener(error)
   return error
 }

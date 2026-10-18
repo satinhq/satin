@@ -37,6 +37,12 @@ export function swipeReleasePosition(
  * Entry RMS 0.00494, reversal RMS 0.04057 in normalized geometry. */
 export const swipeTakeover = { stiffness: 3741.169, damping: 122.3302 } as const
 
+/** iPad stock List r28, tap-close: signed capsule scale, 50..650ms after lift.
+ * Both capsules: maximum residual 0.255pt over their 52pt layout height.
+ * The label's displacement identifies the negative scale after crossing zero;
+ * an unsigned bounding box would incorrectly erase this oscillation. */
+export const swipePillScale = { stiffness: 162.766811, damping: 18.129272 } as const
+
 export function takeoverSample(from: number, to: number, velocity: number, seconds: number) {
   const rate = swipeTakeover.damping / 2
   const displacement = from - to
@@ -47,3 +53,13 @@ export function takeoverSample(from: number, to: number, velocity: number, secon
     velocity: (velocity - rate * coefficient * seconds) * decay,
   }
 }
+
+/** iPad r123 native model -> presented row response, mass 1. Two-line
+ * training at both widths; three-line holdout peaks below 0.92pt. This fit
+ * separates UIKit's response from the USB marker clock. Original source-PTS
+ * pixel qualification remains required; see swipe-contact-calibration.json.
+ */
+export const swipeContactResponse = {
+  stiffness: 1113.1398976404985,
+  damping: 52.54398166492597,
+} as const

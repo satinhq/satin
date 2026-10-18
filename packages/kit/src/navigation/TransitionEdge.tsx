@@ -15,7 +15,9 @@ export function TransitionEdge({ barHidden }: { barHidden: boolean }) {
       // A presented drawer already owns its material inside this same moving page.
       if (scroller?.hasAttribute('data-satin-search-presented')) {
         edge.setAttribute('data-satin-scroll-edge-visible', 'false')
+        edge.removeAttribute('data-satin-scroll-edge-yielded')
         edge.style.removeProperty('opacity')
+        edge.parentElement?.style.removeProperty('--satin-scroll-edge-strength')
         edge.parentElement?.removeAttribute('data-satin-edge-seam')
         return
       }
@@ -31,6 +33,9 @@ export function TransitionEdge({ barHidden }: { barHidden: boolean }) {
   return (
     <div aria-hidden="true" data-satin-navigation-edge-host="true" data-satin-transition-edge="">
       <div ref={edgeRef} data-satin-scroll-edge="true" />
+      {/* The material's upper layers; backdrop layers must be siblings (styles.css). */}
+      <div data-satin-scroll-edge-layer="wide" />
+      <div data-satin-scroll-edge-layer="finish" />
       <div data-satin-scroll-edge-cap="true" />
       <div data-satin-scroll-edge-seam="true" />
     </div>

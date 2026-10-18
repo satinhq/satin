@@ -1,7 +1,12 @@
 import { animateElement } from '../motion/animate.ts'
 import { Animation } from '../motion/animationValue.ts'
 import { registerLayoutAnimation } from '../motion/layoutTransaction.ts'
-import { runFrameTimes, sampleChannel, type SpringChannel } from '../motion/springPath.ts'
+import {
+  fadeSettleMs,
+  runFrameTimes,
+  sampleChannel,
+  type SpringChannel,
+} from '../motion/springPath.ts'
 
 /** Default List sort fit, iOS 27.0: omega 19.8556, damping ratio 0.94512.
  * 41 native refresh-counter samples over a 330 pt move; RMS 1.40 pt. */
@@ -60,22 +65,21 @@ function position(element: HTMLElement) {
   )
 }
 
-export function registerRowMoves(readRows: () => Rows) {
+export function registerRowMoves(readRows: () => Rows, beforeTransaction: () => void) {
   const ownedElements = new Set<HTMLElement>()
-  const exits = new Map<string, HTMLElement>()
+  const exits = new Set<HTMLElement>()
   let mounted = true
   const media = window.matchMedia('(prefers-reduced-motion: reduce)')
   const reduce = () => {
     if (media.matches) for (const element of ownedElements) stop(element)
   }
   media.addEventListener('change', reduce)
-  const unregister = registerLayoutAnimation(() => {
-    const liveRows = new Map(readRows())
-    for (const [key, element] of exits) {
-      if (!liveRows.has(key)) liveRows.set(key, element)
-    }
+  const capture = () => {
+    // A transfer has two independent painted rows, even when their logical ID agrees.
+    // Keep retiring elements in the snapshot so interrupted fades retain their opacity.
+    const liveRows = new Set([...readRows().values(), ...exits])
     const before = new Map(
-      [...liveRows].map(([key, element]) => {
+      [...liveRows].map(element => {
         const run = runs.get(element)
         const time = Number(run?.motion.currentTime ?? 0)
         const velocity = run ? sampleChannel(run.animation, run.channel, time).velocity : 0
@@ -88,11 +92,10 @@ export function registerRowMoves(readRows: () => Rows) {
         const bounds = element.getBoundingClientRect()
         const style = getComputedStyle(element)
         return [
-          key,
+          element,
           {
             element,
             clipExit: Boolean(run?.clipExit || swipeRemovals.has(element)),
-            isRow: element.hasAttribute('data-satin-section-item'),
             top: position(element),
             left: bounds.left,
             width: bounds.width,
@@ -114,11 +117,10 @@ export function registerRowMoves(readRows: () => Rows) {
         ] as const
       }),
     )
-    const beforeByElement = new Map([...before.values()].map(row => [row.element, row]))
-    return requestedAnimation => {
+    return (requestedAnimation: Animation | null) => {
       const animation =
         requestedAnimation === Animation.default ? LIST_MOVE_ANIMATION : requestedAnimation
-      const rows = readRows()
+      const rows = new Set(readRows().values())
       const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
       // The before snapshot includes the presented transform. Cancel as one batch, then
       // read resting geometry as one batch; no spring approximation enters the layout delta.
@@ -126,12 +128,11 @@ export function registerRowMoves(readRows: () => Rows) {
       for (const element of ownedElements) stop(element)
       ownedElements.clear()
       exits.clear()
-      const targets = [...rows].map(([key, element]) => ({ key, element, top: position(element) }))
+      const targets = [...rows].map(element => ({ element, top: position(element) }))
       if (!animation || reduced || !mounted) return
-      for (const [key, previous] of before) {
+      for (const previous of before.values()) {
         if (
-          !previous.isRow ||
-          rows.has(key) ||
+          rows.has(previous.element) ||
           previous.element.isConnected ||
           !previous.scroll?.isConnected
         )
@@ -160,21 +161,22 @@ export function registerRowMoves(readRows: () => Rows) {
         layer.style.left = `${previous.left - placed.left}px`
         layer.style.top = `${previous.top - position(layer)}px`
         Object.assign(previous.element.style, previous.look)
-        exits.set(key, previous.element)
-        targets.push({ key, element: previous.element, top: previous.top })
+        exits.add(previous.element)
+        targets.push({ element: previous.element, top: previous.top })
       }
-      for (const { key, element, top } of targets) {
-        const previous = beforeByElement.get(element) ?? before.get(key)
-        if (!element.isConnected || (!previous && !element.hasAttribute('data-satin-section-item')))
-          continue
+      for (const { element, top } of targets) {
+        // Only a surviving element inherits geometry. Native cross-section transfers
+        // fade the old and new slots independently instead of flying between them.
+        const previous = before.get(element)
+        if (!element.isConnected) continue
         // A held reorder handle owns the entire group until its drag ends.
         if (element.parentElement?.querySelector(':scope > [data-satin-reorder-lifted]')) continue
-        const ghost = exits.has(key) ? element.parentElement! : undefined
+        const ghost = exits.has(element) ? element.parentElement! : undefined
         const clipExit = Boolean(ghost && previous?.clipExit)
         const targetVisibility = ghost ? 0 : 1
         const channel = {
           displacement: previous ? previous.top - top : 0,
-          velocity: previous?.velocity ?? 0,
+          velocity: ghost ? 0 : (previous?.velocity ?? 0),
         }
         const visibility = {
           displacement: (previous?.visibility ?? 0) - targetVisibility,
@@ -185,18 +187,34 @@ export function registerRowMoves(readRows: () => Rows) {
           Math.abs(channel.velocity) < 0.01 &&
           Math.abs(visibility.displacement) < 0.001 &&
           Math.abs(visibility.velocity) < 0.001
-        )
+        ) {
+          // A row removed before its first visible frame has no fade to finish.
+          // Do not leave its inert layer behind without an animation owner.
+          if (ghost) {
+            ghost.remove()
+            exits.delete(element)
+          }
           continue
+        }
         // Clip settling is measured in points, just like the neighbouring row.
         // A unit-opacity threshold would end the visible collapse too early.
         const extent = clipExit ? previous!.height : 1
-        const times = runFrameTimes(animation, [
-          channel,
-          {
-            displacement: visibility.displacement * extent,
-            velocity: visibility.velocity * extent,
-          },
-        ])
+        // The point tolerance is too coarse for opacity: 0.3 would cut off a fade
+        // at 70%. Native fades follow the List spring until within 1% of their end.
+        const fading =
+          !clipExit &&
+          (Math.abs(visibility.displacement) > 0.001 || Math.abs(visibility.velocity) > 0.001)
+        const times = runFrameTimes(
+          animation,
+          [
+            channel,
+            {
+              displacement: visibility.displacement * extent,
+              velocity: visibility.velocity * extent,
+            },
+          ],
+          fading ? fadeSettleMs(animation) : 0,
+        )
         const frames = times.map((ms, index) => {
           const visible =
             index === times.length - 1
@@ -239,18 +257,23 @@ export function registerRowMoves(readRows: () => Rows) {
           element.removeAttribute('data-satin-row-moving')
           if (ghost) {
             ghost.remove()
-            if (exits.get(key) === element) exits.delete(key)
+            exits.delete(element)
           }
         }
         void motion.finished.then(finish, finish)
       }
     }
+  }
+  const unregister = registerLayoutAnimation(() => {
+    beforeTransaction()
+    return capture()
   })
-  return () => {
+  const dispose = () => {
     mounted = false
     unregister()
     media.removeEventListener('change', reduce)
     for (const element of ownedElements) stop(element)
     ownedElements.clear()
   }
+  return { capture, dispose }
 }

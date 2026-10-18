@@ -1,3 +1,6 @@
+import { installStatusColor } from './statusColor.ts'
+import { SCROLL_EDGE_MATERIAL, edgeMaterialOver } from '../navigation/scrollEdgeMaterial.ts'
+
 /** Fitted viewports cannot paint the clock band. Supply WebKit's under-page
  * colour from visible screen backgrounds; no second navigation clock or spring. */
 type RGB = readonly [number, number, number]
@@ -43,16 +46,16 @@ function background(element: HTMLElement, root: HTMLElement, base: RGB): RGB {
     color = [r * a + color[0] * (1 - a), g * a + color[1] * (1 - a), b * a + color[2] * (1 - a)]
   return color
 }
-/** Elements whose own style or attributes decide a screen's resting band colour. Anything else
- * (glass canvases, tab ink, row swipes, menus, dialogs) mutates at animation rates and never
- * changes the band, so it does not trigger a read pass. */
+/** Inputs to the resting band or modal dim. Canvas, tab-ink, row-swipe and menu
+ * mutations do not change these colours, so they do not trigger a read pass. */
 const BAND_INPUTS =
-  '[data-satin-screen-container], [data-satin-navigation-motion-layer], [data-satin-navigation-dim], [data-satin-scroll], [data-satin-scroll-edge], [data-satin-navigator-host], [data-satin-tab-active], [data-satin-root], [data-satin-status-band-source]'
+  '[data-satin-screen-container], [data-satin-navigation-motion-layer], [data-satin-navigation-dim], [data-satin-scroll], [data-satin-scroll-edge], [data-satin-navigator-host], [data-satin-tab-active], [data-satin-root], [data-satin-status-band-source], dialog, [data-satin-presentation-dimmer]'
 export function installStatusBand(root: HTMLElement) {
   let frame = 0,
     disposed = false,
     moving = false
   const html = document.documentElement
+  const statusColor = installStatusColor()
   const previous = html.style.getPropertyValue('--satin-status-band')
   // Resolves the accepted app appearance without reading our own output colour.
   const probe = document.createElement('span')
@@ -67,8 +70,6 @@ export function installStatusBand(root: HTMLElement) {
   // During a transition the band is written straight to its consumers' background-color: the
   // inherited root custom property restyled the whole document on every frame.
   const consumers = () => [
-    html,
-    document.body,
     root,
     ...root.querySelectorAll<HTMLElement>('[data-satin-status-band-source="scene"]'),
     ...root.querySelectorAll<HTMLElement>('[data-satin-scroll-edge-cap]'),
@@ -108,6 +109,7 @@ export function installStatusBand(root: HTMLElement) {
     const fitted =
       html.dataset.satinViewportFit === 'auto' || html.dataset.satinViewportFit === 'contain'
     if (!fitted) {
+      statusColor.releasePage()
       clearDirect()
       html.style.removeProperty('--satin-status-band')
       return
@@ -153,8 +155,8 @@ export function installStatusBand(root: HTMLElement) {
         fills.set(motion, color)
         scrolled.set(motion, Boolean(scroll))
       }
-      // Reuse the measured edge's current tint/strength. This is an average
-      // resting-background approximation; it cannot sample blurred row pixels.
+      // The edge material over the resting background, at the edge's current strength. This is
+      // an average resting-background approximation; it cannot sample blurred row pixels.
       const host = screen.closest('[data-satin-navigator-host]')
       const edgeHost = [
         ...(host?.querySelectorAll<HTMLElement>('[data-satin-navigation-edge-host]') ?? []),
@@ -167,9 +169,9 @@ export function installStatusBand(root: HTMLElement) {
         ? edgeHost?.querySelector<HTMLElement>('[data-satin-scroll-edge]')
         : undefined
       if (edge?.dataset.satinScrollEdgeVisible === 'true') {
-        const edgeStyle = getComputedStyle(edge)
-        const [er, eg, eb, alpha] = rgba(edgeStyle.backgroundColor)
-        const amount = alpha * Number(edgeStyle.opacity)
+        const dark = html.dataset.satinAppearance === 'dark'
+        const [er, eg, eb] = edgeMaterialOver(color, SCROLL_EDGE_MATERIAL[dark ? 'dark' : 'light'])
+        const amount = Number(getComputedStyle(edge).opacity)
         color = [
           er * amount + color[0] * (1 - amount),
           eg * amount + color[1] * (1 - amount),
@@ -183,6 +185,24 @@ export function installStatusBand(root: HTMLElement) {
     }
     const color = blendBand(window.innerWidth, base, planes)
     const value = `rgb(${color.map(v => Math.round(v)).join(' ')})`
+    // The scene stays undimmed: the modal paints its own dim once. Only the
+    // system-strip request includes that composited overlay.
+    let stripColor = color
+    for (const dialog of root.querySelectorAll<HTMLElement>('dialog[open]')) {
+      inMotion ||= dialog.hasAttribute('data-satin-presentation-moving')
+      const dimmer = dialog.querySelector<HTMLElement>('[data-satin-presentation-dimmer]')
+      if (!dimmer) continue
+      const style = getComputedStyle(dimmer)
+      if (style.display === 'none' || style.visibility === 'hidden') continue
+      const [red, green, blue, alpha] = rgba(style.backgroundColor)
+      const amount = Math.max(0, Math.min(1, alpha * Number(style.opacity)))
+      stripColor = [
+        red * amount + stripColor[0] * (1 - amount),
+        green * amount + stripColor[1] * (1 - amount),
+        blue * amount + stripColor[2] * (1 - amount),
+      ]
+    }
+    statusColor.setPage(`rgb(${stripColor.map(channel => Math.round(channel)).join(' ')})`)
     if (inMotion) writeDirect(value)
     else {
       // At rest the published custom property is the band (identical resting colours).
@@ -234,12 +254,23 @@ export function installStatusBand(root: HTMLElement) {
       'style',
       'class',
       'hidden',
+      'open',
+      'data-satin-presentation-moving',
       'data-satin-transition',
       'data-satin-render-suspended',
       'data-satin-covered',
       'data-satin-tab-active',
       'data-satin-scroll-edge-visible',
     ],
+  })
+  // The head has already published the appearance and background before this
+  // subscriber runs. Recompute now, rather than leaving the previous strip colour
+  // until the mutation observer's next animation frame.
+  const unsubscribeAppearance = window.__SATIN_APPEARANCE__?.subscribe(() => {
+    invalidate()
+    cancelAnimationFrame(frame)
+    frame = 0
+    paint()
   })
   const appearance = new MutationObserver(changed)
   appearance.observe(html, {
@@ -257,9 +288,11 @@ export function installStatusBand(root: HTMLElement) {
   paint()
   return () => {
     disposed = true
+    statusColor.releasePage()
     cancelAnimationFrame(frame)
     observer.disconnect()
     appearance.disconnect()
+    unsubscribeAppearance?.()
     window.removeEventListener('pageshow', changed)
     window.removeEventListener('resize', changed)
     document.removeEventListener('visibilitychange', changed)

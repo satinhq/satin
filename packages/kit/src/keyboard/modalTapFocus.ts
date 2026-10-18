@@ -25,7 +25,9 @@ const TAB_FOCUS_MS = 300
  * (WKContentView forces the scroll where the form accessory bar is shown). A focus made with
  * `preventScroll` is never revealed by WebKit; the keyboard adapter reveals it. The ways a finger
  * focuses an editor:
- * - a short tap: focused at pointer-up, inside the activation the keyboard needs;
+ * - a short tap: focused at pointer-up, inside the activation the keyboard needs. WebKit's mouse
+ *   events for that tap follow at its point and stay the tap's, even when the focus has moved the
+ *   editor away from that point (they would blur it and press what is there now);
  * - a tap held longer than that, or one that moved: its mouse press is prevented and focused here
  *   (a 450 ms tap panned the page before this; repeating the focus afterwards did not help);
  * - a label: its click is prevented and its editor focused here;
@@ -59,7 +61,8 @@ export function installModalTapFocus(
   owns: (editor: Element) => boolean = editor => editor.closest('dialog[open]') !== null,
 ) {
   let press: { editor: Editor; x: number; y: number; at: number } | null = null
-  let synthetic: { editor: Editor; until: number } | null = null
+  /** WebKit's compatibility mouse events for a press this module has just turned into editing. */
+  let synthetic: { editor: Editor; until: number; caretPlaced: boolean } | null = null
   let pointerType = ''
   // The last pointer-down, and the editor a press has started editing.
   let lastDown: { target: EventTarget | null; at: number } | null = null
@@ -73,13 +76,13 @@ export function installModalTapFocus(
     focusFromFramework(editor, { preventScroll: true })
     if (editor.ownerDocument.activeElement === editor) editing = editor
     onTapFocus?.(editor)
+    if (point) synthetic = { editor, until: performance.now() + 800, caretPlaced: offset !== null }
     if (offset === null) return
     try {
       editor.setSelectionRange(offset, offset)
     } catch {
       /* Non-selection input kinds. */
     }
-    synthetic = { editor, until: performance.now() + 800 }
   }
   const down = (event: PointerEvent) => {
     synthetic = null
@@ -124,15 +127,19 @@ export function installModalTapFocus(
   }
   const mouse = (event: MouseEvent) => {
     const target = event.target
-    if (
-      synthetic &&
-      target === synthetic.editor &&
-      performance.now() <= synthetic.until &&
-      event.detail > 0
-    ) {
-      event.preventDefault()
-      if (event.type === 'click') synthetic = null
-      return
+    if (synthetic && performance.now() <= synthetic.until && event.detail > 0) {
+      // WebKit sends these at the tap's point after the editor has focused, and focusing can
+      // move the editor out from under the finger (an iPad search drawer presents at once).
+      // They then land on whatever is there now: the mouse press would blur the editor and the
+      // click would activate a control the finger never touched. They belong to the tap, not
+      // to that element.
+      const onEditor = target === synthetic.editor
+      if (!onEditor || synthetic.caretPlaced) {
+        event.preventDefault()
+        if (!onEditor) event.stopImmediatePropagation()
+        if (event.type === 'click') synthetic = null
+        return
+      }
     }
     // A mouse or trackpad keeps its native press: its drag selects text.
     if (event.type !== 'mousedown' || event.detail === 0 || pointerType === 'mouse') return

@@ -688,7 +688,11 @@ export class ProductionGlassRuntime {
       subtree: true,
       childList: true,
       attributes: true,
-      attributeFilter: ['style', 'data-satin-scroll-edge-visible'],
+      attributeFilter: [
+        'style',
+        'data-satin-scroll-edge-visible',
+        'data-satin-scroll-edge-yielded',
+      ],
     })
     this.unsubscribeScrollJump = onScrollJump((element, top) =>
       top <= 0 ? this.prepareScrollToTop(element as HTMLElement) : undefined,

@@ -51,7 +51,10 @@ const kinds: Record<TextFieldKind, Attributes> = {
   // inputs sanitize values and do not support the normal selection API.
   number: { ...literal, inputMode: 'numeric' },
   decimal: { ...literal, inputMode: 'decimal' },
-  search: { ...plain, type: 'search', inputMode: 'search', enterKeyHint: 'search' },
+  // WebKit maps inputmode=search to UIKeyboardTypeWebSearch, whose Go key
+  // overrides the Search return trait on iOS. Keep search semantics and the
+  // explicit return hint with the ordinary text keyboard.
+  search: { ...plain, type: 'search', enterKeyHint: 'search' },
   username: { ...literal, autoComplete: 'username' },
   'new-password': { ...literal, type: 'password', autoComplete: 'new-password' },
   'current-password': { ...literal, type: 'password', autoComplete: 'current-password' },

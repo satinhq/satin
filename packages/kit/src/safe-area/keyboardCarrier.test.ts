@@ -7,6 +7,7 @@ import {
   keyboardBackdropPose,
 } from './keyboardCarrierGeometry.ts'
 import { sampleKeyboardTranslation } from '../keyboard/translation.ts'
+import { keyboardKeyframes, KEYBOARD_DURATION_MS, KEYBOARD_HOLD_MS } from '../keyboard/motion.ts'
 import type { KeyboardMotion } from '../keyboard/adapter.ts'
 
 let keyboardListener: ((motion: KeyboardMotion) => void) | undefined
@@ -23,7 +24,7 @@ const { installKeyboardCarrier } = await import('./keyboardCarrier.ts')
 
 /**
  * A 1000 pt screen: the boundary's bottom padding is its committed keyboard room, the composer
- * (60 pt) sits on that padding, and a 3000 pt transcript scrolls in the space above it.
+ * (60 pt) sits on that padding, and a 3000 pt transcript uses a full-height scroll frame with terminal keyboard room.
  */
 const SCREEN = 1000
 const COMPOSER = 60
@@ -33,12 +34,13 @@ type FakeAnimation = {
   element: Element
   from: number
   to: number
+  frames: Keyframe[]
   settle: () => void
   handle: { startTime: number }
 }
 let animations: FakeAnimation[] = []
 
-function chat(withOverlay = false, transcriptHeight = TRANSCRIPT) {
+function chat(withOverlay = false, transcriptHeight = TRANSCRIPT, systemInset = 0) {
   let composerHeight = COMPOSER
   let notifyGeometry = () => {}
   vi.spyOn(globalThis, 'ResizeObserver').mockImplementation(function (callback) {
@@ -70,17 +72,21 @@ function chat(withOverlay = false, transcriptHeight = TRANSCRIPT) {
   document.body.append(boundary)
 
   const room = () =>
-    Number.parseFloat(boundary.style.getPropertyValue('--satin-keyboard-committed')) || 0
+    Math.max(
+      systemInset,
+      Number.parseFloat(boundary.style.getPropertyValue('--satin-keyboard-committed')) || 0,
+    )
   const shownOffset = new Map<Element, number>()
   let scrollTop = 0
-  const clientHeight = () => SCREEN - room()
+  const clientHeight = () => SCREEN
+  const contentHeight = () => Math.max(transcriptHeight, SCREEN - room())
   Object.defineProperties(surface, {
     clientHeight: { get: clientHeight },
-    scrollHeight: { get: () => Math.max(transcriptHeight, clientHeight()) },
+    scrollHeight: { get: () => contentHeight() + room() },
     scrollTop: {
       get: () => scrollTop,
       set: (value: number) => {
-        scrollTop = Math.max(0, Math.min(transcriptHeight - clientHeight(), value))
+        scrollTop = Math.max(0, Math.min(contentHeight() + room() - clientHeight(), value))
       },
     },
   })
@@ -91,15 +97,10 @@ function chat(withOverlay = false, transcriptHeight = TRANSCRIPT) {
     rect(SCREEN - room() - composerHeight - 8 - 44 + (shownOffset.get(overlay) ?? 0))
   firstRow.getBoundingClientRect = () =>
     rect(
-      Math.max(0, clientHeight() - transcriptHeight) - scrollTop + (shownOffset.get(content) ?? 0),
+      Math.max(0, SCREEN - room() - transcriptHeight) - scrollTop + (shownOffset.get(content) ?? 0),
     )
   lastRow.getBoundingClientRect = () =>
-    rect(
-      Math.max(transcriptHeight, clientHeight()) -
-        100 -
-        scrollTop +
-        (shownOffset.get(content) ?? 0),
-    )
+    rect(contentHeight() - 100 - scrollTop + (shownOffset.get(content) ?? 0))
   vi.spyOn(window, 'getComputedStyle').mockImplementation(
     element =>
       ({ paddingBottom: element === boundary ? `${room()}px` : '0px' }) as CSSStyleDeclaration,
@@ -107,14 +108,21 @@ function chat(withOverlay = false, transcriptHeight = TRANSCRIPT) {
   Element.prototype.animate = function (this: Element, frames: Keyframe[] | null) {
     const translate = (frame: Keyframe | undefined) =>
       Number(/translateY\((-?[\d.]+)px\)/.exec(String(frame?.transform))?.[1])
-    const from = translate(frames?.[0])
-    const to = translate(frames?.at(-1))
     let finish!: () => void
     const finished = new Promise<void>(resolve => (finish = resolve))
-    shownOffset.set(this, from)
+    // The carrier retargets an element's animation for each keyboard motion.
+    const setKeyframes = (next: Keyframe[] | null) => {
+      animation.from = translate(next?.[0])
+      animation.to = translate(next?.at(-1))
+      animation.frames = next ?? []
+      shownOffset.set(this, animation.from)
+    }
     const handle = {
       startTime: 0,
       finished,
+      effect: { setKeyframes },
+      play() {},
+      pause() {},
       cancel: () => {
         shownOffset.delete(this)
         animations = animations.filter(entry => entry !== animation)
@@ -122,14 +130,16 @@ function chat(withOverlay = false, transcriptHeight = TRANSCRIPT) {
     }
     const animation: FakeAnimation = {
       element: this,
-      from,
-      to,
+      from: 0,
+      to: 0,
+      frames: [],
       settle: () => {
-        shownOffset.set(this, to)
+        shownOffset.set(this, animation.to)
         finish()
       },
       handle,
     }
+    setKeyframes(frames)
     animations.push(animation)
     return handle as unknown as Animation
   }
@@ -138,7 +148,7 @@ function chat(withOverlay = false, transcriptHeight = TRANSCRIPT) {
   geometry.attach(surface)
   if (withOverlay) geometry.attach(overlayLayer)
   const dispose = installKeyboardCarrier(boundary, accessory, geometry, () => ({
-    systemInset: 0,
+    systemInset,
     coveredRows: 0,
     accessoryHeight: composerHeight,
   }))
@@ -184,7 +194,7 @@ it('keeps the taller scrollport while a rising keyboard carries the composer and
   const thread = chat()
   const composerAtRest = thread.composerTop()
   const lastRowAtRest = thread.lastRowTop()
-  keyboardListener!({ height: 400, leadMs: 36 })
+  keyboardListener!({ height: 400, startTime: performance.now() - 36 })
 
   // Nothing is clipped or moved at the start: the layout keeps the keyboard-hidden room and the
   // composer and the transcript leave from where they were, on one shared curve.
@@ -197,34 +207,67 @@ it('keeps the taller scrollport while a rising keyboard carries the composer and
   ])
 
   await settle()
-  // At the endpoint the room is committed, the pinned transcript scrolled, and the transforms gone.
+  // At the endpoint the room is committed, the pinned transcript scrolled, and the transforms
+  // back at rest.
   expect(thread.room()).toBe(400)
-  expect(animations).toEqual([])
+  expect(animations.map(({ from, to }) => [from, to])).toEqual([
+    [0, 0],
+    [0, 0],
+  ])
   expect(thread.composerTop()).toBe(composerAtRest - 400)
   expect(thread.lastRowTop()).toBe(lastRowAtRest - 400)
+
+  // Dismissal retargets the parked animations: starting new ones on a long transcript would
+  // hold up the frame that has to put the composer in motion.
+  const parked = animations.map(({ handle }) => handle)
+  keyboardListener!({ height: 0, startTime: performance.now() - 23 })
+  expect(animations.map(({ handle }) => handle)).toEqual(parked)
+  expect(animations.map(({ from, to }) => [from, to])).toEqual([
+    [0, 400],
+    [0, 400],
+  ])
+  // Once the keyboard has gone, the resting page carries no transform.
+  await settle()
+  expect(animations).toEqual([])
+  expect(thread.composerTop()).toBe(composerAtRest)
   thread.dispose()
 })
 
-it('commits a falling keyboard first and leaves from the pose on screen, also mid-run', async () => {
+it('keeps the full scroll frame and committed inset until dismissal ends, including reversals', async () => {
   const thread = chat()
-  keyboardListener!({ height: 400, leadMs: 36 })
+  keyboardListener!({ height: 400, startTime: performance.now() - 36 })
   await settle()
   const composerRaised = thread.composerTop()
   const lastRowRaised = thread.lastRowTop()
 
-  keyboardListener!({ height: 0, leadMs: 23 })
-  // The taller scrollport is committed at once; the composer and transcript start where they were.
-  expect(thread.room()).toBe(0)
+  keyboardListener!({ height: 0, startTime: performance.now() - 23 })
+  // Dismissal starts with transforms alone; the resting inset and scroll offset stay put.
+  expect(thread.surface.clientHeight).toBe(SCREEN)
+  expect(thread.room()).toBe(400)
   expect(thread.composerTop()).toBe(composerRaised)
   expect(thread.lastRowTop()).toBe(lastRowRaised)
 
   // The keyboard comes back before it has gone: the new run starts from the shown pose, not rest.
-  keyboardListener!({ height: 400, leadMs: 36 })
+  keyboardListener!({ height: 400, startTime: performance.now() - 36 })
   expect(thread.composerTop()).toBe(composerRaised)
   expect(thread.lastRowTop()).toBe(lastRowRaised)
   await settle()
   expect(thread.composerTop()).toBe(composerRaised)
   expect(thread.lastRowTop()).toBe(lastRowRaised)
+  thread.dispose()
+})
+
+it('interpolates the safe-area room on the native keyboard curve throughout dismissal', async () => {
+  const thread = chat(false, TRANSCRIPT, 30)
+  keyboardListener!({ height: 430, startTime: performance.now() })
+  await settle()
+  keyboardListener!({ height: 0, startTime: performance.now() })
+  // iPad native reference F2144–F2166: the composer travels 400 px while the keyboard travels
+  // 430 px, sharing normalized progress rather than clamping at the safe area near the end.
+  const composer = animations.find(({ element }) => element === thread.accessory)!
+  expect(composer.frames).toEqual(
+    keyboardKeyframes(progress => 400 * progress, KEYBOARD_DURATION_MS + KEYBOARD_HOLD_MS),
+  )
   thread.dispose()
 })
 
@@ -232,18 +275,38 @@ it('moves a running carry onto the keyboard clock of a later, earlier-stamped re
   const thread = chat()
   await vi.advanceTimersByTimeAsync(1000)
   const reported = performance.now()
-  keyboardListener!({ height: 400, leadMs: 41 })
+  keyboardListener!({ height: 400, startTime: performance.now() - 41 })
   const started = animations.map(({ handle }) => handle)
   expect(started.map(({ startTime }) => reported - startTime)).toEqual([41, 41])
 
   // The visual viewport's own report of the same keyboard arrives: it started 236 ms ago.
-  keyboardListener!({ height: 400, leadMs: 236 })
+  keyboardListener!({ height: 400, startTime: performance.now() - 236 })
   expect(animations.map(({ handle }) => handle)).toEqual(started)
   expect(started.map(({ startTime }) => reported - startTime)).toEqual([236, 236])
   // The layout is committed when the keyboard's curve ends, not 383 ms after the first report.
   await vi.advanceTimersByTimeAsync(383 - 236 + 20)
   expect(thread.room()).toBe(400)
-  expect(animations).toEqual([])
+  expect(animations.every(({ from, to }) => from === 0 && to === 0)).toBe(true)
+  thread.dispose()
+})
+
+it('keeps the keyboard epoch when preparing a long transcript takes time', async () => {
+  const thread = chat()
+  keyboardListener!({ height: 400, startTime: performance.now() - 36 })
+  await settle()
+  const reportedAt = performance.now()
+  let now = reportedAt
+  vi.spyOn(performance, 'now').mockImplementation(() => now)
+  const lastRow = thread.content.lastElementChild!
+  const rect = lastRow.getBoundingClientRect.bind(lastRow)
+  vi.spyOn(lastRow, 'getBoundingClientRect').mockImplementationOnce(() => {
+    // A synchronous layout read cannot move the OS keyboard's already-running clock.
+    now += 80
+    return rect()
+  })
+  keyboardListener!({ height: 0, startTime: performance.now() - 83 })
+  expect(animations.length).toBeGreaterThan(0)
+  expect(animations.every(({ handle }) => handle.startTime === reportedAt - 83)).toBe(true)
   thread.dispose()
 })
 
@@ -252,7 +315,7 @@ it('carries to the reported room when WebKit retains a stale computed padding', 
   vi.mocked(window.getComputedStyle).mockImplementation(
     () => ({ paddingBottom: '0px' }) as CSSStyleDeclaration,
   )
-  keyboardListener!({ height: 400, leadMs: 36 })
+  keyboardListener!({ height: 400, startTime: performance.now() - 36 })
   expect(animations.map(({ from, to }) => [from, to])).toEqual([
     [0, -400],
     [0, -400],
@@ -267,24 +330,24 @@ it('keeps a bottom overlay above the composer on keyboard rise, dismissal and re
   const thread = chat(true)
   const gap = () => thread.composerTop() - thread.overlayBottom()
   expect(gap()).toBe(8)
-  keyboardListener!({ height: 400, leadMs: 36 })
+  keyboardListener!({ height: 400, startTime: performance.now() - 36 })
   expect(gap()).toBe(8)
   expect(animations.find(entry => entry.element === thread.overlay)?.to).toBe(-400)
   await settle()
   expect(gap()).toBe(8)
-  keyboardListener!({ height: 0, leadMs: 23 })
+  keyboardListener!({ height: 0, startTime: performance.now() - 23 })
   expect(gap()).toBe(8)
-  keyboardListener!({ height: 400, leadMs: 36 })
+  keyboardListener!({ height: 400, startTime: performance.now() - 36 })
   expect(gap()).toBe(8)
   await settle()
   expect(gap()).toBe(8)
   // A new keyboard run begins, the composer grows, and dismissal reverses it before it settles.
-  keyboardListener!({ height: 0, leadMs: 23 })
+  keyboardListener!({ height: 0, startTime: performance.now() - 23 })
   await settle()
-  keyboardListener!({ height: 400, leadMs: 36 })
+  keyboardListener!({ height: 400, startTime: performance.now() - 36 })
   thread.growComposer(32)
   expect(gap()).toBe(8)
-  keyboardListener!({ height: 0, leadMs: 23 })
+  keyboardListener!({ height: 0, startTime: performance.now() - 23 })
   expect(gap()).toBe(8)
   await settle()
   expect(gap()).toBe(8)
@@ -324,6 +387,13 @@ function floatingControls() {
     }
     motions.set(this, motion)
     return Object.assign(motion, {
+      effect: {
+        setKeyframes: (next: Keyframe[]) => {
+          motion.frames = next
+        },
+      },
+      play() {},
+      pause() {},
       cancel: () => {
         motions.delete(this)
       },
@@ -364,7 +434,7 @@ it('nested overlay and accessory content inherit one keyboard displacement', asy
   const inner = fixture.add(outer.content)
   const accessoryChild = fixture.add(fixture.accessory)
   for (const height of [400, 0, 300]) {
-    keyboardListener!({ height, leadMs: 36 })
+    keyboardListener!({ height, startTime: performance.now() - 36 })
     await vi.advanceTimersByTimeAsync(90)
     expect(fixture.gap(outer.content)).toBeCloseTo(8)
     expect(fixture.gap(inner.content)).toBeCloseTo(8)
@@ -383,9 +453,9 @@ it('late overlays join rise, dismissal and reversal at the current keyboard pose
   fixture.geometry.attach(nestedBoundary, undefined, nested)
   // Each mount is after the first keyboard frame, including a changed keyboard timestamp.
   for (const height of [400, 0, 300]) {
-    keyboardListener!({ height, leadMs: 36 })
+    keyboardListener!({ height, startTime: performance.now() - 36 })
     await vi.advanceTimersByTimeAsync(90)
-    keyboardListener!({ height, leadMs: 140 })
+    keyboardListener!({ height, startTime: performance.now() - 140 })
     const overlay = fixture.add(nestedBoundary, nested)
     expect(fixture.gap(overlay.content)).toBeCloseTo(8)
     await vi.advanceTimersByTimeAsync(30)
@@ -406,7 +476,7 @@ it('late overlays join rise, dismissal and reversal at the current keyboard pose
 it('publishes the exact carried source and lens trajectory through raise, commit and lower', async () => {
   const thread = chat()
   const initialScroll = thread.surface.scrollTop
-  keyboardListener!({ height: 400, leadMs: 36 })
+  keyboardListener!({ height: 400, startTime: performance.now() - 36 })
   const lens = keyboardCarrierPose(thread.accessory)!
   const source = keyboardBackdropPose(thread.surface)!
   expect(lens.motion).toBeDefined()
@@ -423,11 +493,11 @@ it('publishes the exact carried source and lens trajectory through raise, commit
   // Commit replaces the transform with native scroll. Never apply both displacements.
   expect(thread.surface.scrollTop).toBe(initialScroll + 400)
   expect(keyboardBackdropPose(thread.surface)!.offsetY).toBe(0)
-  keyboardListener!({ height: 0, leadMs: 23 })
+  keyboardListener!({ height: 0, startTime: performance.now() - 23 })
   const lowering = keyboardBackdropPose(thread.surface)!
-  expect(thread.surface.scrollTop).toBe(initialScroll)
-  expect(sampleKeyboardTranslation(lowering.motion!, lowering.motion!.epoch)).toBe(-400)
-  expect(sampleKeyboardTranslation(lowering.motion!, lowering.motion!.epoch + 383)).toBe(0)
+  expect(thread.surface.scrollTop).toBe(initialScroll + 400)
+  expect(sampleKeyboardTranslation(lowering.motion!, lowering.motion!.epoch)).toBe(0)
+  expect(sampleKeyboardTranslation(lowering.motion!, lowering.motion!.epoch + 383)).toBe(400)
   await settle()
   expect(keyboardBackdropPose(thread.surface)!.offsetY).toBe(0)
   thread.dispose()
@@ -436,17 +506,17 @@ it('publishes the exact carried source and lens trajectory through raise, commit
 
 it('retains a short transcript displacement after layout commit and reverses from that capture', async () => {
   const thread = chat(false, 200)
-  keyboardListener!({ height: 400, leadMs: 36 })
+  keyboardListener!({ height: 400, startTime: performance.now() - 36 })
   await settle()
   expect(thread.surface.scrollTop).toBe(0)
   const captured = keyboardBackdropPose(thread.surface)!.offsetY
   expect(captured).toBe(-400)
-  keyboardListener!({ height: 0, leadMs: 23 })
+  keyboardListener!({ height: 0, startTime: performance.now() - 23 })
   const motion = keyboardBackdropPose(thread.surface)!.motion!
   expect(sampleKeyboardTranslation(motion, motion.epoch) - captured).toBe(0)
   expect(sampleKeyboardTranslation(motion, motion.epoch + 383) - captured).toBe(400)
   // A retimed report changes the epoch, never the captured pixels or curve.
-  keyboardListener!({ height: 0, leadMs: 60 })
+  keyboardListener!({ height: 0, startTime: performance.now() - 60 })
   expect(keyboardBackdropPose(thread.surface)!.motion!.epoch).toBe(motion.epoch - 37)
   await settle()
   expect(keyboardBackdropPose(thread.surface)!.offsetY).toBe(0)
@@ -455,16 +525,29 @@ it('retains a short transcript displacement after layout commit and reverses fro
 
 it('keeps the captured origin stable when a long transcript appends rows between keyboard runs', async () => {
   const thread = chat()
-  keyboardListener!({ height: 400, leadMs: 36 })
+  keyboardListener!({ height: 400, startTime: performance.now() - 36 })
   await settle()
-  keyboardListener!({ height: 0, leadMs: 23 })
+  keyboardListener!({ height: 0, startTime: performance.now() - 23 })
   await settle()
   thread.appendTranscript(500)
   const captured = keyboardBackdropPose(thread.surface)!.offsetY
   expect(captured).toBe(0)
-  keyboardListener!({ height: 400, leadMs: 36 })
+  keyboardListener!({ height: 400, startTime: performance.now() - 36 })
   const motion = keyboardBackdropPose(thread.surface)!.motion!
   expect(sampleKeyboardTranslation(motion, motion.epoch) - captured).toBe(0)
   expect(sampleKeyboardTranslation(motion, motion.epoch + 383) - captured).toBe(-400)
+  thread.dispose()
+})
+
+it('preserves a reader who scrolls away from the bottom during dismissal', async () => {
+  const thread = chat()
+  keyboardListener!({ height: 400, startTime: performance.now() })
+  await settle()
+  keyboardListener!({ height: 0, startTime: performance.now() })
+  thread.surface.scrollTop -= 600
+  for (const animation of [...animations]) animation.settle()
+  const readingPosition = thread.lastRowTop()
+  await vi.advanceTimersByTimeAsync(1000)
+  expect(thread.lastRowTop()).toBe(readingPosition)
   thread.dispose()
 })

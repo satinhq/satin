@@ -7,6 +7,7 @@ import { appManifestHrefExpression, isIOSWebKit, installRouteForBase } from './i
 import { resolvePlatformGate } from './platformPolicy.ts'
 import { launchScreenMarkup, prelaunchCSS } from './launchScreen.ts'
 import { installAppearanceStore } from './appearanceStore.ts'
+import { installStatusColor } from './statusColor.ts'
 import { ADAPTIVE_LAYOUT_POLICY } from '../layout/layoutClass.ts'
 import { SATIN_VIEWPORT, resolveViewportFit } from './viewportValue.ts'
 import { STARTUP_SCREENS, startupImages } from './startup.ts'
@@ -118,16 +119,16 @@ export function generateAppHead(
  // CSS can select the cold background before the controller runs. Once
  // installed, the shared controller owns every root color, in every session.
  const darkInk = app.appearance.darkLaunch === 'match-light' ? '#1c1c1e' : '#ffffff';
+ const statusColor = (${installStatusColor.toString()})();
  const store = (${installAppearanceStore.toString()})();
  const apply = () => {
   const dark = store.getSnapshot().dark;
   const appearance = dark && app.appearance.darkLaunch !== 'match-light' ? app.appearance.darkLaunch : app.appearance;
-  document.documentElement.style.backgroundColor = appearance.background;
   document.documentElement.style.setProperty('--satin-launch-background', appearance.background);
   document.documentElement.style.setProperty('--satin-launch-ink', dark ? darkInk : '#1c1c1e');
   document.documentElement.style.setProperty('--satin-background', appearance.background);
   window.__SATIN_PRELAUNCH__.appearance(appearance.background, dark ? darkInk : '#1c1c1e');
-  document.getElementById('satin-theme-color').content = appearance.background;
+  statusColor.setBase(appearance.background);
   document.getElementById('satin-manifest').href = ${appManifestHrefExpression('selected.manifest')};
  };
  apply();

@@ -1,5 +1,15 @@
-import { createContext, useContext, useLayoutEffect, useMemo, useRef, type ReactNode } from 'react'
-import { registerRowMoves, stopRowMoves } from './rowMotion.ts'
+import {
+  Component,
+  createContext,
+  useContext,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  type ReactNode,
+} from 'react'
+import { LIST_MOVE_ANIMATION, registerRowMoves, stopRowMoves } from './rowMotion.ts'
+
+import { isLayoutTransaction } from '../motion/layoutTransaction.ts'
 
 type Row = { identity: string; element: HTMLElement }
 type Group = Map<string, Row>
@@ -8,7 +18,8 @@ type Group = Map<string, Row>
 function createScope() {
   const groups = new Map<Group, number>()
   let nextGroup = 0
-  let unregister: (() => void) | undefined
+  let motion: ReturnType<typeof registerRowMoves> | undefined
+  let pending: ReturnType<ReturnType<typeof registerRowMoves>['capture']> | undefined
   const readRows = () => {
     const counts = new Map<string, number>()
     for (const group of groups.keys()) {
@@ -29,19 +40,35 @@ function createScope() {
     return rows
   }
   return {
-    settle() {
-      unregister?.()
-      unregister = groups.size ? registerRowMoves(readRows) : undefined
+    capture() {
+      // React runs every snapshot before mutating any group's DOM. One List snapshot
+      // covers all sections, including groups being mounted or removed in this commit.
+      if (isLayoutTransaction() || pending || !motion) return
+      pending = motion.capture()
+    },
+    complete() {
+      const complete = pending
+      if (!complete) return
+      // Finish after every sibling's refs and layout effects have registered its rows.
+      queueMicrotask(() => {
+        if (pending !== complete) return
+        pending = undefined
+        complete(LIST_MOVE_ANIMATION)
+      })
     },
     add(group: Group) {
       groups.set(group, nextGroup++)
-      unregister ??= registerRowMoves(readRows)
+      motion ??= registerRowMoves(readRows, () => {
+        // An explicit transaction supersedes any automatic snapshot awaiting completion.
+        pending = undefined
+      })
       return () => {
         stopRowMoves(new Map([...group].map(([key, row]) => [key, row.element])))
         groups.delete(group)
         if (!groups.size) {
-          unregister?.()
-          unregister = undefined
+          motion?.dispose()
+          motion = undefined
+          pending = undefined
         }
       }
     },
@@ -63,5 +90,25 @@ export function useRowMotionGroup(enabled: boolean) {
   useLayoutEffect(() => {
     if (enabled) return scope.add(rows.current)
   }, [enabled, scope])
-  return { rows: rows.current, settle: scope.settle }
+  return { rows: rows.current, scope }
+}
+
+/** The snapshot lifecycle reads committed DOM, never speculative render geometry. */
+export class RowMotionCommit extends Component<{
+  scope: ReturnType<typeof createScope>
+  order: string
+  children: ReactNode
+}> {
+  getSnapshotBeforeUpdate(previous: Readonly<RowMotionCommit['props']>) {
+    if (previous.order !== this.props.order) this.props.scope.capture()
+    return null
+  }
+
+  componentDidUpdate() {
+    this.props.scope.complete()
+  }
+
+  render() {
+    return this.props.children
+  }
 }

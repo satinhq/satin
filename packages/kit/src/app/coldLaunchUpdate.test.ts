@@ -3,6 +3,7 @@ import { mayApplyBackgroundUpdate } from './backgroundUpdate.ts'
 import { afterEach, expect, it, vi } from 'vitest'
 import {
   COLD_LAUNCH_UPDATE_BUDGET_MS,
+  UPDATE_STALL_MS,
   consumeJustUpdated,
   prepareColdLaunchUpdate,
 } from './coldLaunchUpdate.ts'
@@ -106,7 +107,7 @@ it('bounds an unanswered check and leaves a later update waiting', async () => {
   expect(registration.installing.postMessage).not.toHaveBeenCalled()
 })
 
-it('keeps the old ring hidden and lets the successor confirm an update found in budget', async () => {
+it('shows download progress and hands the completed arc to the successor', async () => {
   const { registration, workers } = fixture()
   const next = new Worker('installing')
   registration.update.mockImplementation(() => new Promise(() => {}))
@@ -121,9 +122,8 @@ it('keeps the old ring hidden and lets the successor confirm an update found in 
       data: { type: 'SATIN_DOWNLOAD_PROGRESS', loaded: 40, total: 100, downloading: true },
     }),
   )
-  // An optional download may time out or be denied. Its bytes cannot promise
-  // that this document is being replaced until the worker has claimed it.
-  expect(progress).not.toHaveBeenCalled()
+  // A real download paints immediately; activation still enforces client safety.
+  expect(progress).toHaveBeenCalled()
   next.apply = () => {
     workers.controller = next
     workers.dispatchEvent(new Event('controllerchange'))
@@ -133,9 +133,9 @@ it('keeps the old ring hidden and lets the successor confirm an update found in 
   registration.waiting = next
   next.dispatchEvent(new Event('statechange'))
   expect(await pending).toBe('reloading')
-  expect(progress).not.toHaveBeenCalled()
+  expect(progress).toHaveBeenCalled()
   expect(JSON.parse(sessionStorage.getItem('satin:just-updated:v1:/app/')!)).toMatchObject({
-    ringStart: 0,
+    ringStart: 100,
   })
   expect(window.location.reload).toHaveBeenCalledOnce()
   expect(consumeJustUpdated('/app/')).toEqual({ previous: 'build-a', current: 'build-b' })
@@ -227,7 +227,7 @@ it('does not let repeated unchanged byte samples keep a stalled download covered
       }),
     )
   sample()
-  for (let i = 0; i < 6; i++) {
+  for (let i = 0; i < 9; i++) {
     await vi.advanceTimersByTimeAsync(1000)
     sample()
   }
@@ -235,13 +235,13 @@ it('does not let repeated unchanged byte samples keep a stalled download covered
   expect(window.location.reload).not.toHaveBeenCalled()
 })
 
-it('does not reload after the activation budget when claim arrives late', async () => {
+it('does not reload after activation stalls and claim arrives late', async () => {
   vi.useFakeTimers()
   const { registration, workers } = fixture()
   const next = new Worker('installed')
   registration.waiting = next
   const pending = prepareColdLaunchUpdate('/app/', vi.fn())
-  await vi.advanceTimersByTimeAsync(3001)
+  await vi.advanceTimersByTimeAsync(UPDATE_STALL_MS + 1)
   expect(await pending).toBe('current')
   registration.waiting = null
   registration.active = next
@@ -254,7 +254,7 @@ it('does not reload after the activation budget when claim arrives late', async 
   expect(window.location.reload).not.toHaveBeenCalled()
 })
 
-it('reloads after claim without starting or completing a ring in the old document', async () => {
+it('reloads after claim without waiting for a second completion animation', async () => {
   vi.useFakeTimers()
   const { registration, workers } = fixture()
   const completingRing = vi.fn(() => new Promise<boolean>(() => {}))
@@ -271,7 +271,7 @@ it('reloads after claim without starting or completing a ring in the old documen
   await vi.advanceTimersByTimeAsync(100)
   expect(completingRing).not.toHaveBeenCalled()
   expect(await pending).toBe('reloading')
-  expect(progress).not.toHaveBeenCalled()
+  expect(progress).toHaveBeenCalled()
   expect(window.location.reload).toHaveBeenCalledOnce()
 })
 
@@ -319,7 +319,7 @@ it('does not start another check when an already waiting worker moves to active'
   expect(registration.update).not.toHaveBeenCalled()
 })
 
-it('bounds a slow download even when bytes keep arriving and ignores its late install', async () => {
+it('keeps a five-second advancing download covered and applies it on this launch', async () => {
   vi.useFakeTimers()
   const { registration, workers } = fixture()
   const next = new Worker('installing')
@@ -327,26 +327,52 @@ it('bounds a slow download even when bytes keep arriving and ignores its late in
   const progress = vi.fn()
   const pending = prepareColdLaunchUpdate('/app/', progress)
   await vi.advanceTimersByTimeAsync(1)
-  for (let loaded = 1; loaded <= 8; loaded++) {
+  for (let loaded = 10; loaded <= 100; loaded += 10) {
     workers.dispatchEvent(
       Object.assign(new Event('message'), {
         source: next,
-        data: { type: 'SATIN_DOWNLOAD_PROGRESS', loaded, total: 100, downloading: true },
+        data: { type: 'SATIN_DOWNLOAD_PROGRESS', loaded, total: 100 },
       }),
     )
-    await vi.advanceTimersByTimeAsync(100)
+    await vi.advanceTimersByTimeAsync(500)
+    expect(window.location.reload).not.toHaveBeenCalled()
   }
-  expect(await pending).toBe('current')
-  expect(progress).toHaveBeenLastCalledWith(null)
-  expect(progress.mock.calls.every(([sample]) => sample === null)).toBe(true)
+  next.apply = () => {
+    workers.controller = next
+    workers.dispatchEvent(new Event('controllerchange'))
+  }
   registration.installing = null
   registration.waiting = next
   next.state = 'installed'
   next.dispatchEvent(new Event('statechange'))
-  expect(next.postMessage).not.toHaveBeenCalledWith(
-    expect.objectContaining({ type: APP_SHELL_APPLY_COLD_UPDATE }),
-  )
-  expect(window.location.reload).not.toHaveBeenCalled()
+  await vi.advanceTimersByTimeAsync(201)
+  expect(await pending).toBe('reloading')
+  expect(progress).toHaveBeenLastCalledWith({ loaded: 95, total: 100 })
+  expect(window.location.reload).toHaveBeenCalledOnce()
+})
+
+it('bounds registration lookup and retries after a stalled launch', async () => {
+  vi.useFakeTimers()
+  const { registration, workers } = fixture()
+  workers.getRegistration.mockImplementationOnce(() => new Promise(() => {}))
+  const lookup = prepareColdLaunchUpdate('/app/', vi.fn())
+  await vi.advanceTimersByTimeAsync(801)
+  expect(await lookup).toBe('current')
+  const next = new Worker('installing')
+  registration.installing = next
+  const stalled = prepareColdLaunchUpdate('/app/', vi.fn())
+  await vi.advanceTimersByTimeAsync(UPDATE_STALL_MS + 1)
+  expect(await stalled).toBe('current')
+  registration.installing = null
+  registration.waiting = next
+  next.state = 'installed'
+  next.apply = () => {
+    workers.controller = next
+    workers.dispatchEvent(new Event('controllerchange'))
+  }
+  const retry = prepareColdLaunchUpdate('/app/', vi.fn())
+  await vi.advanceTimersByTimeAsync(201)
+  expect(await retry).toBe('reloading')
 })
 
 it('opens offline with no waiting worker without checking the network', async () => {
@@ -571,4 +597,38 @@ it('retries a denied activation at a later suspension, including on the reload s
     workers.dispatchEvent(new Event('controllerchange'))
   }
   expect(await fresh.prepareColdLaunchUpdate('/app/', vi.fn(), options)).toBe('reloading')
+})
+
+it('keeps a healthy retry covered while retransmitted bytes remain below the first attempt peak', async () => {
+  vi.useFakeTimers()
+  const { registration, workers } = fixture()
+  const next = new Worker('installing')
+  registration.installing = next
+  const onActivity = vi.fn()
+  const pending = prepareColdLaunchUpdate('/app/', vi.fn(), { onActivity })
+  await vi.advanceTimersByTimeAsync(1)
+  const sample = (loaded: number, activity: number) =>
+    workers.dispatchEvent(
+      Object.assign(new Event('message'), {
+        source: next,
+        data: { type: 'SATIN_DOWNLOAD_PROGRESS', loaded, total: 100, activity },
+      }),
+    )
+  sample(90, 1)
+  sample(0, 2)
+  for (let loaded = 1; loaded <= 40; loaded++) {
+    await vi.advanceTimersByTimeAsync(1000)
+    sample(loaded, 2)
+  }
+  next.apply = () => {
+    workers.controller = next
+    workers.dispatchEvent(new Event('controllerchange'))
+  }
+  registration.installing = null
+  registration.waiting = next
+  next.state = 'installed'
+  next.dispatchEvent(new Event('statechange'))
+  await vi.advanceTimersByTimeAsync(201)
+  expect(await pending).toBe('reloading')
+  expect(onActivity.mock.calls.length).toBeGreaterThanOrEqual(43)
 })

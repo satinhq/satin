@@ -12,6 +12,7 @@ import {
 import { MaterialEffectContext, type MaterialEffectRegistration } from './liquidContext.ts'
 import { GlassRegionRegistry } from './regionRegistry.ts'
 import { Glass, type GlassRegion } from './regions.ts'
+import { ControlLens } from './ControlLens.tsx'
 
 const mounted: Array<() => void> = []
 afterEach(() => {
@@ -174,4 +175,42 @@ it('interactive glass presses in its own material canvas, with no lift canvas', 
   // The press light, growth and squish draw in the glass's material (InteractiveContact).
   expect(element.querySelectorAll('[data-satin-glass-region-canvas]')).toHaveLength(1)
   expect(regions.values()[0]?.overlay).toBeUndefined()
+})
+
+it('keeps glass presenters out of host layout even without the framework stylesheet', () => {
+  Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
+  const element = document.createElement('div')
+  document.body.append(element)
+  const root = createRoot(element)
+  mounted.push(() => {
+    act(() => root.unmount())
+    element.remove()
+  })
+  act(() =>
+    root.render(
+      <GlassEffectContainer>
+        <GlassEffect shape="circle">Back</GlassEffect>
+        <MaterialEffectContext
+          value={{
+            backend: 'webgpu',
+            ready: true,
+            regions: new GlassRegionRegistry(),
+            registerTabs() {},
+          }}
+        >
+          <ControlLens kind="toggle" active={false} handle={{ current: null }}>
+            Thumb
+          </ControlLens>
+        </MaterialEffectContext>
+      </GlassEffectContainer>,
+    ),
+  )
+  const canvases = [...element.querySelectorAll('canvas')]
+  expect(canvases.length).toBeGreaterThan(0)
+  for (const canvas of canvases) {
+    // Renderer allocations can exceed the control. They must never enter normal
+    // flow, where the next host measurement would feed that size back again.
+    canvas.width = canvas.height = 2048
+    expect(getComputedStyle(canvas).position).toBe('absolute')
+  }
 })

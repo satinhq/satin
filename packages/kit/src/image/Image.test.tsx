@@ -674,6 +674,13 @@ it('settles failed local artwork as a placeholder without reporting a glass capt
     })
     expect(host.querySelector('img')!.dataset.satinImageState).toBe('error')
     expect(host.querySelector('img')!.src).toMatch(/^data:image/)
+    const failurePixels = new DOMParser().parseFromString(
+      decodeURIComponent(host.querySelector('img')!.src.split(',')[1]!),
+      'image/svg+xml',
+    )
+    expect(failurePixels.documentElement.getAttribute('viewBox')).toBe('0 0 80 80')
+    expect(failurePixels.querySelector('[stroke] path')).not.toBeNull()
+    expect(host.querySelector('img')!.alt).toBe('Missing')
     expect(getGlassErrors()).toHaveLength(errors)
     await act(() =>
       root.render(
@@ -688,6 +695,7 @@ it('settles failed local artwork as a placeholder without reporting a glass capt
     await act(() => rejectAsset())
     expect(host.textContent).toBe('Failed results')
     expect(host.querySelector('img')!.dataset.satinImageState).toBe('error')
+    expect(decodeURIComponent(host.querySelector('img')!.src)).toContain('stroke=')
     expect(host.querySelector('[data-satin-content-pending]')).toBeNull()
   } finally {
     await act(() => root.unmount())

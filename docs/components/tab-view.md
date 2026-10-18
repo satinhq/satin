@@ -86,6 +86,46 @@ runApp({ app: defineApp(appInput), routes, navigation, content: App })
 
 Register tab ids and root routes in `defineNavigation`. Use its `defaultTab` option for the initial tab. TabView renders those declarations, each with its own retained stack.
 
+## Show a count or attention dot
+
+Set `badge` on a tab in `defineNavigation` for an initial count. To update it from
+React state, compose every declared tab once and pass a live `badge` to `Tab`.
+The count belongs to app state, so derive it from the same data as the list.
+
+<!-- compile -->
+
+```tsx
+import { Tab, TabView, defineNavigation, defineRoutes, route } from '@satinhq/kit'
+
+const routes = defineRoutes({
+  recipes: route(() => null, { title: 'Recipes' }),
+  shopping: route(() => null, { title: 'Shopping' }),
+})
+const navigation = defineNavigation(routes, {
+  tabs: [
+    { id: 'recipes', label: 'Recipes', symbol: 'book', root: 'recipes' },
+    { id: 'shopping', label: 'Shopping', symbol: 'cart', root: 'shopping' },
+  ],
+})
+
+export function ShoppingTabs({ remaining }: { remaining: number }) {
+  return (
+    <TabView<typeof navigation>>
+      <Tab<typeof navigation> id="recipes" />
+      <Tab<typeof navigation> id="shopping" badge={remaining} />
+    </TabView>
+  )
+}
+```
+
+Pass this `routes` and `navigation` pair to `runApp`, with `ShoppingTabs` inside
+your app content. Replace the placeholder routes with your screens. `badge={0}`
+or `badge={null}` clears
+the badge. `badge="dot"` shows an attention dot. Omitting `badge` inherits the
+navigation declaration. Counts update without changing the selected tab or its
+retained navigation stack. Badges appear in the phone bar, the iPad top bar and
+the adaptive sidebar, using the active material.
+
 ## Control selection
 
 Omit `selection` to let the TabView manage it. Supply `selection` and `onSelectionChange` for a controlled tab.
@@ -152,6 +192,13 @@ export function PlayerTabs() {
 The full-width row and its content insets belong to this recipe. Text colors
 follow appearance. Accessory motion uses the framework's existing behavior;
 there is no public accessory-morph setting to configure.
+
+## Tab badge API
+
+| Prop | Type | Description |
+| --- | --- | --- |
+| `Tab.badge` | `number \| 'dot' \| null` | Live count or attention dot. Zero or null hides it; omission inherits the declaration. |
+| `TabDeclaration.badge` | `number \| 'dot' \| null` | Initial badge in `defineNavigation`. |
 
 ## API
 

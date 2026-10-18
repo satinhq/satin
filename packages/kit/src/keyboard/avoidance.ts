@@ -18,6 +18,8 @@ export type KeyboardClearance = Readonly<{
 type Avoiding = {
   restorePadding: string
   originalPadding: number
+  /** Keyboard overlap in this surface, independent of its existing safe-area inset. */
+  room: number
   /** The inline padding this module last wrote; anything else was written by the app. */
   written: string
   /** A screen's content layer lifted by its own scroll offset: restored at release. */
@@ -65,6 +67,14 @@ function keepEditorInBox(
  */
 export function createKeyboardAvoidance() {
   const avoiding = new Map<HTMLElement, Avoiding>()
+  const paddingWithRoom = (state: Avoiding) => {
+    const inset = 'var(--satin-scroll-inset-bottom)'
+    // ScrollSurface already includes the enclosing safe-area chain in its padding. Keep that
+    // live expression, consuming only the larger of its inset and the keyboard overlap.
+    return state.restorePadding.includes(inset)
+      ? state.restorePadding.replaceAll(inset, `max(${inset}, ${state.room}px)`)
+      : `${state.originalPadding + state.room}px`
+  }
   // An app render can rewrite a surface's inline style (ScrollSurface spreads `style`): put the
   // keyboard room back on top of the app's new padding.
   const styleObserver =
@@ -75,10 +85,9 @@ export function createKeyboardAvoidance() {
             const surface = record.target as HTMLElement
             const state = avoiding.get(surface)
             if (!state || state.lift || surface.style.paddingBottom === state.written) continue
-            const room = parseFloat(state.written) - state.originalPadding
             state.restorePadding = surface.style.paddingBottom
             state.originalPadding = parseFloat(getComputedStyle(surface).paddingBottom) || 0
-            state.written = `${state.originalPadding + room}px`
+            state.written = paddingWithRoom(state)
             surface.style.paddingBottom = state.written
           }
         })
@@ -106,6 +115,7 @@ export function createKeyboardAvoidance() {
         restorePadding: surface.style.paddingBottom,
         originalPadding: parseFloat(getComputedStyle(surface).paddingBottom) || 0,
         written: '',
+        room: 0,
         lift: null,
       }
       avoiding.set(surface, state)
@@ -115,7 +125,8 @@ export function createKeyboardAvoidance() {
       0,
       surface.getBoundingClientRect().bottom - clearance.offsetTop - clearance.bottom,
     )
-    state.written = `${state.originalPadding + overlap}px`
+    state.room = overlap
+    state.written = paddingWithRoom(state)
     surface.style.paddingBottom = state.written
     surface.dataset.satinKeyboardAvoiding = 'true'
   }
@@ -127,6 +138,7 @@ export function createKeyboardAvoidance() {
         restorePadding: '',
         originalPadding: 0,
         written: '',
+        room: 0,
         lift: { scrollTop: layer.scrollTop, spacer: null },
       }
       avoiding.set(layer, state)

@@ -1,0 +1,200 @@
+{
+  "status": "CANDIDATE_NOT_DEVICE_QUALIFIED",
+  "method": "Original USB source PTS, fixed interior blank RGB patch, independent title displacement; two-line r117 training and r124/three-line holdout",
+  "normalization": {
+    "rest": [
+      255,
+      255,
+      255
+    ],
+    "active": [
+      229,
+      228,
+      234
+    ]
+  },
+  "onset": "Native r134 slow two-line crosses 10 pt at 0.099234 s and 25 pt at 0.225 s; face stays white through 0.217 s. r136 starts its fade at WebKit ownership and leads native. Candidate now starts at the contact model pan-recognition boundary, preserving the measured time response. Installed qualification pending.",
+  "scope": "Light inset-grouped iPad measured. Phone, plain and dark still pending.",
+  "models": [
+    {
+      "model": "time",
+      "parameters": [
+        4.603452776209042,
+        2.967677353892544,
+        -0.02981347947039125
+      ],
+      "stiffness": 99.82840641252383,
+      "damping": 19.44669930055528,
+      "cases": [
+        {
+          "name": "rows-native-light-insetGrouped-ipad-r117/two-line",
+          "train": true,
+          "sourceSHA256": "b0204a535ea8d6ada40817c558fc9f8b1e857f701e6c876511adfc46ef6af66b",
+          "maxAlphaError": 0.029544532388215583,
+          "rms": 0.011894567843453455
+        },
+        {
+          "name": "rows-native-light-insetGrouped-ipad-r117/three-line",
+          "train": false,
+          "sourceSHA256": "b0204a535ea8d6ada40817c558fc9f8b1e857f701e6c876511adfc46ef6af66b",
+          "maxAlphaError": 0.07019890947408802,
+          "rms": 0.022212941774789337
+        },
+        {
+          "name": "rows-native-light-insetGrouped-ipad-r117/two-line-entry-step",
+          "train": true,
+          "sourceSHA256": "b0204a535ea8d6ada40817c558fc9f8b1e857f701e6c876511adfc46ef6af66b",
+          "maxAlphaError": 0.03278314078527239,
+          "rms": 0.01147709537904658
+        },
+        {
+          "name": "rows-native-light-insetGrouped-ipad-r117/three-line-entry-step",
+          "train": false,
+          "sourceSHA256": "b0204a535ea8d6ada40817c558fc9f8b1e857f701e6c876511adfc46ef6af66b",
+          "maxAlphaError": 0.02954453238819571,
+          "rms": 0.01193417076754639
+        },
+        {
+          "name": "rows-native-light-insetGrouped-ipad-r124/two-line",
+          "train": false,
+          "sourceSHA256": "5c945a8736fa11492a7d42720484aa1c615c6122a3282fb8cd689375fa3cfc6e",
+          "maxAlphaError": 0.07019890947408802,
+          "rms": 0.023706504417464688
+        },
+        {
+          "name": "rows-native-light-insetGrouped-ipad-r124/three-line",
+          "train": false,
+          "sourceSHA256": "5c945a8736fa11492a7d42720484aa1c615c6122a3282fb8cd689375fa3cfc6e",
+          "maxAlphaError": 0.07019890947408802,
+          "rms": 0.023019433308906056
+        },
+        {
+          "name": "rows-native-light-insetGrouped-ipad-r124/two-line-entry-step",
+          "train": false,
+          "sourceSHA256": "5c945a8736fa11492a7d42720484aa1c615c6122a3282fb8cd689375fa3cfc6e",
+          "maxAlphaError": 0.028316483367198192,
+          "rms": 0.01026168664320119
+        },
+        {
+          "name": "rows-native-light-insetGrouped-ipad-r124/three-line-entry-step",
+          "train": false,
+          "sourceSHA256": "5c945a8736fa11492a7d42720484aa1c615c6122a3282fb8cd689375fa3cfc6e",
+          "maxAlphaError": 0.028316483367198192,
+          "rms": 0.010355649958147233
+        }
+      ]
+    },
+    {
+      "model": "displacement",
+      "parameters": [
+        -43.24896116808314,
+        139.7596153422632
+      ],
+      "stiffness": null,
+      "damping": null,
+      "cases": [
+        {
+          "name": "rows-native-light-insetGrouped-ipad-r117/two-line",
+          "train": true,
+          "sourceSHA256": "b0204a535ea8d6ada40817c558fc9f8b1e857f701e6c876511adfc46ef6af66b",
+          "maxAlphaError": 0.4761232180665619,
+          "rms": 0.33981752556937583
+        },
+        {
+          "name": "rows-native-light-insetGrouped-ipad-r117/three-line",
+          "train": false,
+          "sourceSHA256": "b0204a535ea8d6ada40817c558fc9f8b1e857f701e6c876511adfc46ef6af66b",
+          "maxAlphaError": 0.4761372782003097,
+          "rms": 0.33943091864274477
+        },
+        {
+          "name": "rows-native-light-insetGrouped-ipad-r117/two-line-entry-step",
+          "train": true,
+          "sourceSHA256": "b0204a535ea8d6ada40817c558fc9f8b1e857f701e6c876511adfc46ef6af66b",
+          "maxAlphaError": 0.6645810811790536,
+          "rms": 0.25512812663775897
+        },
+        {
+          "name": "rows-native-light-insetGrouped-ipad-r117/three-line-entry-step",
+          "train": false,
+          "sourceSHA256": "b0204a535ea8d6ada40817c558fc9f8b1e857f701e6c876511adfc46ef6af66b",
+          "maxAlphaError": 0.5545375763364415,
+          "rms": 0.23384785592650478
+        },
+        {
+          "name": "rows-native-light-insetGrouped-ipad-r124/two-line",
+          "train": false,
+          "sourceSHA256": "5c945a8736fa11492a7d42720484aa1c615c6122a3282fb8cd689375fa3cfc6e",
+          "maxAlphaError": 0.47611857221230613,
+          "rms": 0.3391807310196088
+        },
+        {
+          "name": "rows-native-light-insetGrouped-ipad-r124/three-line",
+          "train": false,
+          "sourceSHA256": "5c945a8736fa11492a7d42720484aa1c615c6122a3282fb8cd689375fa3cfc6e",
+          "maxAlphaError": 0.4761392384794928,
+          "rms": 0.34005069149943257
+        },
+        {
+          "name": "rows-native-light-insetGrouped-ipad-r124/two-line-entry-step",
+          "train": false,
+          "sourceSHA256": "5c945a8736fa11492a7d42720484aa1c615c6122a3282fb8cd689375fa3cfc6e",
+          "maxAlphaError": 0.4613963945393399,
+          "rms": 0.2798658502833591
+        },
+        {
+          "name": "rows-native-light-insetGrouped-ipad-r124/three-line-entry-step",
+          "train": false,
+          "sourceSHA256": "5c945a8736fa11492a7d42720484aa1c615c6122a3282fb8cd689375fa3cfc6e",
+          "maxAlphaError": 0.5587915732601904,
+          "rms": 0.23349188605338464
+        }
+      ]
+    }
+  ],
+  "onsetEvidence": {
+    "nativeSHA256": "d456edba952da43d3e422eaceb51d97e28d342a43ee88cc552d43b592b7d54b3",
+    "satinSHA256": "7de70a949c7401597995fd9e0ba4bf08751794f003c08eb34ed22a4c9d0c74f6",
+    "slowMaxAlphaErrorBeforeOnsetFix": 0.4889431556098223,
+    "firstFastStepMaxAlphaErrorBeforeOnsetFix": 0.08207841541174876,
+    "repeatAdmission": "FAIL: missing or truncated marker contacts; no envelope acceptance"
+  },
+  "appear": {
+    "model": "mass-1 spring on the input clock, started after the input sample that crosses the 25pt pan recognition distance",
+    "stiffness": 100.60015092634691,
+    "damping": 20.114333994350574,
+    "delayMilliseconds": 23.27,
+    "source": "native presentation-layer face backgroundColor (--cell-witness), every display frame, input-clock timestamps; iPad o1 takeover/release/matrix sets",
+    "maxAlphaError": {
+      "two-line-entry-step x3": [
+        0.017,
+        0.0063,
+        0.0298
+      ],
+      "two-line": 0.0047,
+      "flick-commit": 0.0084,
+      "partial-open": 0.0067,
+      "leading-commit": 0.0166,
+      "reverse-cancel": 0.0133,
+      "slow-commit": 0.0595,
+      "tall-commit": 0.0069
+    },
+    "superseded": "video-pixel fit r150 (k 100.12, c 19.49, +3.8ms on marker-aligned video); installed o2-o5 captures showed that onset one frame early"
+  },
+  "disappear": {
+    "model": "mass-1 spring on the input clock, started after the lift-off (or dismissing tap) input sample",
+    "stiffness": 127.97305868627578,
+    "damping": 20.65775725918,
+    "delayMilliseconds": 15.58,
+    "source": "same presentation-layer trace; tap-close and reverse-cancel",
+    "maxAlphaError": {
+      "tap-close": 0.0331,
+      "reverse-cancel": 0.0353
+    },
+    "rejected": {
+      "row close spring (k 165.38, c 26.31) with free onset": 0.0499,
+      "appear spring with free onset": 0.082
+    },
+    "videoCrossCheck": "native r116 tap-close and reverse-cancel video curves are identical within one frame"
+  }
+}

@@ -1,0 +1,345 @@
+{
+  "status": "MEASURED_CANDIDATE_PENDING_INSTALLED_PARITY",
+  "weighting": "Each fit weights residuals by elapsed observation time. models use original source PTS. r123PresentationModels use native sampledAt timestamps and require independent USB pixel verification.",
+  "training": "r123PresentationModels: two-line rows at iPad and phone width, inset grouped; models: prior source-pixel identification across widths/styles",
+  "holdout": "r123PresentationModels: three-line rows at both widths; models: prior three-line source-pixel curves",
+  "models": [
+    {
+      "model": "ratio",
+      "parameters": {
+        "recognitionTravelPoints": 27.701626442687896,
+        "ratio": 0.9892956309972075
+      },
+      "cases": [
+        {
+          "id": "rows-native-light-insetGrouped-ipad-r117/two-line",
+          "training": true,
+          "sourceSHA256": "b0204a535ea8d6ada40817c558fc9f8b1e857f701e6c876511adfc46ef6af66b",
+          "maximumError": 9.738097007001116,
+          "timeWeightedRMS": 4.6636039323545555
+        },
+        {
+          "id": "rows-native-light-insetGrouped-ipad-r117/three-line",
+          "training": false,
+          "sourceSHA256": "b0204a535ea8d6ada40817c558fc9f8b1e857f701e6c876511adfc46ef6af66b",
+          "maximumError": 9.751277915821532,
+          "timeWeightedRMS": 4.6515744655377045
+        },
+        {
+          "id": "rows-native-light-insetGrouped-phone-r117/two-line",
+          "training": true,
+          "sourceSHA256": "ccc2555650bb7f2bfed761ef80b9b20cf11c41256237ea8f220f2d9007fc6ba0",
+          "maximumError": 12.521779654879225,
+          "timeWeightedRMS": 5.537779369932663
+        },
+        {
+          "id": "rows-native-light-insetGrouped-phone-r117/three-line",
+          "training": false,
+          "sourceSHA256": "ccc2555650bb7f2bfed761ef80b9b20cf11c41256237ea8f220f2d9007fc6ba0",
+          "maximumError": 10.030556998674257,
+          "timeWeightedRMS": 4.643764716655375
+        },
+        {
+          "id": "rows-native-light-plain-ipad/two-line",
+          "training": true,
+          "sourceSHA256": "d8e97be136c40a091f563bed49caf2929aa0355402c16dd785f7151c988192c6",
+          "maximumError": 9.387577684208097,
+          "timeWeightedRMS": 4.623701116284562
+        },
+        {
+          "id": "rows-native-light-plain-ipad/three-line",
+          "training": false,
+          "sourceSHA256": "d8e97be136c40a091f563bed49caf2929aa0355402c16dd785f7151c988192c6",
+          "maximumError": 6.810105844654515,
+          "timeWeightedRMS": 3.7468656300433105
+        },
+        {
+          "id": "rows-native-light-plain-phone/two-line",
+          "training": true,
+          "sourceSHA256": "fc0cdcbb16974806e84bf37c831199521deb039491e24d9ba790868f312ab774",
+          "maximumError": 9.673282745297698,
+          "timeWeightedRMS": 4.743651578530379
+        },
+        {
+          "id": "rows-native-light-plain-phone/three-line",
+          "training": false,
+          "sourceSHA256": "fc0cdcbb16974806e84bf37c831199521deb039491e24d9ba790868f312ab774",
+          "maximumError": 9.989809040172872,
+          "timeWeightedRMS": 4.739133121073277
+        }
+      ]
+    },
+    {
+      "model": "lag",
+      "parameters": {
+        "recognitionTravelPoints": 25.512834615711185,
+        "lagSeconds": 0.03986681802104089
+      },
+      "cases": [
+        {
+          "id": "rows-native-light-insetGrouped-ipad-r117/two-line",
+          "training": true,
+          "sourceSHA256": "b0204a535ea8d6ada40817c558fc9f8b1e857f701e6c876511adfc46ef6af66b",
+          "maximumError": 1.379684626531148,
+          "timeWeightedRMS": 0.6617975994482262
+        },
+        {
+          "id": "rows-native-light-insetGrouped-ipad-r117/three-line",
+          "training": false,
+          "sourceSHA256": "b0204a535ea8d6ada40817c558fc9f8b1e857f701e6c876511adfc46ef6af66b",
+          "maximumError": 1.4293076671609484,
+          "timeWeightedRMS": 0.6777925476613673
+        },
+        {
+          "id": "rows-native-light-insetGrouped-phone-r117/two-line",
+          "training": true,
+          "sourceSHA256": "ccc2555650bb7f2bfed761ef80b9b20cf11c41256237ea8f220f2d9007fc6ba0",
+          "maximumError": 2.638690373223227,
+          "timeWeightedRMS": 1.0430392195934104
+        },
+        {
+          "id": "rows-native-light-insetGrouped-phone-r117/three-line",
+          "training": false,
+          "sourceSHA256": "ccc2555650bb7f2bfed761ef80b9b20cf11c41256237ea8f220f2d9007fc6ba0",
+          "maximumError": 1.4130208630904946,
+          "timeWeightedRMS": 0.6596440252510358
+        },
+        {
+          "id": "rows-native-light-plain-ipad/two-line",
+          "training": true,
+          "sourceSHA256": "d8e97be136c40a091f563bed49caf2929aa0355402c16dd785f7151c988192c6",
+          "maximumError": 1.4568232151200533,
+          "timeWeightedRMS": 0.6669625217711649
+        },
+        {
+          "id": "rows-native-light-plain-ipad/three-line",
+          "training": false,
+          "sourceSHA256": "d8e97be136c40a091f563bed49caf2929aa0355402c16dd785f7151c988192c6",
+          "maximumError": 3.9875375997087943,
+          "timeWeightedRMS": 1.6008573117537361
+        },
+        {
+          "id": "rows-native-light-plain-phone/two-line",
+          "training": true,
+          "sourceSHA256": "fc0cdcbb16974806e84bf37c831199521deb039491e24d9ba790868f312ab774",
+          "maximumError": 1.6529509370635154,
+          "timeWeightedRMS": 0.7083831743941333
+        },
+        {
+          "id": "rows-native-light-plain-phone/three-line",
+          "training": false,
+          "sourceSHA256": "fc0cdcbb16974806e84bf37c831199521deb039491e24d9ba790868f312ab774",
+          "maximumError": 1.6608709370373163,
+          "timeWeightedRMS": 0.7371953399059897
+        }
+      ]
+    },
+    {
+      "model": "first-order",
+      "parameters": {
+        "recognitionTravelPoints": 25.446381326342404,
+        "timeConstantSeconds": 0.03969069727986015
+      },
+      "cases": [
+        {
+          "id": "rows-native-light-insetGrouped-ipad-r117/two-line",
+          "training": true,
+          "sourceSHA256": "b0204a535ea8d6ada40817c558fc9f8b1e857f701e6c876511adfc46ef6af66b",
+          "maximumError": 2.1448478733694216,
+          "timeWeightedRMS": 0.8939310157849882
+        },
+        {
+          "id": "rows-native-light-insetGrouped-ipad-r117/three-line",
+          "training": false,
+          "sourceSHA256": "b0204a535ea8d6ada40817c558fc9f8b1e857f701e6c876511adfc46ef6af66b",
+          "maximumError": 2.274695968644366,
+          "timeWeightedRMS": 0.9429205733040853
+        },
+        {
+          "id": "rows-native-light-insetGrouped-phone-r117/two-line",
+          "training": true,
+          "sourceSHA256": "ccc2555650bb7f2bfed761ef80b9b20cf11c41256237ea8f220f2d9007fc6ba0",
+          "maximumError": 3.987575294061152,
+          "timeWeightedRMS": 1.396556357253139
+        },
+        {
+          "id": "rows-native-light-insetGrouped-phone-r117/three-line",
+          "training": false,
+          "sourceSHA256": "ccc2555650bb7f2bfed761ef80b9b20cf11c41256237ea8f220f2d9007fc6ba0",
+          "maximumError": 2.1781812101206413,
+          "timeWeightedRMS": 0.9240232218986473
+        },
+        {
+          "id": "rows-native-light-plain-ipad/two-line",
+          "training": true,
+          "sourceSHA256": "d8e97be136c40a091f563bed49caf2929aa0355402c16dd785f7151c988192c6",
+          "maximumError": 1.9805802420339091,
+          "timeWeightedRMS": 0.9093892737860862
+        },
+        {
+          "id": "rows-native-light-plain-ipad/three-line",
+          "training": false,
+          "sourceSHA256": "d8e97be136c40a091f563bed49caf2929aa0355402c16dd785f7151c988192c6",
+          "maximumError": 3.5853244247057887,
+          "timeWeightedRMS": 1.5177917043396958
+        },
+        {
+          "id": "rows-native-light-plain-phone/two-line",
+          "training": true,
+          "sourceSHA256": "fc0cdcbb16974806e84bf37c831199521deb039491e24d9ba790868f312ab774",
+          "maximumError": 2.2079632020124933,
+          "timeWeightedRMS": 0.9954464809474964
+        },
+        {
+          "id": "rows-native-light-plain-phone/three-line",
+          "training": false,
+          "sourceSHA256": "fc0cdcbb16974806e84bf37c831199521deb039491e24d9ba790868f312ab774",
+          "maximumError": 2.0258380987057905,
+          "timeWeightedRMS": 0.9405224569563263
+        }
+      ]
+    },
+    {
+      "model": "spring",
+      "parameters": {
+        "recognitionTravelPoints": 25.53946753178942,
+        "stiffness": 1483.5205592581408,
+        "damping": 58.5063488822322
+      },
+      "cases": [
+        {
+          "id": "rows-native-light-insetGrouped-ipad-r117/two-line",
+          "training": true,
+          "sourceSHA256": "b0204a535ea8d6ada40817c558fc9f8b1e857f701e6c876511adfc46ef6af66b",
+          "maximumError": 1.3543532195715002,
+          "timeWeightedRMS": 0.6010487959666291
+        },
+        {
+          "id": "rows-native-light-insetGrouped-ipad-r117/three-line",
+          "training": false,
+          "sourceSHA256": "b0204a535ea8d6ada40817c558fc9f8b1e857f701e6c876511adfc46ef6af66b",
+          "maximumError": 1.6423364055418972,
+          "timeWeightedRMS": 0.6361610698284299
+        },
+        {
+          "id": "rows-native-light-insetGrouped-phone-r117/two-line",
+          "training": true,
+          "sourceSHA256": "ccc2555650bb7f2bfed761ef80b9b20cf11c41256237ea8f220f2d9007fc6ba0",
+          "maximumError": 2.5677429979141095,
+          "timeWeightedRMS": 1.014050605364281
+        },
+        {
+          "id": "rows-native-light-insetGrouped-phone-r117/three-line",
+          "training": false,
+          "sourceSHA256": "ccc2555650bb7f2bfed761ef80b9b20cf11c41256237ea8f220f2d9007fc6ba0",
+          "maximumError": 1.3876896293933214,
+          "timeWeightedRMS": 0.6128146966429432
+        },
+        {
+          "id": "rows-native-light-plain-ipad/two-line",
+          "training": true,
+          "sourceSHA256": "d8e97be136c40a091f563bed49caf2929aa0355402c16dd785f7151c988192c6",
+          "maximumError": 1.1520705888902825,
+          "timeWeightedRMS": 0.608005718444575
+        },
+        {
+          "id": "rows-native-light-plain-ipad/three-line",
+          "training": false,
+          "sourceSHA256": "d8e97be136c40a091f563bed49caf2929aa0355402c16dd785f7151c988192c6",
+          "maximumError": 3.708539702620662,
+          "timeWeightedRMS": 1.572481349077683
+        },
+        {
+          "id": "rows-native-light-plain-phone/two-line",
+          "training": true,
+          "sourceSHA256": "fc0cdcbb16974806e84bf37c831199521deb039491e24d9ba790868f312ab774",
+          "maximumError": 1.3568187828454228,
+          "timeWeightedRMS": 0.6836148995579705
+        },
+        {
+          "id": "rows-native-light-plain-phone/three-line",
+          "training": false,
+          "sourceSHA256": "fc0cdcbb16974806e84bf37c831199521deb039491e24d9ba790868f312ab774",
+          "maximumError": 1.3838041953182696,
+          "timeWeightedRMS": 0.6713120604373588
+        }
+      ]
+    }
+  ],
+  "r123PresentationModels": [
+    {
+      "stiffness": 1113.1398976404985,
+      "damping": 52.54398166492597,
+      "delaySeconds": 0,
+      "cases": [
+        {
+          "id": "rows-native-light-insetGrouped-ipad-r123/two-line",
+          "maxError": 1.0870518910002858,
+          "rms": 0.20583048311512367
+        },
+        {
+          "id": "rows-native-light-insetGrouped-ipad-r123/three-line",
+          "maxError": 0.9101071291176872,
+          "rms": 0.20417376241650464
+        },
+        {
+          "id": "rows-native-light-insetGrouped-phone-r123/two-line",
+          "maxError": 0.8888723786822226,
+          "rms": 0.1941443436282113
+        },
+        {
+          "id": "rows-native-light-insetGrouped-phone-r123/three-line",
+          "maxError": 0.8793990984556252,
+          "rms": 0.198466650277245
+        }
+      ]
+    },
+    {
+      "stiffness": 4766.952851158994,
+      "damping": 141.4167231783313,
+      "delaySeconds": 0.018157622784826487,
+      "cases": [
+        {
+          "id": "rows-native-light-insetGrouped-ipad-r123/two-line",
+          "maxError": 0.9947852636170182,
+          "rms": 0.11108812262729265
+        },
+        {
+          "id": "rows-native-light-insetGrouped-ipad-r123/three-line",
+          "maxError": 0.5175709818462408,
+          "rms": 0.10115608070676867
+        },
+        {
+          "id": "rows-native-light-insetGrouped-phone-r123/two-line",
+          "maxError": 0.4119916165423234,
+          "rms": 0.0897683696341499
+        },
+        {
+          "id": "rows-native-light-insetGrouped-phone-r123/three-line",
+          "maxError": 0.4686464630091365,
+          "rms": 0.08474365354656183
+        }
+      ]
+    }
+  ],
+  "selectedModel": "r123PresentationModels[0], no explicit delay",
+  "selectionReason": "Direct native model/presentation response avoids conflating the USB touch-marker clock with row dynamics. Same-build pixel qualification is pending; prior r122 remains FAIL.",
+  "presentationSources": [
+    {
+      "path": "rows-native-light-insetGrouped-ipad-r123/two-line/presentation.json",
+      "sha256": "b79832c3a905e7dc06d11436ab03a1f1c4c2da28c8b878ecb65f240b3ec9d64b"
+    },
+    {
+      "path": "rows-native-light-insetGrouped-ipad-r123/three-line/presentation.json",
+      "sha256": "9bc9e47db5cf1714b4f1a5deda3344d1248da9f4c223d787484aa31b052bf22c"
+    },
+    {
+      "path": "rows-native-light-insetGrouped-phone-r123/two-line/presentation.json",
+      "sha256": "008f79e65d7ad69b153c6d6226f9358baf1b0b3a3e6f79b27203af8fefb468e8"
+    },
+    {
+      "path": "rows-native-light-insetGrouped-phone-r123/three-line/presentation.json",
+      "sha256": "8206839f865226f11761a46490944add8e960172e29714481d857da25cd9f3a1"
+    }
+  ]
+}

@@ -94,3 +94,52 @@ it('leaves long presses and moved taps to the mouse-press path, and editors outs
   outside.dispatchEvent(outsidePress)
   expect(outsidePress.defaultPrevented).toBe(false)
 })
+
+/** WebKit's compatibility mouse press: unless prevented, pressing a non-editable element moves
+ * focus off the focused editor (happy-dom has no such default, so the test applies it). */
+function webkitMousePress(target: Element) {
+  const press = new MouseEvent('mousedown', { bubbles: true, cancelable: true, detail: 1 })
+  target.dispatchEvent(press)
+  if (!press.defaultPrevented && target !== document.activeElement)
+    (document.activeElement as HTMLElement | null)?.blur()
+  const click = new MouseEvent('click', { bubbles: true, cancelable: true, detail: 1 })
+  target.dispatchEvent(click)
+  return { press, click }
+}
+
+// Beta.4 device regression (iPad, Chats): focusing the search drawer's field presents search, and
+// the field leaves the finger at once. WebKit then sent the tap's mouse press to the content now
+// under the finger, which blurred the field, and the empty field dismissed search again.
+it("keeps a focusing tap's mouse events off whatever the focus moved under the finger", () => {
+  const { root, fields } = fixture()
+  const underFinger = document.createElement('button')
+  root.querySelector('dialog')!.append(underFinger)
+  const pressed = vi.fn()
+  underFinger.addEventListener('mousedown', pressed)
+  underFinger.addEventListener('click', pressed)
+  tap(fields[0]!)
+  const { press, click } = webkitMousePress(underFinger)
+  expect(press.defaultPrevented).toBe(true)
+  expect(click.defaultPrevented).toBe(true)
+  expect(pressed).not.toHaveBeenCalled()
+  expect(document.activeElement).toBe(fields[0])
+  // The next touch is a tap of its own.
+  underFinger.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }))
+  expect(webkitMousePress(underFinger).press.defaultPrevented).toBe(false)
+  expect(pressed).toHaveBeenCalledTimes(2)
+})
+
+it('owns those mouse events even when the tap placed no caret', () => {
+  const { root, fields } = fixture()
+  ;(document as Document & { caretRangeFromPoint: () => Range | null }).caretRangeFromPoint = () =>
+    null
+  const underFinger = document.createElement('div')
+  root.querySelector('dialog')!.append(underFinger)
+  tap(fields[0]!)
+  expect(webkitMousePress(underFinger).press.defaultPrevented).toBe(true)
+  expect(document.activeElement).toBe(fields[0])
+  // With no caret of the framework's to keep, the tap's own press on the editor stays WebKit's.
+  fields[0]!.blur()
+  tap(fields[0]!)
+  expect(webkitMousePress(fields[0]!).press.defaultPrevented).toBe(false)
+})

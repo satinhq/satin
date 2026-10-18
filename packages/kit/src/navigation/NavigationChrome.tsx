@@ -261,6 +261,9 @@ export function NavigationChrome({
           hidden={edgeMoving}
         >
           <div ref={edgeRef} data-satin-scroll-edge="true" />
+          {/* The material's upper layers; backdrop layers must be siblings (styles.css). */}
+          <div data-satin-scroll-edge-layer="wide" />
+          <div data-satin-scroll-edge-layer="finish" />
           <div data-satin-scroll-edge-cap="true" />
           <div data-satin-scroll-edge-seam="true" />
         </div>

@@ -41,7 +41,7 @@ Use `label` for its accessible name. A `prompt` supplies placeholder text when t
 
 ## Choose keyboard and Return behavior
 
-Set `kind` to describe the value, such as `name`, `email` or `decimal`. `submitLabel` supplies the Return-key hint; `onSubmit` handles Return in a single-line field.
+Set `kind` to describe the value, such as `name`, `email` or `decimal`. `kind="search"` supplies search semantics and the Search return key by default. Satin uses the standard text keyboard for search so iOS does not substitute the web-search keyboard's Go key. `submitLabel` overrides the Return-key hint; `onSubmit` handles Return in a single-line field.
 
 ## API
 

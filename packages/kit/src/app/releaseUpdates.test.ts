@@ -1,5 +1,5 @@
 import { afterEach, expect, it, vi } from 'vitest'
-import { watchReleaseUpdates } from './releaseUpdates.ts'
+import { RELAUNCH_AFTER_MS, watchReleaseUpdates } from './releaseUpdates.ts'
 import {
   APP_SHELL_APPLY_BACKGROUND_UPDATE,
   APP_SHELL_APPLY_COLD_UPDATE,
@@ -174,4 +174,23 @@ it('disposes in-flight eligibility and download listeners without replacing the 
   host.events.dispatchEvent(new Event('online'))
   await new Promise(resolve => setTimeout(resolve, 25))
   expect(window.location.reload).not.toHaveBeenCalled()
+})
+
+it('treats a clean fifteen-minute suspension as a relaunch but preserves a draft', () => {
+  const host = fixture()
+  let clean = false
+  const observer = watchReleaseUpdates('/app/', () => clean)
+  stop = observer.dispose
+  const now = vi.spyOn(Date, 'now')
+  now.mockReturnValue(1000)
+  host.visibility(true)
+  now.mockReturnValue(1000 + RELAUNCH_AFTER_MS)
+  host.visibility(false)
+  expect(window.location.reload).not.toHaveBeenCalled()
+  host.visibility(true)
+  clean = true
+  now.mockReturnValue(1000 + 2 * RELAUNCH_AFTER_MS)
+  host.visibility(false)
+  expect(window.location.reload).toHaveBeenCalledOnce()
+  now.mockRestore()
 })

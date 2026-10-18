@@ -1,6 +1,8 @@
 // @vitest-environment happy-dom
 import { act, Fragment, useState } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
+import { flushSync } from 'react-dom'
+import { Animation } from '../motion/animationValue.ts'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { Section, ListRow } from './ListForm.tsx'
 import { ForEach } from './editing.tsx'
@@ -175,12 +177,13 @@ it('keeps scroll displacement out of the interrupted move', async () => {
   expect(translation(active(first)!.frames[0])).toBeCloseTo(104 + offset, 4)
 })
 
-it('settles immediately for reduced motion and for an unanimated replacement order', async () => {
+it('animates an ordinary replacement order and settles for reduced motion', async () => {
   const first = row('A')
   await act(() => reorder())
   expect(active(first)).toBeDefined()
+  active(first)!.currentTime = 100
   await act(() => reorder(false))
-  expect(active(first)).toBeUndefined()
+  expect(active(first)).toBeDefined()
   reduced = true
   await act(() => reorder())
   expect(active(first)).toBeUndefined()
@@ -260,6 +263,7 @@ it.each(['foreach', 'keyed'] as const)(
     expect(ghost.getAttribute('aria-hidden')).toBe('true')
     expect(ghost.textContent).toContain('A')
     expect(translation(active(second)!.frames[0])).toBe(52)
+    reduced = true
     await act(() => change('insert', false))
     expect(host.querySelector('[data-satin-row-exit]')).toBeNull()
   },
@@ -340,15 +344,19 @@ it('clips full-swipe removal paint with the neighbour spring without fading it',
 })
 
 it.each(['foreach', 'keyed'] as const)(
-  'matches unique item identities across sections without fading them in again (%s)',
+  'fades a transferred row at its old and new slots (%s)',
   async declaration => {
     await act(() => root.render(<MutationFixture declaration={declaration} />))
     await act(() => change('transfer'))
     const moved = active(row('A'))!
     expect(moved).toBeDefined()
-    expect(moved.frames[0].opacity).toBe(1)
-    expect(translation(moved.frames[0])).toBe(-52)
-    expect(host.querySelector('[data-satin-row-exit]')).toBeNull()
+    expect(moved.frames[0].opacity).toBe(0)
+    expect(moved.frames.every(frame => translation(frame) === 0)).toBe(true)
+    const retired = host.querySelector<HTMLElement>('[data-satin-row-exit] > *')!
+    const exit = active(retired)!
+    expect(exit.frames[0].opacity).toBe(1)
+    expect(exit.frames.at(-1)!.opacity).toBe(0)
+    expect(exit.frames.every(frame => translation(frame) === 0)).toBe(true)
   },
 )
 
@@ -379,14 +387,14 @@ it('keeps a surviving duplicate identity visible when its other section removes 
 })
 
 it.each(['foreach', 'keyed', 'unkeyed'] as const)(
-  'settles insertions, removals and transfers without a transaction (%s)',
+  'animates identified mutations without a transaction and leaves unkeyed rows alone (%s)',
   async declaration => {
     await act(() => root.render(<MutationFixture declaration={declaration} />))
     await act(() => change('insert', false))
     await act(() => change('remove', false))
     await act(() => change('transfer', false))
-    expect(motions).toHaveLength(0)
-    expect(host.querySelector('[data-satin-row-exit]')).toBeNull()
+    if (declaration === 'unkeyed') expect(motions).toHaveLength(0)
+    else expect(motions.length).toBeGreaterThan(0)
   },
 )
 
@@ -426,6 +434,147 @@ it('tracks keyed maps through fragments, empty groups and reorders', async () =>
   await act(() => replace(['B', 'A']))
   expect(row('A')).toBe(first)
   expect(translation(active(first)!.frames[0])).toBe(-52)
+  active(first)!.currentTime = 100
+  active(row('B'))!.currentTime = 100
   await act(() => replace([]))
   expect(host.querySelectorAll('[data-satin-row-exit]')).toHaveLength(2)
+})
+
+it('animates asynchronous regrouping as conditional sections appear and disappear', async () => {
+  const originalBounds = vi
+    .mocked(HTMLElement.prototype.getBoundingClientRect)
+    .getMockImplementation()!
+  vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (
+    this: HTMLElement,
+  ) {
+    const bounds = originalBounds.call(this)
+    const section = this.closest('[data-satin-list-section]')
+    const sectionIndex = [...host.querySelectorAll('[data-satin-list-section]')].indexOf(section!)
+    const offset = Math.max(0, sectionIndex) * 200
+    return {
+      ...bounds,
+      y: bounds.y + offset,
+      top: bounds.top + offset,
+      bottom: bounds.bottom + offset,
+    }
+  })
+  let toggle!: () => Promise<void>
+  function Shopping() {
+    const [checked, setChecked] = useState(false)
+    toggle = async () => {
+      await Promise.resolve()
+      setChecked(value => !value)
+    }
+    return (
+      <div data-satin-scroll="true">
+        <RowMotionScope>
+          <Section header="To buy">
+            <ForEach data={checked ? ['B'] : ['A', 'B']} id={item => item}>
+              {item => <span data-item={item}>{item}</span>}
+            </ForEach>
+          </Section>
+          {checked && (
+            <Section header="Checked">
+              <ForEach data={['A']} id={item => item}>
+                {item => <span data-item={item}>{item}</span>}
+              </ForEach>
+            </Section>
+          )}
+        </RowMotionScope>
+      </div>
+    )
+  }
+  await act(() => root.render(<Shopping />))
+  const neighbour = row('B')
+  await act(toggle)
+  expect(active(row('A'))).toBeDefined()
+  expect(active(row('A'))!.frames[0].opacity).toBe(0)
+  expect(translation(active(neighbour)!.frames[0])).toBe(52)
+  expect(host.querySelector('[data-satin-row-exit]')?.textContent).toBe('A')
+  const checkedHeader = [...host.querySelectorAll('[data-satin-section-header]')].at(-1)!
+  expect(active(checkedHeader)!.frames[0].opacity).toBe(0)
+  expect(active(checkedHeader)!.duration).toBeGreaterThanOrEqual(300)
+  active(row('A'))!.currentTime = 100
+  active(checkedHeader)!.currentTime = 100
+  await act(toggle)
+  expect(active(row('A'))).toBeDefined()
+  expect(active(row('A'))!.frames[0].opacity).toBe(0)
+  expect(host.querySelectorAll('[data-satin-list-section]')).toHaveLength(1)
+  expect(active(checkedHeader)!.duration).toBeGreaterThanOrEqual(300)
+  expect(
+    [...host.querySelectorAll('[data-satin-row-exit]')].some(
+      exit => exit.textContent === 'Checked',
+    ),
+  ).toBe(true)
+})
+
+it('preserves an explicit spring started before an automatic commit finishes', async () => {
+  const first = row('A')
+  let duration = 0
+  await act(async () => {
+    flushSync(() => reorder(false))
+    withAnimation(Animation.spring({ durationMs: 900, bounce: 0.2 }), () => reorder(false))
+    duration = active(first)!.duration
+    await Promise.resolve()
+  })
+  expect(active(first)).toBeDefined()
+  expect(active(first)!.duration).toBe(duration)
+  expect(translation(active(first)!.frames[0])).toBe(104)
+})
+
+it('retains independent fading slots through a rapid transfer back', async () => {
+  let transfer!: () => void
+  function Transfers() {
+    const [checked, setChecked] = useState(false)
+    transfer = () => withAnimation(() => setChecked(value => !value))
+    return (
+      <div data-satin-scroll="true">
+        <RowMotionScope>
+          {[false, true].map(side => (
+            <Section key={String(side)}>
+              <ForEach data={side === checked ? ['A'] : []} id={item => item}>
+                {item => <span data-item={item}>{item}</span>}
+              </ForEach>
+            </Section>
+          ))}
+        </RowMotionScope>
+      </div>
+    )
+  }
+  await act(() => root.render(<Transfers />))
+  const original = row('A')
+  await act(transfer)
+  const destination = row('A')
+  const outgoing = active(original)!
+  const incoming = active(destination)!
+  outgoing.currentTime = 100
+  incoming.currentTime = 100
+  const oldOpacity = Number(outgoing.frames[6].opacity)
+  const newOpacity = Number(incoming.frames[6].opacity)
+  await act(transfer)
+  expect(row('A')).not.toBe(original)
+  expect(row('A')).not.toBe(destination)
+  expect(host.querySelectorAll('[data-satin-row-exit]')).toHaveLength(2)
+  expect(active(original)!.frames[0].opacity).toBeCloseTo(oldOpacity, 5)
+  expect(active(destination)!.frames[0].opacity).toBeCloseTo(newOpacity, 5)
+  for (const element of [original, destination, row('A')]) {
+    expect(active(element)!.frames.every(frame => translation(frame) === 0)).toBe(true)
+  }
+  const invisible = row('A')
+  await act(transfer)
+  expect(invisible.isConnected).toBe(false)
+  expect(host.querySelectorAll('[data-satin-row-exit]')).toHaveLength(2)
+  await act(() => root.render(null))
+  expect(host.querySelectorAll('[data-satin-row-exit]')).toHaveLength(0)
+})
+
+it('lets an opacity-only insertion follow the measured spring through 99 percent', async () => {
+  await act(() => root.render(<MutationFixture />))
+  await act(() => change('insert'))
+  const fade = active(row('X'))!
+  expect(fade.duration).toBeGreaterThanOrEqual(300)
+  const halfway = fade.frames[9]
+  expect(Number(halfway.opacity)).toBeGreaterThan(0.8)
+  expect(Number(halfway.opacity)).toBeLessThan(0.95)
+  expect(Number(fade.frames.at(-2)!.opacity)).toBeGreaterThanOrEqual(0.98)
 })
