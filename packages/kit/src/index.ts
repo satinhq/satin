@@ -457,6 +457,7 @@ export {
   WebView,
   useWebFrame,
   type WebViewProps,
+  type WebViewLink,
   type WebFrameController,
   type WebFrameState,
   type WebFrameActionResult,
@@ -477,3 +478,12 @@ export { PhotosPicker, FileImporter } from './public/filePickers.tsx'
 export type { PhotosPickerProps, FileImporterProps } from './public/filePickers.tsx'
 export { ShareLink, PasteButton } from './public/deviceActions.tsx'
 export type { ShareLinkProps, PasteButtonProps } from './public/deviceActions.tsx'
+
+export { useIsSearching, useDismissSearch } from './search/SearchEnvironment.tsx'
+export {
+  defineResource,
+  type Resource,
+  type ResourceSnapshot,
+  type ResourceOptions,
+} from './data/resource.ts'
+export { useResource, type ResourceResult } from './data/useResource.ts'

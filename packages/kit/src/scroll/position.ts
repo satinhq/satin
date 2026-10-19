@@ -50,6 +50,10 @@ export function createScrollPositionController(
   let lastOffset = surface.scrollTop
   let lastHeight = surface.scrollHeight
   let lastViewport = surface.clientHeight
+  // iPadOS can resize a hidden page (its app-switcher snapshots), and WebKit clamps the offset to
+  // that layout. The scroll event arrives only on return, once the size is back. An offset that
+  // moved while the page was hidden is layout, not the reader's intent.
+  let movedWhileHidden = false
   const maximum = () => Math.max(0, surface.scrollHeight - surface.clientHeight)
   const top = (element: HTMLElement) =>
     element.getBoundingClientRect().top -
@@ -158,9 +162,11 @@ export function createScrollPositionController(
     if (records.length) onMutations(records)
     // A native scroll can precede delivery of its scroll event. A token mutation
     // in that interval must adopt the live offset instead of pulling the reader
-    // back to the old bottom. Only browser clamping after shrink is not intent.
+    // back to the old bottom. Browser clamping after a shrink, or a move while the
+    // page was hidden, is not intent.
     if (surface.scrollTop !== lastOffset) {
-      const clamped = lastOffset > maximum() && Math.abs(surface.scrollTop - maximum()) <= 1
+      const clamped =
+        movedWhileHidden || (lastOffset > maximum() && Math.abs(surface.scrollTop - maximum()) <= 1)
       if (!clamped) {
         insertion.cancel()
         pinned = maximum() - surface.scrollTop <= 1
@@ -168,6 +174,7 @@ export function createScrollPositionController(
         publish()
       }
     }
+    if (surface.ownerDocument.visibilityState === 'visible') movedWhileHidden = false
     if (surface.scrollTop < 0 || surface.scrollTop > maximum()) return
     const binding = options().scrollPosition
     if (binding && binding.id !== requested) {
@@ -198,12 +205,21 @@ export function createScrollPositionController(
       reconcile()
       return
     }
+    if (surface.scrollTop !== lastOffset && movedWhileHidden) {
+      reconcile()
+      return
+    }
     if (surface.scrollTop !== lastOffset) {
       insertion.cancel()
       pinned = maximum() - surface.scrollTop <= 1
       pending = undefined
     }
     publish()
+  }
+  const onVisibilityChange = () => {
+    if (surface.ownerDocument.visibilityState === 'hidden') movedWhileHidden = true
+    // Put a following view back on its bottom (or a reader on its anchor) before it paints.
+    else reconcile()
   }
   const stopInsertionForInput = () => {
     const travel = insertion.offset()
@@ -234,6 +250,7 @@ export function createScrollPositionController(
   window.addEventListener('pointerup', onPointerUp, { passive: true })
   window.addEventListener('pointercancel', onPointerUp, { passive: true })
   surface.addEventListener('wheel', onWheel, { passive: true })
+  surface.ownerDocument.addEventListener('visibilitychange', onVisibilityChange)
   const resize = new ResizeObserver(reconcile)
   resize.observe(surface)
   resize.observe(content)
@@ -292,6 +309,10 @@ export function createScrollPositionController(
     targetsChanged() {
       dirty = true
     },
+    /** A bottom-anchored view that is following its bottom, as content arrives and on resize. */
+    followsEnd() {
+      return options().defaultScrollAnchor === 'bottom' && pinned
+    },
     dispose() {
       disposed = true
       insertion.cancel()
@@ -304,6 +325,7 @@ export function createScrollPositionController(
       window.removeEventListener('pointerup', onPointerUp)
       window.removeEventListener('pointercancel', onPointerUp)
       surface.removeEventListener('wheel', onWheel)
+      surface.ownerDocument.removeEventListener('visibilitychange', onVisibilityChange)
     },
   }
 }

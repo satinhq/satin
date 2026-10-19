@@ -1,5 +1,14 @@
-import { useEffect, useMemo, useRef, useSyncExternalStore, type CSSProperties } from 'react'
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type CSSProperties,
+} from 'react'
 import { webURL } from './urlPolicy.ts'
+import { bindFrameDocument, dispatchWebURL, type WebViewLink } from './frameDocument.ts'
+export type { WebViewLink } from './frameDocument.ts'
 
 /** The embedded page's load state. A cross-origin page reports `unverified`, because its contents
  * cannot be read. */
@@ -89,6 +98,14 @@ export interface WebViewProps {
   /** Explicitly allow scripts. Same-origin scripted content must be trusted. */
   allowsJavaScript?: boolean
   allowsForms?: boolean
+  /** Same-origin document height, or fill the height supplied by the parent. Foreign frames fill. */
+  sizing?: 'fill' | 'content'
+  /** Scale wide same-origin documents down to the available width. Default: true. */
+  fitsWidth?: boolean
+  /** Handles same-origin links synchronously, supplying the authored target (including base[target]).
+   * Unavailable when scripts are disabled: WebKit blocks parent-installed frame listeners.
+   * For trusted scripted documents, handling a link prevents frame navigation. */
+  onOpenURL?: (url: string, link: WebViewLink) => void
   className?: string
   style?: CSSProperties
   onStateChange?: (state: WebFrameState) => void
@@ -105,11 +122,19 @@ export function WebView({
   onStateChange,
   allowsJavaScript = false,
   allowsForms = false,
+  sizing = 'fill',
+  fitsWidth = true,
+  onOpenURL,
 }: WebViewProps) {
   const local = useWebFrame()
   const store = stores.get(controller ?? local)
   if (!store) throw new Error('Use useWebFrame to create a WebFrameController')
   const ref = useRef<HTMLIFrameElement>(null)
+  const [contentHeight, setContentHeight] = useState<number>()
+  const [loadedHref, setLoadedHref] = useState<string>()
+  const cleanupDocument = useRef<(() => void) | undefined>(undefined)
+  const openLink = useRef(onOpenURL)
+  openLink.current = onOpenURL
   const observer = useRef(onStateChange)
   observer.current = onStateChange
   const url = webURL(
@@ -124,46 +149,103 @@ export function WebView({
     observer.current?.(store.getSnapshot())
     return () => {
       if (frame) store.detach(frame)
+      cleanupDocument.current?.()
+      cleanupDocument.current = undefined
     }
   }, [href, store])
+  useEffect(() => {
+    setContentHeight(undefined)
+    const frame = ref.current
+    if (frame?.contentDocument?.body) {
+      cleanupDocument.current?.()
+      cleanupDocument.current = bindFrameDocument(
+        frame,
+        {
+          sizing,
+          fitsWidth,
+          onOpenURL: (url, link) => {
+            if (openLink.current) openLink.current(url, link)
+            else dispatchWebURL(url)
+          },
+        },
+        setContentHeight,
+      )
+    }
+  }, [sizing, fitsWidth])
   const publish = (state: WebFrameState) => {
     store.setState(state)
     observer.current?.(state)
   }
   if (!href) return null
   return (
-    <iframe
-      ref={ref}
-      src={href}
-      title={title}
+    <div
+      data-satin-webview=""
       className={className}
-      style={{ border: 0, width: '100%', height: '100%', ...style }}
-      sandbox={[
-        'allow-same-origin',
-        allowsJavaScript && 'allow-scripts',
-        allowsForms && 'allow-forms',
-      ]
-        .filter(Boolean)
-        .join(' ')}
-      referrerPolicy="no-referrer"
-      onError={() => publish({ status: 'unavailable', reason: 'load-error' })}
-      onLoad={() => {
-        try {
-          const frame = ref.current
-          const document = frame?.contentDocument
-          const current = frame?.contentWindow?.location
-          if (
-            !document ||
-            !current ||
-            current.href === 'about:blank' ||
-            current.origin !== location.origin
-          ) {
-            publish({ status: 'unverified', reason: 'cross-origin-or-denied' })
-          } else publish({ status: 'loaded', url: current.href, title: document.title })
-        } catch {
-          publish({ status: 'unverified', reason: 'cross-origin-or-denied' })
-        }
+      style={{
+        width: '100%',
+        height: sizing === 'content' && contentHeight !== undefined ? contentHeight : '100%',
+        ...style,
+        position: 'relative',
+        isolation: 'isolate',
       }}
-    />
+    >
+      <iframe
+        ref={ref}
+        src={href}
+        title={title}
+        style={{
+          display: 'block',
+          border: 0,
+          width: '100%',
+          height: '100%',
+          visibility: loadedHref === href ? 'visible' : 'hidden',
+        }}
+        sandbox={[
+          'allow-same-origin',
+          allowsJavaScript && 'allow-scripts',
+          allowsForms && 'allow-forms',
+        ]
+          .filter(Boolean)
+          .join(' ')}
+        referrerPolicy="no-referrer"
+        onError={() => publish({ status: 'unavailable', reason: 'load-error' })}
+        onLoad={() => {
+          cleanupDocument.current?.()
+          cleanupDocument.current = undefined
+          setContentHeight(undefined)
+          try {
+            const frame = ref.current
+            const document = frame?.contentDocument
+            const current = frame?.contentWindow?.location
+            if (
+              !document ||
+              !current ||
+              current.href === 'about:blank' ||
+              current.origin !== location.origin
+            ) {
+              publish({ status: 'unverified', reason: 'cross-origin-or-denied' })
+            } else {
+              cleanupDocument.current = bindFrameDocument(
+                frame!,
+                {
+                  sizing,
+                  fitsWidth,
+                  onOpenURL: (url, link) => {
+                    if (openLink.current) openLink.current(url, link)
+                    else dispatchWebURL(url)
+                  },
+                },
+                setContentHeight,
+              )
+              publish({ status: 'loaded', url: current.href, title: document.title })
+            }
+          } catch {
+            publish({ status: 'unverified', reason: 'cross-origin-or-denied' })
+          }
+          setLoadedHref(href)
+        }}
+      />
+      <div data-satin-webview-catcher="" aria-hidden="true" />
+    </div>
   )
 }

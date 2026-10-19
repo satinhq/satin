@@ -1,3 +1,4 @@
+import { TabTrailingSlot } from '../tabs/TabTrailingSlot.tsx'
 import { TabBadge } from '../tabs/TabBadge.tsx'
 import { PadSearchBarMotion } from '../search/padSearchBarMotion.ts'
 import { PadSearchPresentationContext } from '../search/PadSearchPresentationContext.tsx'
@@ -50,6 +51,7 @@ export type TabBarProps = Omit<HTMLAttributes<HTMLElement>, 'children' | 'onSele
     items: readonly TabBarItem[]
     onSelect: (id: string) => void
     selected: string
+    trailingAction?: ReactNode
     adaptive?: boolean
     onShowSidebar?: () => void
     variant?: GlassVariant
@@ -69,6 +71,7 @@ export function TabBar({
   className,
   adaptive = true,
   onShowSidebar,
+  trailingAction,
   items: declaredItems,
   onSelect,
   selected,
@@ -114,6 +117,31 @@ export function TabBar({
     readDeviceIdiom() === 'phone' && metrics.layoutViewport.width > metrics.layoutViewport.height
   const intrinsicWidth =
     readDeviceIdiom() === 'phone' && !compact && items.length < 4 && !hasAccessory
+
+  const hasTrailingAction = trailingAction != null && trailingAction !== false
+  const actionSize = compact
+    ? glassDockHeight(metrics.layoutViewport.width, metrics.layoutViewport.height)
+    : GLASS_DOCK_HEIGHT_PX
+  const availableDockWidth =
+    glassDockWidth(
+      metrics.layoutViewport.width,
+      metrics.screen,
+      metrics.insets,
+      metrics.layoutViewport.height,
+    ) - (hasTrailingAction ? actionSize + 8 : 0)
+  const action = hasTrailingAction ? (
+    <TabTrailingSlot
+      kind="action"
+      inert={props.inert}
+      topAnchor={sidebar ? elementRef : undefined}
+      style={{
+        ...(sidebar ? {} : { width: actionSize, height: actionSize }),
+        visibility: props.inert ? 'hidden' : undefined,
+      }}
+    >
+      {trailingAction}
+    </TabTrailingSlot>
+  ) : null
 
   useLayoutEffect(() => {
     const element = elementRef.current
@@ -209,82 +237,83 @@ export function TabBar({
   ])
   if (!sidebar)
     return (
-      <div
-        ref={element => {
-          elementRef.current = element
-        }}
-        data-satin-tab-inset="true"
-        style={{
-          height: compact
-            ? glassDockHeight(metrics.layoutViewport.width, metrics.layoutViewport.height)
-            : metrics.layoutViewport.width > metrics.layoutViewport.height
-              ? 48
-              : GLASS_DOCK_HEIGHT_PX,
-          width:
-            compact || intrinsicWidth
-              ? 'max-content'
-              : glassDockWidth(
-                  metrics.layoutViewport.width,
-                  metrics.screen,
-                  metrics.insets,
-                  metrics.layoutViewport.height,
-                ),
-          maxWidth: glassDockWidth(
-            metrics.layoutViewport.width,
-            metrics.screen,
-            metrics.insets,
-            metrics.layoutViewport.height,
-          ),
-          transform: `translateX(${(metrics.insets.left - metrics.insets.right) / 2}px)`,
-        }}
-      >
-        {(compact || intrinsicWidth) && (
-          <div
-            data-satin-tab-size-probe={compact ? 'true' : 'portrait'}
-            style={{ '--satin-tab-count': items.length } as CSSProperties}
-            aria-hidden="true"
-            inert
-          >
-            {items.map(item => (
-              <span key={item.id}>
-                {compact &&
-                  (item.symbol ? (
-                    <SymbolImage name={item.symbol} style={{ fontSize: 20 }} />
-                  ) : (
-                    item.icon
-                  ))}
-                <small>{item.label}</small>
-              </span>
-            ))}
-          </div>
-        )}
-      </div>
+      <>
+        <div
+          ref={element => {
+            elementRef.current = element
+          }}
+          data-satin-tab-inset="true"
+          style={{
+            height: compact
+              ? glassDockHeight(metrics.layoutViewport.width, metrics.layoutViewport.height)
+              : metrics.layoutViewport.width > metrics.layoutViewport.height
+                ? 48
+                : GLASS_DOCK_HEIGHT_PX,
+            width:
+              compact || intrinsicWidth
+                ? 'max-content'
+                : glassDockWidth(
+                    metrics.layoutViewport.width,
+                    metrics.screen,
+                    metrics.insets,
+                    metrics.layoutViewport.height,
+                  ),
+            maxWidth: availableDockWidth,
+            transform: `translateX(${(metrics.insets.left - metrics.insets.right) / 2}px)`,
+          }}
+        >
+          {(compact || intrinsicWidth) && (
+            <div
+              data-satin-tab-size-probe={compact ? 'true' : 'portrait'}
+              style={{ '--satin-tab-count': items.length } as CSSProperties}
+              aria-hidden="true"
+              inert
+            >
+              {items.map(item => (
+                <span key={item.id}>
+                  {compact &&
+                    (item.symbol ? (
+                      <SymbolImage name={item.symbol} style={{ fontSize: 20 }} />
+                    ) : (
+                      item.icon
+                    ))}
+                  <small>{item.label}</small>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+        {action}
+      </>
     )
   if (!chromeLayer) return null
 
   if (liquidTop)
     return createPortal(
-      <nav
-        ref={elementRef}
-        aria-hidden="true"
-        inert
-        className={className}
-        data-satin-tab-placement="top"
-        data-satin-tab-bar="true"
-        data-satin-tab-sizing="true"
-        style={{ ...style, ...sidebarCssTokens }}
-      >
-        <div data-satin-tab-items="true">
-          {items.map(item => (
-            // Unselected weight for every item: selection must not move the geometry.
-            <span key={item.id} data-satin-tab-item="true">
-              <span data-satin-tab-label="true">
-                <TopTabLabel item={item} />
+      <>
+        <nav
+          ref={elementRef}
+          aria-hidden="true"
+          inert
+          className={className}
+          data-satin-tab-placement="top"
+          data-satin-tab-bar="true"
+          data-satin-tab-sizing="true"
+          style={{ ...style, ...sidebarCssTokens }}
+        >
+          <div data-satin-tab-items="true">
+            {items.map(item => (
+              // Unselected weight for every item: selection must not move the geometry.
+              <span key={item.id} data-satin-tab-item="true">
+                <span data-satin-tab-label="true">
+                  <TopTabLabel item={item} />
+                </span>
               </span>
-            </span>
-          ))}
-        </div>
-      </nav>,
+            ))}
+          </div>
+        </nav>
+        {action}
+      </>,
       chromeLayer,
     )
 
@@ -301,83 +330,86 @@ export function TabBar({
   }
 
   return createPortal(
-    <nav
-      {...props}
-      ref={elementRef}
-      role="tablist"
-      inert={props.inert || (sidebar && searchProgress > 0) || undefined}
-      aria-hidden={props['aria-hidden'] || (sidebar && searchProgress > 0) || undefined}
-      onKeyDown={handleTabKeyDown}
-      aria-label={props['aria-label'] ?? 'App tabs'}
-      className={className}
-      data-satin-glass-region={sidebar ? undefined : regionId}
-      data-satin-tab-placement={sidebar ? 'top' : 'bottom'}
-      data-satin-glass-variant={variant}
-      data-satin-role="chrome"
-      data-satin-tab-bar="true"
-      style={tabBarStyle}
-    >
-      <GlassBackground glass={variant === 'clear' ? Glass.clear : Glass.regular} />
-      <div data-satin-tab-items="true">
-        {onShowSidebar && (
-          <Pressable
-            data-satin-tab-sidebar-show="true"
-            aria-label="Show Tab Sidebar"
-            onPress={onShowSidebar}
-          >
-            <SymbolImage name="sidebar.left" />
-          </Pressable>
-        )}
-        {items.map((item, index) => {
-          const isSelected = item.id === selected
-          return (
+    <>
+      <nav
+        {...props}
+        ref={elementRef}
+        role="tablist"
+        inert={props.inert || (sidebar && searchProgress > 0) || undefined}
+        aria-hidden={props['aria-hidden'] || (sidebar && searchProgress > 0) || undefined}
+        onKeyDown={handleTabKeyDown}
+        aria-label={props['aria-label'] ?? 'App tabs'}
+        className={className}
+        data-satin-glass-region={sidebar ? undefined : regionId}
+        data-satin-tab-placement={sidebar ? 'top' : 'bottom'}
+        data-satin-glass-variant={variant}
+        data-satin-role="chrome"
+        data-satin-tab-bar="true"
+        style={tabBarStyle}
+      >
+        <GlassBackground glass={variant === 'clear' ? Glass.clear : Glass.regular} />
+        <div data-satin-tab-items="true">
+          {onShowSidebar && (
             <Pressable
-              key={item.id}
-              role="tab"
-              id={item.tabId}
-              aria-controls={item.panelId}
-              aria-selected={isSelected}
-              tabIndex={isSelected || (selectedIndex < 0 && index === 0) ? 0 : -1}
-              aria-label={
-                item.accessibilityLabel ??
-                (sidebar && item.role === 'search'
-                  ? typeof item.label === 'string'
-                    ? item.label
-                    : 'Search'
-                  : undefined)
-              }
-              data-satin-tab-item="true"
-              data-satin-tab-selected={isSelected || undefined}
-              disabled={item.disabled}
-              onPress={() => {
-                // VoiceOver activation can reach onPress before DOM focus follows
-                // its cursor. Establish tab ownership before mounting the panel.
-                const button =
-                  elementRef.current?.querySelectorAll<HTMLButtonElement>('[data-satin-tab-item]')[
-                    index
-                  ]
-                if (button) focusFromFramework(button, { preventScroll: true })
-                onSelect(item.id)
-              }}
+              data-satin-tab-sidebar-show="true"
+              aria-label="Show Tab Sidebar"
+              onPress={onShowSidebar}
             >
-              <span aria-hidden="true" data-satin-tab-icon="true">
-                <SymbolSelectionContext value={isSelected}>
-                  {item.symbol ? (
-                    <SymbolImage name={item.symbol} style={{ fontSize: 23.4 }} />
-                  ) : (
-                    item.icon
-                  )}
-                </SymbolSelectionContext>
-              </span>
-              <span data-satin-tab-label="true">
-                {sidebar ? <TopTabLabel item={item} /> : item.label}
-              </span>
-              <TabBadge value={item.badge} />
+              <SymbolImage name="sidebar.left" />
             </Pressable>
-          )
-        })}
-      </div>
-    </nav>,
+          )}
+          {items.map((item, index) => {
+            const isSelected = item.id === selected
+            return (
+              <Pressable
+                key={item.id}
+                role="tab"
+                id={item.tabId}
+                aria-controls={item.panelId}
+                aria-selected={isSelected}
+                tabIndex={isSelected || (selectedIndex < 0 && index === 0) ? 0 : -1}
+                aria-label={
+                  item.accessibilityLabel ??
+                  (sidebar && item.role === 'search'
+                    ? typeof item.label === 'string'
+                      ? item.label
+                      : 'Search'
+                    : undefined)
+                }
+                data-satin-tab-item="true"
+                data-satin-tab-selected={isSelected || undefined}
+                disabled={item.disabled}
+                onPress={() => {
+                  // VoiceOver activation can reach onPress before DOM focus follows
+                  // its cursor. Establish tab ownership before mounting the panel.
+                  const button =
+                    elementRef.current?.querySelectorAll<HTMLButtonElement>(
+                      '[data-satin-tab-item]',
+                    )[index]
+                  if (button) focusFromFramework(button, { preventScroll: true })
+                  onSelect(item.id)
+                }}
+              >
+                <span aria-hidden="true" data-satin-tab-icon="true">
+                  <SymbolSelectionContext value={isSelected}>
+                    {item.symbol ? (
+                      <SymbolImage name={item.symbol} style={{ fontSize: 23.4 }} />
+                    ) : (
+                      item.icon
+                    )}
+                  </SymbolSelectionContext>
+                </span>
+                <span data-satin-tab-label="true">
+                  {sidebar ? <TopTabLabel item={item} /> : item.label}
+                </span>
+                <TabBadge value={item.badge} />
+              </Pressable>
+            )
+          })}
+        </div>
+      </nav>
+      {action}
+    </>,
     chromeLayer,
   )
 }

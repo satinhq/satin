@@ -38,6 +38,14 @@ function Example() {
 
 Use Image with a bundled asset or same-origin URL. Supply `alt` to describe meaningful content.
 
+## Prepare remote artwork
+
+Call `AsyncImage.prefetch(url, { ...options, signal })` from a navigation link's
+`prefetch` callback on press-down to warm the shared
+decode cache. Match the destination request options and handle rejected promises.
+This does not add responses to the shell precache or guarantee HTTP-cache privacy.
+See [remote data](../remote-data.md).
+
 ## Load a remote image
 
 AsyncImage loads a URL and can render loading, success and failure phases. For an image under glass, the server must permit CORS pixel access. See [Glass limitations](../glass/limitations.md).

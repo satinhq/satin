@@ -2,7 +2,7 @@
 
 Build a personal React app for the installed iPhone or iPad Home Screen runtime. This public beta targets iOS 27. For the shortest path from the published package, follow the [Quick start](learn/quick-start.md). This guide is the full reference: start with the local package instructions below, then read [current limitations](limitations.md) for supported behavior and platform constraints.
 
-Satin's APIs follow the declarative style people already use to build iPhone and iPad apps. If you've used SwiftUI, Jetpack Compose or Flutter, it will feel familiar.
+Satin provides React components for iPhone and iPad apps, with framework-owned navigation, controls and installation.
 
 ## Create an app from this checkout
 
@@ -13,8 +13,10 @@ pnpm install --frozen-lockfile
 PREVIEW_DIR="$(mktemp -d "${TMPDIR:-/tmp}/satin-preview.XXXXXX")"
 mkdir -p "$PREVIEW_DIR/packages" "$PREVIEW_DIR/scaffolder"
 KIT_ARCHIVE="$(node -p "const { name, version } = require('./packages/kit/package.json'); name.replace(/^@/, '').replaceAll('/', '-') + '-' + version + '.tgz'")"
+LINT_ARCHIVE="$(node -p "const { name, version } = require('./packages/lint/package.json'); name.replace(/^@/, '').replaceAll('/', '-') + '-' + version + '.tgz'")"
 CREATE_ARCHIVE="$(node -p "const { name, version } = require('./packages/create-satin/package.json'); name.replace(/^@/, '').replaceAll('/', '-') + '-' + version + '.tgz'")"
 pnpm --filter @satinhq/kit pack --pack-destination "$PREVIEW_DIR/packages"
+pnpm --filter @satinhq/lint pack --pack-destination "$PREVIEW_DIR/packages"
 pnpm --filter create-satin pack --pack-destination "$PREVIEW_DIR/packages"
 tar -xzf "$PREVIEW_DIR/packages/$CREATE_ARCHIVE" -C "$PREVIEW_DIR/scaffolder"
 ```
@@ -27,6 +29,7 @@ In the same shell, create the app outside the repository and install its depende
 cd "$PREVIEW_DIR"
 node scaffolder/package/bin/create-satin.mjs my-app --yes --name "My App" --id my-app --satin-package "$PREVIEW_DIR/packages/$KIT_ARCHIVE"
 cd my-app
+node -e 'const fs = require("node:fs"); const pkg = JSON.parse(fs.readFileSync("package.json", "utf8")); pkg.devDependencies["@satinhq/lint"] = process.argv[1]; fs.writeFileSync("package.json", JSON.stringify(pkg, null, 2) + "\n")' "$PREVIEW_DIR/packages/$LINT_ARCHIVE"
 npm install
 npm run typecheck
 npm run build
@@ -120,6 +123,24 @@ Use your actual origin. The checker validates deployment metadata and assets; it
 For a built Safari-tab preview, add `updateProfile: 'preview'` to the generated app definition's existing `advanced` object, retaining its scope, start route and install route. Rebuild. This named profile admits supported iOS tabs and may reload on updates. Return to `release` for installed production output. No query parameter enables preview in a release app. Legacy `hot-reload` and `dev` built profiles still require `SATIN_ENABLE_HOT_RELOAD=1`; the named preview does not.
 
 `--start-route` changes the manifest launch document, not a navigation route. It must stay inside `/app/` and name an emitted document. The starter emits `/app/` and `/app/index.html`; the build rejects a missing launch document. `--accent` sets the app tint, while `--background` and `--dark-background` set launch backgrounds. Omit tint to use the framework system blue. `--icon` copies a square PNG.
+
+## Test in the iOS Simulator
+
+Start the app with `npm run dev`. Boot an iPhone in Simulator, open Safari there,
+and visit `http://localhost:5390`. Use the port printed by Vite if you changed it.
+For an installed run, use Safari's Share menu, choose Add to Home Screen, then
+launch the new icon. Keep the dev server running while you test.
+
+When the Simulator cannot provide WebGPU, development automatically draws the
+fallback glass material. A small notice says "Glass: fallback material, WebGPU
+unavailable". It dismisses on your first interaction; the console record remains.
+Layout, navigation, sheets, lists and input remain available for
+iteration. A rendering failure on a working WebGPU device still reports an error.
+`?glass=strict` or `SATIN_STRICT_GLASS=1 npm run dev` forbids fallback for diagnostics.
+Reload after changing that policy.
+
+Check final glass appearance, touch, keyboard feel and performance in the installed
+app on a real device. Simulator fallback is approximate and does not prove those results.
 
 ## Find supported APIs
 
@@ -226,7 +247,7 @@ The cover, progress ring and launch/install errors belong to one inline, shadow-
 | Presentation | `Sheet`, `Alert`, `ConfirmationDialog`, `Menu`, `ContextMenu` |
 | Animation | `withAnimation`, `Animation` |
 | Glass and imagery | `Glass`, `GlassEffect`, `GlassEffectContainer`, `SymbolImage`, `Image` |
-| Data and environment | `defineDatabase`, `collection`, `useQuery`, `useRecord`, `useAppStorage`, `useSceneStorage`, `useNotifications`, `useReachability` |
+| Data and environment | `defineResource`, `useResource`, `defineDatabase`, `collection`, `useQuery`, `useRecord`, `useAppStorage`, `useSceneStorage`, `useNotifications`, `useReachability` |
 
 See the packaged API reference for every export, prop and limitation.
 <!-- public-api:end -->
@@ -328,3 +349,34 @@ Please consider crediting Satin in your app's About screen. This request is opti
 iPhone, iPad, iOS, Safari and Liquid Glass are trademarks of Apple Inc. Satin is not affiliated with or endorsed by Apple.
 
 For new content, prefer the optional `Text`, `VStack`, `HStack`, `ZStack`, `Spacer` and `Divider` vocabulary. See [Content](content.md) for examples, lazy containers and current fidelity limits. Plain React and semantic HTML remain supported without warnings or adoption requirements.
+
+## Serving under a sub-path
+
+Set Vite's `base` once. For example, serve `dist/` at `/ios/`:
+
+```ts
+export default defineConfig({
+  base: '/ios/',
+  plugins: [react(), satinApp(defineApp(app))],
+})
+```
+
+Keep `icons.source: '/icon-source.png'` in `src/app.ts`. Satin derives the app
+scope and start URL as `/ios/`, the install page as `/ios/install`, and prefixes
+icon and reachability probe URLs with `/ios/`. Already-prefixed paths stay as
+written. Omit `advanced.startRoute`; it names the emitted entry page, not an
+in-memory navigation route. Run `satin check https://your-host/ios/` after deploying.
+
+`dist/satin-csp.json` includes each emitted HTML page, including `unsupported.html`.
+Apply its script and style hashes to your existing CSP and allow same-origin
+external assets. When a deep link serves `index.html` through SPA fallback, use
+the policy for that `index.html`, regardless of the requested path. Runtime
+appearance and presentation rules use constructed stylesheets and require no
+`unsafe-inline` allowance for style elements.
+
+Satin sets Vite's default chunk warning budget to 2,000 kB of minified,
+uncompressed JavaScript per chunk. The renderer and its shader compiler account
+for about 1.8 MB in the starter. This is a finite runtime budget, not a download
+size estimate or a performance guarantee. Vite still prints actual output and
+gzip sizes. App growth beyond the budget still warns. Set
+`build.chunkSizeWarningLimit` explicitly if your deployment needs a stricter budget.

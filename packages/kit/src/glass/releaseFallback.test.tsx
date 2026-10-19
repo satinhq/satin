@@ -19,6 +19,7 @@ beforeEach(() => {
   vi.stubEnv('SATIN_STRICT_GLASS', '')
   vi.spyOn(console, 'error').mockImplementation(() => {})
   gpu.create.mockReset().mockResolvedValue({
+    activateRecovery() {},
     commitAppearance() {},
     updateGeometry() {},
     setTabSelection() {},
@@ -37,6 +38,7 @@ afterEach(() => {
   cleanup?.()
   cleanup = undefined
   document.querySelector(':root > pre[data-satin-glass-error]')?.remove()
+  document.querySelector('[data-satin-glass-notice]')?.remove()
   window.history.replaceState(null, '', '/')
   delete document.documentElement.dataset.satinGlass
   vi.unstubAllEnvs()
@@ -147,13 +149,80 @@ it.each([
   )
 })
 
-it('a rejected release startup selects fallback and releases readiness', async () => {
-  gpu.create.mockRejectedValue(Error('navigator.gpu is unavailable in the glass renderer'))
+it.each(['release', 'development'])(
+  'a rejected %s startup selects fallback and releases readiness',
+  async mode => {
+    if (mode === 'development') vi.stubEnv('DEV', true)
+    gpu.create.mockRejectedValue(Error('navigator.gpu is unavailable in the glass renderer'))
+    const view = await mount()
+    await waitForFallback(view)
+    expect(view.host.querySelector('output')?.dataset.ready).toBe('true')
+    expect(document.querySelector('[data-satin-glass-error]')).toBeNull()
+  },
+)
+
+it.each([
+  ['gpu-unavailable', 'navigator.gpu is unavailable in the glass renderer'],
+  ['adapter-unavailable', 'navigator.gpu.requestAdapter returned null after five attempts'],
+  ['gpu-unavailable', 'GlassCapabilityUnavailable: required WebGPU limits'],
+] as const)('development uses working fallback for %s at startup', async (code, message) => {
+  vi.stubEnv('DEV', true)
+  vi.spyOn(console, 'info').mockImplementation(() => {})
   const view = await mount()
+  act(() => view.reportGlassError(code, message, 'startup'))
   await waitForFallback(view)
-  expect(view.host.querySelector('output')?.dataset.ready).toBe('true')
   expect(document.querySelector('[data-satin-glass-error]')).toBeNull()
+  expect(document.querySelector('[role="status"]')?.textContent).toBe(
+    'Glass: fallback material, WebGPU unavailable',
+  )
+  expect(console.info).toHaveBeenCalledWith('Glass: fallback material, WebGPU unavailable')
 })
+
+it('development keeps an adapter outage loud after WebGPU has worked', async () => {
+  vi.stubEnv('DEV', true)
+  const view = await mount()
+  const { setGlassAdapterRecovery } = await import('./errors.ts')
+  setGlassAdapterRecovery(true)
+  act(() =>
+    view.reportGlassError(
+      'adapter-unavailable',
+      'navigator.gpu.requestAdapter returned null after five attempts',
+      'device recovery',
+    ),
+  )
+  expect(view.host.querySelector('output')?.dataset.backend).toBe('webgpu')
+  expect(document.querySelector('[data-satin-glass-error]')?.textContent).toContain('returned null')
+})
+
+it('dismisses the development startup notice on input without replacing working fallback', async () => {
+  vi.stubEnv('DEV', true)
+  vi.spyOn(console, 'info').mockImplementation(() => {})
+  const view = await mount()
+  act(() => view.reportGlassError('gpu-unavailable', 'WebGPU unavailable', 'startup'))
+  await waitForFallback(view)
+  expect(document.querySelector('[data-satin-glass-notice]')).not.toBeNull()
+  act(() => document.dispatchEvent(new Event('pointerdown', { bubbles: true })))
+  expect(document.querySelector('[data-satin-glass-notice]')).toBeNull()
+  expect(view.host.querySelector('output')?.dataset.backend).toBe('fallback')
+  act(() => view.reportGlassError('gpu-unavailable', 'WebGPU unavailable', 'startup'))
+  expect(document.querySelector('[data-satin-glass-notice]')).toBeNull()
+})
+
+it.each(['query', 'build'])(
+  'explicit strict %s forbids development capability fallback',
+  async mode => {
+    vi.stubEnv('DEV', true)
+    if (mode === 'query') window.history.replaceState(null, '', '/?glass=strict')
+    else vi.stubEnv('SATIN_STRICT_GLASS', '1')
+    const view = await mount()
+    act(() => view.reportGlassError('gpu-unavailable', 'WebGPU unavailable', 'startup'))
+    expect(view.host.querySelector('output')?.dataset.backend).toBe('webgpu')
+    expect(document.querySelector('[data-satin-glass-error]')?.textContent).toContain(
+      'WebGPU unavailable',
+    )
+    expect(document.querySelector('[data-satin-glass-notice]')).toBeNull()
+  },
+)
 
 async function waitForFallback(view: Awaited<ReturnType<typeof mount>>) {
   await act(async () => {
@@ -265,7 +334,7 @@ it('explicit strict glass reports exhausted adapters loudly', async () => {
   )
 })
 
-it('returns release glass to WebGPU after adapter reconstruction without losing app state', async () => {
+it('retains release material after an adapter signal without losing app state', async () => {
   const view = await mount()
   const input = view.host.querySelector('input')!
   act(() => {
@@ -281,7 +350,7 @@ it('returns release glass to WebGPU after adapter reconstruction without losing 
   await act(async () => {
     await vi.dynamicImportSettled()
   })
-  expect(view.host.querySelector('output')?.dataset.backend).toBe('webgpu')
+  expect(view.host.querySelector('output')?.dataset.backend).toBe('fallback')
   expect(view.host.querySelector('input')).toBe(input)
   expect(input.value).toBe('retained draft')
   expect(view.getGlassErrors()).toHaveLength(1)
@@ -295,7 +364,7 @@ it('returns release glass to WebGPU after adapter reconstruction without losing 
 })
 
 it.each(['device-request', 'context-configure', 'presentation', 'out-of-memory'] as const)(
-  'clears a %s outage only after pending device reconstruction succeeds',
+  'retains material after a terminal %s outage and later adapter reconstruction',
   async code => {
     const view = await mount()
     act(() => {
@@ -308,24 +377,195 @@ it.each(['device-request', 'context-configure', 'presentation', 'out-of-memory']
     await act(async () => {
       await vi.dynamicImportSettled()
     })
-    expect(view.host.querySelector('output')?.dataset.backend).toBe('webgpu')
+    expect(view.host.querySelector('output')?.dataset.backend).toBe('fallback')
     expect(view.getGlassErrors()).toHaveLength(1)
   },
 )
 
-it('retries a terminal worker transport failure after the visible cooldown', async () => {
+it.each([
+  ['worker-startup', 'Worker startup rejected: navigator.gpu.requestAdapter returned null'],
+  ['adapter-unavailable', 'navigator.gpu.requestAdapter returned null after five attempts'],
+] as const)(
+  'keeps %s fallback through cooldowns, foreground and stale adapter completion',
+  async (code, message) => {
+    vi.useFakeTimers({
+      toFake: [
+        'Date',
+        'setTimeout',
+        'clearTimeout',
+        'requestAnimationFrame',
+        'cancelAnimationFrame',
+      ],
+    })
+    const view = await mount()
+    const input = view.host.querySelector('input')!
+    act(() => view.reportGlassError(code, message, 'startup'))
+    await waitForFallback(view)
+    const material = view.chrome.querySelector('[data-satin-fallback-material]')
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(90_000)
+      document.dispatchEvent(new Event('visibilitychange'))
+      window.dispatchEvent(new Event('pageshow'))
+      window.dispatchEvent(new Event('focus'))
+      view.setGlassAdapterRecovery(false)
+      await vi.dynamicImportSettled()
+    })
+    expect(gpu.create).toHaveBeenCalledOnce()
+    expect(view.host.querySelector('output')?.dataset.backend).toBe('fallback')
+    expect(view.chrome.querySelector('[data-satin-fallback-material]')).toBe(material)
+    expect(view.host.querySelector('input')).toBe(input)
+    expect(input.value).toBe('retained draft')
+    expect(view.getGlassErrors()).toHaveLength(1)
+  },
+)
+
+it('keeps material on a capable device until this host presents its replacement frame', async () => {
   vi.useFakeTimers({
     toFake: ['Date', 'setTimeout', 'clearTimeout', 'requestAnimationFrame', 'cancelAnimationFrame'],
   })
   const view = await mount()
-  const input = view.host.querySelector('input')!
-  act(() => view.reportGlassError('worker-startup', 'Worker startup failed', 'startup'))
+  const initial = await gpu.create.mock.results[0].value
+  let present: ((ready: boolean) => void) | undefined
+  gpu.create.mockImplementationOnce((options: { onPresented?: (ready: boolean) => void }) => {
+    present = options.onPresented
+    return Promise.resolve({ ...initial })
+  })
+  act(() => {
+    view.setGlassAdapterRecovery(true)
+    view.reportGlassError('readiness-timeout', 'Forced terminal outage on working GPU', 'test')
+  })
   await waitForFallback(view)
+  const material = view.chrome.querySelector('[data-satin-fallback-material]')!
   await act(async () => {
     await vi.advanceTimersByTimeAsync(3000)
     await vi.dynamicImportSettled()
   })
+  expect(present).toBeDefined()
+  expect(material.isConnected).toBe(true)
+  expect(view.host.querySelector('output')?.dataset.backend).toBe('fallback')
+  act(() => present!(false))
+  expect(material.isConnected).toBe(true)
+  await act(async () => {
+    present!(true)
+    await vi.dynamicImportSettled()
+  })
+  await act(async () => {
+    vi.advanceTimersToNextFrame()
+  })
+  expect(material.isConnected).toBe(true)
+  await act(async () => {
+    vi.advanceTimersToNextFrame()
+  })
+  expect(view.chrome.querySelector('[data-satin-fallback-material]')).toBeNull()
   expect(view.host.querySelector('output')?.dataset.backend).toBe('webgpu')
-  expect(view.host.querySelector('input')).toBe(input)
-  expect(view.getGlassErrors()).toHaveLength(1)
+  expect(view.host.querySelector('input')?.value).toBe('retained draft')
+})
+
+it('aborts a changed revision after exposure without unmasking CSS, then promotes the next attempt', async () => {
+  vi.useFakeTimers({
+    toFake: ['Date', 'setTimeout', 'clearTimeout', 'requestAnimationFrame', 'cancelAnimationFrame'],
+  })
+  const { GlassMaterialRuntime } = await import('./materialRuntime.ts')
+  const create = vi.spyOn(GlassMaterialRuntime, 'create')
+  const recover = vi.spyOn(
+    GlassMaterialRuntime.prototype as unknown as { recover(): Promise<boolean> },
+    'recover',
+  )
+  const view = await mount()
+  const runtime = await create.mock.results[0].value
+  const initial = await gpu.create.mock.results[0].value
+  const abortedDispose = vi.fn()
+  let present: ((ready: boolean) => void) | undefined
+  gpu.create
+    .mockImplementationOnce((options: { onPresented?: (ready: boolean) => void }) => {
+      present = options.onPresented
+      return Promise.resolve({ ...initial, dispose: abortedDispose })
+    })
+    .mockImplementationOnce((options: { onPresented?: (ready: boolean) => void }) => {
+      present = options.onPresented
+      return Promise.resolve({ ...initial })
+    })
+  act(() => {
+    view.setGlassAdapterRecovery(true)
+    view.reportGlassError('readiness-timeout', 'Forced terminal outage on working GPU', 'test')
+  })
+  await waitForFallback(view)
+  const material = view.chrome.querySelector('[data-satin-fallback-material]')!
+  const mask = document.documentElement.dataset.satinMaterialRecovery
+  expect(mask).toBeDefined()
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(3000)
+    present!(true)
+    await vi.dynamicImportSettled()
+  })
+  await act(async () => {
+    vi.advanceTimersToNextFrame()
+  })
+  expect(document.documentElement.dataset.satinMaterialRecoveryShow).toBe(mask)
+  act(() => runtime.setScroll(1))
+  await act(async () => {
+    vi.advanceTimersToNextFrame()
+  })
+  await expect(recover.mock.results[0].value).resolves.toBe(false)
+  expect(document.documentElement.dataset.satinMaterialRecoveryShow).toBeUndefined()
+  expect(document.documentElement.dataset.satinMaterialRecovery).toBe(mask)
+  expect(abortedDispose).toHaveBeenCalledOnce()
+  expect(material.isConnected).toBe(true)
+  expect(getComputedStyle(material).visibility).not.toBe('hidden')
+  expect(view.host.querySelector('output')?.dataset.backend).toBe('fallback')
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(6000)
+    await vi.dynamicImportSettled()
+  })
+  expect(document.documentElement.dataset.satinMaterialRecovery).toBe(mask)
+  expect(document.documentElement.dataset.satinMaterialRecoveryShow).toBeUndefined()
+  expect(material.isConnected).toBe(true)
+  await act(async () => {
+    present!(true)
+    await vi.dynamicImportSettled()
+  })
+  await act(async () => {
+    vi.advanceTimersToNextFrame()
+  })
+  expect(material.isConnected).toBe(true)
+  await act(async () => {
+    vi.advanceTimersToNextFrame()
+  })
+  await expect(recover.mock.results[1].value).resolves.toBe(true)
+  expect(document.documentElement.dataset.satinMaterialRecovery).toBeUndefined()
+  expect(document.documentElement.dataset.satinMaterialRecoveryShow).toBeUndefined()
+  expect(material.isConnected).toBe(false)
+  expect(view.host.querySelector('output')?.dataset.backend).toBe('webgpu')
+  expect(view.host.querySelector('input')?.value).toBe('retained draft')
+})
+
+it('keeps the same material through failed retries and grants one foreground retry after the document cap', async () => {
+  vi.useFakeTimers({
+    toFake: ['Date', 'setTimeout', 'clearTimeout', 'requestAnimationFrame', 'cancelAnimationFrame'],
+  })
+  const view = await mount()
+  gpu.create.mockRejectedValue(Error('Replacement failed'))
+  act(() => {
+    view.setGlassAdapterRecovery(true)
+    view.reportGlassError('readiness-timeout', 'Forced terminal outage', 'test')
+  })
+  await waitForFallback(view)
+  const material = view.chrome.querySelector('[data-satin-fallback-material]')!
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(90_000)
+    await vi.dynamicImportSettled()
+  })
+  expect(gpu.create).toHaveBeenCalledTimes(6)
+  expect(material.isConnected).toBe(true)
+  expect(view.host.querySelector('output')?.dataset.backend).toBe('fallback')
+  const visibility = vi.spyOn(document, 'visibilityState', 'get')
+  await act(async () => {
+    visibility.mockReturnValue('hidden')
+    document.dispatchEvent(new Event('visibilitychange'))
+    visibility.mockReturnValue('visible')
+    document.dispatchEvent(new Event('visibilitychange'))
+    await vi.advanceTimersByTimeAsync(1)
+  })
+  expect(gpu.create).toHaveBeenCalledTimes(7)
+  expect(material.isConnected).toBe(true)
 })

@@ -4,7 +4,7 @@ Search by Satin export name. Each entry describes its behavior and limits and li
 
 Generated from package declarations and reviewed behavior metadata. Run `pnpm --filter @satinhq/kit api:write` after building. Signature, export and source changes invalidate this reference; changes to behavior descriptions require review.
 
-Coverage: 943 named exports across 9 declaration entry points. 151 exports have reviewed behavior metadata. 792 type and integration declarations are identified separately in the behavior review inventory. CSS is a stylesheet, not a named export.
+Coverage: 936 named exports across 9 declaration entry points. 155 exports have reviewed behavior metadata. 781 type and integration declarations are identified separately in the behavior review inventory. CSS is a stylesheet, not a named export.
 
 An API description establishes the supported contract. It does not certify pixels, motion, touch or installed-app lifecycle behavior. Experimental entry points remain experimental. An empty Limits cell means there are no limits beyond what the declaration states.
 
@@ -83,6 +83,7 @@ Components, hooks and types for building the app.
 | [`defineDatabase`](../data/database.d.ts) | Opens the app's local database, stored in IndexedDB. Each collection becomes a property of the result. Bump `version` with a migration whenever the schema changes. Export and import are built in, so offer them to the user. | Data lives in IndexedDB on this device. The browser may evict it, and writes can fail. | local database; offline storage; IndexedDB |
 | [`defineNamespace`](../motion/matchedGeometry.d.ts) | A namespace declared once at module scope, for views that share no parent component: a `MatchedTransitionSource` in one route and the screen it zooms into in another. Inside one component, use `useNamespace()`. | Pushed screens only; sheets and full-screen covers do not zoom. The source must be on screen, or the push slides. A downward dismiss must start within about 27 degrees of vertical. |  |
 | [`defineNavigation`](../public/structure.d.ts) | Declares the app's primary tabs or its single stack before anything renders, so every stack and tab id exists (and is typed) from the first frame. Pass the result to `runApp`; `TabView`, `Tab` and `NavigationStack` then render it. Components may freely wrap those views. | One app root per page, for iPhone and iPad WebKit. There are no multiple windows. |  |
+| [`defineResource`](../data/resource.d.ts) | Define one keyed memory resource shared by screens. Loads survive screen cover/unmount; useResource reads retained content on its first render and revalidates stale content. The loader owns transport, validation and HTTP cache policy. Satin never persists values. | No automatic persistence, transport or background execution. Include account identity in keys and clear resources on sign-out. Cold, unseeded reads still need loading UI. |  |
 | [`defineRoutes`](../public/routes.d.ts) | Declares every destination once. The same schema types `useNavigation` and `NavigationLink`, validates restored paths and checks notification deep links, so a route id or param is never a free-form string. | Navigation does not use browser history. Route params must match the declared schema. | router; routes; deep links |
 | [`defineWebAuthentication`](../web/authentication.d.ts) | Sets up an OAuth authorization-code sign-in with PKCE. The transaction is stored durably, so it survives a redirect or a suspended app. Your server redeems the code. | Needs a secure context, local storage, Web Locks, a dedicated uncached callback page and a server exchange. Bridge reads need a private transaction proof. Your server validates tokens and OpenID Connect. Completion in the background is not guaranteed. | OAuth; sign in; PKCE |
 | [`Divider`](../content/content.d.ts) | A hairline across its parent stack's axis. It is decorative, so assistive technology skips it. | Default spacing and frame differences are listed in content.md. Props apply in a fixed order, not the order you write them. | separator; hairline |
@@ -116,7 +117,7 @@ Components, hooks and types for building the app.
 | [`GlassEffectContainer`](../glass/GlassEffect.d.ts) | Groups nearby glass effects so they render together and blend or morph into one another. `spacing`, 20 pt by default, sets how close effects must be to merge. | If WebGPU fails for good, release builds fall back to a blur-and-tint material unless strict glass is on; development builds report the failure. | glass morph; glass group |
 | [`GlassEffectProps`](../public/glass.d.ts) | The glass material and shape, plus the namespace and id that let effects morph into each other. Plain div attributes also apply. |  |  |
 | [`GlassError`](../glass/errors.d.ts) | One glass renderer failure: its code, message, the stage it happened in and when. |  |  |
-| [`GlassErrorCode`](../glass/errors.d.ts) | Why the glass renderer failed, such as `gpu-unavailable` or `device-lost`. In a release build a failure can switch glass to the fallback material. |  |  |
+| [`GlassErrorCode`](../glass/errors.d.ts) | Why the glass renderer failed, such as `gpu-unavailable` or `device-lost`. Releases can recover with fallback; development only tolerates missing startup capability. |  |  |
 | [`GlassShape`](../public/glass.d.ts) | The outline of a glass effect: `capsule`, `circle` or a rounded rectangle with a corner radius in points. |  |  |
 | [`GlassTint`](../glass/regions.d.ts) | A glass tint as red, green, blue and alpha channels from 0 to 1. `Glass.tintRGBA` rejects values outside that range. |  |  |
 | [`GridItem`](../content/content.d.ts) | Makes grid tracks for `LazyVGrid` and `LazyHGrid`: `fixed`, `flexible` or `adaptive`. Each call validates its options and throws a `RangeError` for bad bounds or spacing. | Every child renders at once; there is no virtualization. An adaptive track must be the only track, and there is no Grid or GridRow. |  |
@@ -179,7 +180,7 @@ Components, hooks and types for building the app.
 | [`NavigationArguments`](../public/runtime.d.ts) | The typed parameter tuple accepted by push and replace. |  |  |
 | [`NavigationBackButtonBehavior`](../navigation/types.d.ts) | Whether a pushed screen shows its back button. `automatic` shows it; `hidden` removes it. |  |  |
 | [`NavigationDeclaration`](../public/structure.d.ts) | An app's primary navigation: either tabs, each owning a stack, or one stack. |  |  |
-| [`NavigationLink`](../public/controls.d.ts) | Pushes a declared route. In a `List` it draws a disclosure row; elsewhere it is a plain pressable. | Navigation does not use browser history. Route params must match the declared schema. | push; disclosure row |
+| [`NavigationLink`](../public/controls.d.ts) | Pushes a declared route. In a `List` it draws a disclosure row; elsewhere it is a plain pressable. Use `prefetch={signal => resource.prefetch(key, signal)}` to start loading on press-down; scrolling or swiping cancels speculative work. | Navigation does not use browser history. Route params must match the declared schema. | push; disclosure row |
 | [`NavigationLinkProps`](../public/controls.d.ts) | A destination route and its params (typed against the registered routes), plus the row's label and accessories. |  |  |
 | [`NavigationSplitView`](../public/runtime.d.ts) | Shows the declared root as a sidebar and pushes into a retained detail column. At compact width it collapses to a plain stack. A `NavigationStack` never splits by itself. | It renders an existing declared stack; it takes no modal or ad hoc root. | sidebar and detail; split view |
 | [`NavigationSplitViewProps`](../public/runtime.d.ts) | Selects which declared primary stack the split view renders; inside a `Tab`, its own. |  |  |
@@ -230,6 +231,10 @@ Components, hooks and types for building the app.
 | [`RegisteredNavigation`](../public/structure.d.ts) | The navigation declared through `Register`, which types bare `TabView`, `Tab` and `NavigationStack`; `never` when the app has not registered one. |  |  |
 | [`RegisteredRoutes`](../public/routes.d.ts) | The routes declared through `Register`; an empty route set when the app has not registered. |  |  |
 | [`removing`](../list-form/offsets.d.ts) | Returns a new array without the elements at `offsets`. Pass it exactly what `ForEach`'s `onDelete` reports. | Each returns a new array; store the result in state to update the rows. | delete rows |
+| [`Resource`](../data/resource.d.ts) | A shared remote-data cache. Define it outside React and include account identity in keys. |  |  |
+| [`ResourceOptions`](../data/resource.d.ts) | Freshness and inactive-entry retention for a resource. Neither option writes to disk. |  |  |
+| [`ResourceResult`](../data/useResource.d.ts) | Retained content plus an explicit retry/pull-to-refresh action. |  |  |
+| [`ResourceSnapshot`](../data/resource.d.ts) | The current value and request state of one in-memory remote resource. |  |  |
 | [`route`](../public/routes.d.ts) | Binds a screen component to its parameter schema and static chrome. Declare the params first, then type the component with `RouteParameters<typeof params>`; this order avoids inference cycles. | Navigation does not use browser history. Route params must match the declared schema. |  |
 | [`RouteDefinition`](../public/routes.d.ts) | A screen bound to its parameter schema; made by `route`, collected by `defineRoutes`. |  |  |
 | [`RouteOptions`](../public/routes.d.ts) | A destination's static chrome: what its bar shows from the first frame of the push. `Screen` overrides any of these once the screen has its data. |  |  |
@@ -274,10 +279,10 @@ Components, hooks and types for building the app.
 | [`ScrollView`](../public/scroll.d.ts) | A scrolling region, vertical by default. Inside a screen its `id` keys scroll restoration, so keep it stable. `refreshable` adds pull to refresh, and a ref handle scrolls to a `ScrollTarget`. | The refresh indicator holds a 60 pt inset while the action runs. Scroll targets, pull to refresh and scroll geometry work only on the vertical axis. The hard style throws an unsupported error. Only the top edge draws material; other edges draw none. | scrolling; pull to refresh; scroll to |
 | [`ScrollViewHandle`](../public/scroll.d.ts) | A scroll view's ref handle: its current offset, `scrollTo` a target and `scrollToTop`. |  |  |
 | [`ScrollViewProps`](../public/scroll.d.ts) | A scroll view's id, axis, refresh action, keyboard dismissal, edge material and position options. Targets, refresh and geometry work only on the vertical axis. |  |  |
-| [`Searchable`](../search/searchable.d.ts) | A search field for a screen or list: its controlled text, prompt, placement, scopes and suggestions. The bar owns the field: its capsule, magnifier, clear button, close button, scope bar and collapse on scroll. In the bottom toolbar, the presented field rides above the keyboard with a close button, and the bar and title give way. Place `<DefaultToolbarItem kind="search" placement="bottomBar" />` to put it beside other bottom bar items. | The bottom toolbar field does not animate in yet and draws no scope bar, so scoped fields stay in the drawer. A search tab draws no bottom field; role="search" is metadata only. Do not build your own search bar. | search bar; search field |
-| [`SearchFieldPlacement`](../search/searchable.d.ts) | Where the search field goes. On iPhone, `'automatic'` uses the bottom toolbar outside a `TabView` when the screen has no other bottom bar items or scopes; otherwise it uses a drawer that scrolls away with the content. On iPad, automatic search belongs to the trailing navigation toolbar, or below the sidebar toolbar in a split view. Explicit toolbar placement stays trailing on iPad, including narrow windows. | The bottom toolbar field does not animate in yet and draws no scope bar, so scoped fields stay in the drawer. A search tab draws no bottom field; role="search" is metadata only. Do not build your own search bar. |  |
-| [`SearchScopes`](../search/searchable.d.ts) | A controlled scope bar, shown under the search field while search is presented. | The bottom toolbar field does not animate in yet and draws no scope bar, so scoped fields stay in the drawer. A search tab draws no bottom field; role="search" is metadata only. Do not build your own search bar. |  |
-| [`SearchSuggestion`](../search/searchable.d.ts) | A suggestion shown under the search field. Choosing one replaces the search text; it does not submit. | The bottom toolbar field does not animate in yet and draws no scope bar, so scoped fields stay in the drawer. A search tab draws no bottom field; role="search" is metadata only. Do not build your own search bar. |  |
+| [`Searchable`](../search/searchable.d.ts) | A search field for a screen or list: its controlled text, prompt, placement, scopes and suggestions. The bar owns the field: its capsule, magnifier, clear button, close button, scope bar and collapse on scroll. In the bottom toolbar, the presented field rides above the keyboard with a close button, and the bar and title give way. Place `<DefaultToolbarItem kind="search" placement="bottomBar" />` to put it beside other bottom bar items. | The app supplies actual search results and recent queries. Submission dismisses the keyboard without exiting search. Scoped phone fields stay in the drawer. Minimized search-button behavior and exact installed-runtime timing remain under qualification; do not replace the framework field with an app-owned keyboard accessory. | search bar; search field |
+| [`SearchFieldPlacement`](../search/searchable.d.ts) | Where the search field goes. On iPhone, `'automatic'` uses the bottom toolbar outside a `TabView` when the screen has no other bottom bar items or scopes; otherwise it uses a drawer that scrolls away with the content. On iPad, automatic search belongs to the trailing navigation toolbar, or below the sidebar toolbar in a split view. Explicit toolbar placement stays trailing on iPad, including narrow windows. | The app supplies actual search results and recent queries. Submission dismisses the keyboard without exiting search. Scoped phone fields stay in the drawer. Minimized search-button behavior and exact installed-runtime timing remain under qualification; do not replace the framework field with an app-owned keyboard accessory. |  |
+| [`SearchScopes`](../search/searchable.d.ts) | A controlled scope bar, shown under the search field while search is presented. | The app supplies actual search results and recent queries. Submission dismisses the keyboard without exiting search. Scoped phone fields stay in the drawer. Minimized search-button behavior and exact installed-runtime timing remain under qualification; do not replace the framework field with an app-owned keyboard accessory. |  |
+| [`SearchSuggestion`](../search/searchable.d.ts) | A suggestion shown under the search field. Choosing one replaces the search text; it does not submit. | The app supplies actual search results and recent queries. Submission dismisses the keyboard without exiting search. Scoped phone fields stay in the drawer. Minimized search-button behavior and exact installed-runtime timing remain under qualification; do not replace the framework field with an app-owned keyboard accessory. |  |
 | [`Section`](../list-form/ListForm.d.ts) | A group of rows in a `List` or `Form`, with an optional header and footer. | A ListRow is always one row: its children sit side by side. Use one ListRow per row. |  |
 | [`SectionProps`](../list-form/ListForm.d.ts) | A section's rows and its optional header and footer. |  |  |
 | [`SecureField`](../public/controls.d.ts) | Password entry through secure system input. In a `List` or `Form` it becomes the row. | Password manager support is limited to autofill. | password field |
@@ -364,10 +369,12 @@ Components, hooks and types for building the app.
 | [`useBuildInfo`](../app/buildInfo.d.ts) | Returns the build that is running, even offline. The values are written by `satinApp` at build time; it never asks the server for the latest deployment. | The build id is not a git revision or a service worker cache hash. Builds made without satinApp report "unavailable". What the server last served says nothing about which cached bundle is running. |  |
 | [`useColorScheme`](../public/environment.d.ts) | The appearance Satin is drawing right now, `light` or `dark`. | Increased contrast is not reported. Size classes are compact or regular only. | dark mode |
 | [`useDismiss`](../presentation/dismiss.d.ts) | Closes the screen or presentation that contains the caller. In a pushed screen it pops that screen; at the root of a Sheet or FullScreenCover it dismisses the presentation, even when interactive dismissal is disabled. Elsewhere it does nothing. | Covers cannot be swiped away. They start closed after a relaunch. | close; go back |
+| [`useDismissSearch`](../search/SearchEnvironment.d.ts) | Leave the enclosing search mode, clear its query, and dismiss its keyboard. | The app supplies actual search results and recent queries. Submission dismisses the keyboard without exiting search. Scoped phone fields stay in the drawer. Minimized search-button behavior and exact installed-runtime timing remain under qualification; do not replace the framework field with an app-owned keyboard accessory. |  |
 | [`useEditMode`](../list-form/editing.d.ts) | Returns this screen's edit mode and a setter. `EditButton` toggles the same value, so a toolbar or bottom bar can follow it. | Rows are identified by their ForEach ids. Edit mode belongs to each screen and cannot be set from outside it. Outside edit mode, plain rows cannot be selected with the keyboard. |  |
 | [`useFocusChain`](../text-input/focusChain.d.ts) | Moves focus through a form's fields in `order`. The return key goes to the next field and the last one dismisses the keyboard. Disabled and unmounted fields are skipped. Spread `field(key)` onto each field. | Focus moves only through the fields you register. A custom keyboard is not possible. | next field; return key |
 | [`useGlassErrors`](../public/environment.d.ts) | Every glass renderer error so far, re-rendering when one is added. For diagnostics screens; `runApp`'s `onGlassError` is the way to report them. | Diagnostics show what failed; they do not prove the app looks or behaves right on a device. |  |
 | [`useHorizontalSizeClass`](../public/environment.d.ts) | The horizontal size class: `compact` or `regular`. Inside a presentation it is the presentation's own class; elsewhere, the window's. | Increased contrast is not reported. Size classes are compact or regular only. | iPad layout; responsive layout |
+| [`useIsSearching`](../search/SearchEnvironment.d.ts) | Whether the enclosing searchable screen is in search mode, including after submission. | The app supplies actual search results and recent queries. Submission dismisses the keyboard without exiting search. Scoped phone fields stay in the drawer. Minimized search-button behavior and exact installed-runtime timing remain under qualification; do not replace the framework field with an app-owned keyboard accessory. |  |
 | [`useKeyboardMetrics`](../public/keyboard.d.ts) | Returns the keyboard's geometry in points and re-renders as it changes. `expectedHeight` is the keyboard height to plan for before the keyboard has shown. | It reads the keyboard; it cannot change the keyboard or add a separate keyboard lifecycle. | keyboard height |
 | [`useMediaPlayer`](../media/react.d.ts) | Returns the app's audio player: its commands and its live state. The system's Lock Screen media controls drive the same player. Audio only; there is no video playback. | Audio only, with no video player and no background playback beyond what WebKit allows. Playback depends on WebKit codec support and a server that serves byte ranges. | audio player; music player |
 | [`useNamespace`](../motion/matchedGeometry.d.ts) | Returns a namespace that stays the same for the life of the component. Pass it to `MatchedGeometryEffect` and `MatchedTransitionSource`. | Matches frames only, around the centre. Corner radius scales with the frame during the flight instead of staying fixed. A non-source view does not follow its source outside an animation. Glass does not travel with a removed view. |  |
@@ -377,13 +384,14 @@ Components, hooks and types for building the app.
 | [`useQuery`](../data/database.d.ts) | Reads a collection's records as `{ data, loading, error }` and keeps them live. Local writes show up synchronously, before they persist. | Data lives in IndexedDB on this device. The browser may evict it, and writes can fail. | live query |
 | [`useReachability`](../reachability/react.d.ts) | The app server's status and the offline view currently shown, with `fetch` and `recheck` helpers that feed the status. | It cannot promise that a request will succeed. | offline; network status |
 | [`useRecord`](../data/database.d.ts) | One record by key, kept live; `data` is undefined while loading and when no record exists. | Data lives in IndexedDB on this device. The browser may evict it, and writes can fail. |  |
+| [`useResource`](../data/useResource.d.ts) | Read shared content synchronously; load missing or stale data when the screen shows. Refresh errors preserve content and appear in error. Covering or popping a screen never cancels a shared request. Use useTask for work that must stop with its screen. | No automatic persistence, transport or background execution. Include account identity in keys and clear resources on sign-out. Cold, unseeded reads still need loading UI. |  |
 | [`UserInterfaceSizeClass`](../public/environment.d.ts) | How much room there is along one axis: `compact` or `regular`. |  |  |
 | [`useSafeAreaInsets`](../public/environment.d.ts) | The live safe-area insets in CSS pixels. Use them instead of `env(safe-area-inset-*)`. | A top inset under a large title stays at the expanded title edge while the title collapses. On an installed iPhone the status bar area is a flat fill (see top-edge-limitation.md). | safe area insets; notch; home indicator |
 | [`useScaledMetric`](../content/scaledMetric.d.ts) | Scales a dimension with the user's text size, relative to a text style (`body` by default). Use it for spacing or icon sizes that should grow with text. | largeTitle and callout scale by fixed fallbacks, because WebKit has no system font keyword for them. | text size scaling |
 | [`useScenePhase`](../public/environment.d.ts) | Whether the app is in use: `active` in the foreground with focus, `inactive` without focus, `background` when hidden. | The browser may stop running the app while it is suspended. A screen's lifecycle is separate from the app's foreground state. | foreground; background; app state |
 | [`useSceneStorage`](../public/environment.d.ts) | State kept with the current navigation entry, so a draft survives a relaunch. Each pushed entry owns its own value. Values must be JSON-serializable. Keep saved records in a collection, not here. | Do not store presentation visibility here. A checkpoint can be lost if the browser evicts storage or the process crashes. | restorable screen state; draft |
 | [`useScreenLifecycle`](../navigation/navigationContext.d.ts) | Runs `appear` and `disappear` callbacks as the screen is shown and covered or removed, and returns whether it is covered and its transition phase. | The browser may stop running the app while it is suspended. A screen's lifecycle is separate from the app's foreground state. |  |
-| [`useTask`](../tasks/useTask.d.ts) | Runs async work while its screen is showing. It cancels the run when the screen is covered, its tab is hidden or the component unmounts, and starts again when it shows. Pass `signal` to `fetch` and publish results through `commit`. An error the task throws reaches the nearest error boundary. The returned runner cancels and replaces the current run. | Cancellation is cooperative: state set outside commit cannot be stopped. The work runs in the foreground only; it is not a Web Worker or a background scheduler. | cancellable task; data loading |
+| [`useTask`](../tasks/useTask.d.ts) | For shared remote data, use defineResource/useResource so revisits retain content. Runs async work while its screen is showing. It cancels the run when the screen is covered, its tab is hidden or the component unmounts, and starts again when it shows. Pass `signal` to `fetch` and publish results through `commit`. An error the task throws reaches the nearest error boundary. The returned runner cancels and replaces the current run. | Cancellation is cooperative: state set outside commit cannot be stopped. The work runs in the foreground only; it is not a Web Worker or a background scheduler. | cancellable task; data loading |
 | [`useUnsavedChanges`](../root/runtimeContext.d.ts) | Tells Satin the app has unsaved work while `unsaved` is true, so a pending app update waits instead of reloading over it. Edits in text fields are detected without this hook. | It only delays app updates; it does not stop the user from dismissing a sheet. | unsaved changes |
 | [`useVerticalSizeClass`](../public/environment.d.ts) | The vertical size class: `compact` or `regular`. Inside a presentation it is the presentation's own class; elsewhere, the window's. | Increased contrast is not reported. Size classes are compact or regular only. |  |
 | [`useWebAuthentication`](../web/useWebAuthentication.d.ts) | Returns a sign-in flow's current state and re-renders when it changes. It checks for a finished sign-in on launch and when the app returns to the foreground. | Needs a secure context, local storage, Web Locks, a dedicated uncached callback page and a server exchange. Bridge reads need a private transaction proof. Your server validates tokens and OpenID Connect. Completion in the background is not guaranteed. |  |
@@ -408,6 +416,7 @@ Components, hooks and types for building the app.
 | [`WebFrameController`](../web/WebView.d.ts) | Reads a `WebView`'s state and sends it `reload` and `stop`. Only same-origin frames expose their current page or accept these commands. |  |  |
 | [`WebFrameState`](../web/WebView.d.ts) | The embedded page's load state. A cross-origin page reports `unverified`, because its contents cannot be read. |  |  |
 | [`WebView`](../web/WebView.d.ts) | Embeds a web page in a sandboxed frame. The browser decides whether the page may be framed, and the frame's storage is partitioned from the app's. | You cannot force the external browser. A dispatched URL is not a loaded page. Cross-origin or blocked frames report unverified, and only same-origin frames can be reloaded or stopped. | iframe; embedded web page |
+| [`WebViewLink`](../web/frameDocument.d.ts) | A link's authored browsing-context target, supplied when link interception is available. |  |  |
 | [`WebViewProps`](../web/WebView.d.ts) | The page URL, its accessible title, an optional controller, and what the page may run. Scripts and forms are off by default. |  |  |
 | [`withAnimation`](../motion/matchedGeometry.d.ts) | Applies the state changes in `update`, then animates the `MatchedGeometryEffect` views they move, insert or remove. Call it from an event handler. Keyed List rows also move to their new positions. Other views take their new layout at once. Returns the callback result and passes errors through. Only synchronous updates take part, and nested calls join the outer one. | Other state and style changes do not animate. There is no null animation, easing curve, repeat, delay, completion callback or per-update timing; use one outer synchronous update. Bounce cannot be negative. | animated state update |
 | [`WriteFailure`](../data/write-store.d.ts) | A durable write that failed after it was published to memory, reported to `db.onError`. |  |  |
@@ -539,20 +548,6 @@ Framework internals for Satin tooling and tests. App code must not import them; 
 | [`GLASS_DOCK_RADIUS_PX`](../glass/lens/Scene.d.ts) |  |  |  |
 | [`GLASS_DOCK_SIDE_INSET_PX`](../glass/lens/Scene.d.ts) |  |  |  |
 | [`GLASS_DOCK_WIDTH_PX`](../glass/lens/Scene.d.ts) |  |  |  |
-| [`GLASS_LENS_BLUR_PX`](../glass/tokens.d.ts) |  |  |  |
-| [`GLASS_LENS_CHROMATIC_ABERRATION`](../glass/tokens.d.ts) |  |  |  |
-| [`GLASS_LENS_CURVATURE`](../glass/tokens.d.ts) |  |  |  |
-| [`GLASS_LENS_DEPTH_PX`](../glass/tokens.d.ts) |  |  |  |
-| [`GLASS_LENS_EDGE_EXPONENT`](../glass/tokens.d.ts) |  |  |  |
-| [`GLASS_LENS_EDGE_HIGHLIGHT`](../glass/tokens.d.ts) |  |  |  |
-| [`GLASS_LENS_EDGE_WIDTH_PX`](../glass/tokens.d.ts) |  |  |  |
-| [`GLASS_LENS_GLOW`](../glass/tokens.d.ts) |  |  |  |
-| [`GLASS_LENS_GLOW_EXPONENT`](../glass/tokens.d.ts) |  |  |  |
-| [`GLASS_LENS_GLOW_SPREAD`](../glass/tokens.d.ts) |  |  |  |
-| [`GLASS_LENS_SPECULAR`](../glass/tokens.d.ts) |  |  |  |
-| [`GLASS_LENS_SPECULAR_ANGLE_DEG`](../glass/tokens.d.ts) |  |  |  |
-| [`GLASS_LENS_SPLAY`](../glass/tokens.d.ts) |  |  |  |
-| [`GLASS_LENS_STRENGTH`](../glass/tokens.d.ts) |  |  |  |
 | [`GLASS_OVERSCAN_X_PX`](../glass/lens/Scene.d.ts) |  |  |  |
 | [`GLASS_OVERSCAN_Y_PX`](../glass/lens/Scene.d.ts) |  |  |  |
 | [`GLASS_REGION_LIMIT`](../glass/regions.d.ts) | Provisional allocation guard, not a measured device performance promise. Two 440×894 sheets at 3× with 20pt sample margins need 8,069,760 pixels. The 12M guard permits that stack plus chrome; it is not a memory benchmark. |  |  |
@@ -560,8 +555,6 @@ Framework internals for Satin tooling and tests. App code must not import them; 
 | [`GLASS_REGULAR_BRIGHTNESS`](../glass/tokens.d.ts) |  |  |  |
 | [`GLASS_REGULAR_SATURATION`](../glass/tokens.d.ts) |  |  |  |
 | [`GLASS_REGULAR_TINT_ALPHA`](../glass/tokens.d.ts) |  |  |  |
-| [`GLASS_RIM_HIGHLIGHT_ALPHA`](../glass/tokens.d.ts) |  |  |  |
-| [`GLASS_RIM_SHADOW_ALPHA`](../glass/tokens.d.ts) |  |  |  |
 | [`GLASS_SELECTION_DURATION_MS`](../glass/tokens.d.ts) |  |  |  |
 | [`GLASS_SELECTION_EASING`](../glass/tokens.d.ts) |  |  |  |
 | [`GLASS_TAB_BAR_BOTTOM_GAP_PX`](../glass/tokens.d.ts) |  |  |  |
@@ -585,7 +578,7 @@ Framework internals for Satin tooling and tests. App code must not import them; 
 | [`GlassEffectContainer`](../glass/GlassEffect.d.ts) | Groups nearby glass effects so they render together and blend or morph into one another. `spacing`, 20 pt by default, sets how close effects must be to merge. |  | glass morph; glass group |
 | [`GlassEffectProps`](../glass/GlassEffect.d.ts) | Props for `GlassEffect`. |  |  |
 | [`GlassError`](../glass/errors.d.ts) | One glass renderer failure: its code, message, the stage it happened in and when. |  |  |
-| [`GlassErrorCode`](../glass/errors.d.ts) | Why the glass renderer failed, such as `gpu-unavailable` or `device-lost`. In a release build a failure can switch glass to the fallback material. |  |  |
+| [`GlassErrorCode`](../glass/errors.d.ts) | Why the glass renderer failed, such as `gpu-unavailable` or `device-lost`. Releases can recover with fallback; development only tolerates missing startup capability. |  |  |
 | [`glassFieldDistance`](../glass/fieldGeometry.d.ts) | Returns the signed distance to the diagnostic glass union in points. |  |  |
 | [`GlassFieldMember`](../glass/fieldGeometry.d.ts) | Geometry in frame-local CSS pixels; independent of any renderer. |  |  |
 | [`GlassFrameTrace`](../glass/renderSpecs.d.ts) |  |  |  |
@@ -1221,6 +1214,10 @@ The declarations below have no dedicated reviewed behavior metadata. Type-only d
 - `@satinhq/kit:Register` (Type)
 - `@satinhq/kit:RegisteredNavigation` (Type)
 - `@satinhq/kit:RegisteredRoutes` (Type)
+- `@satinhq/kit:Resource` (Type)
+- `@satinhq/kit:ResourceOptions` (Type)
+- `@satinhq/kit:ResourceResult` (Type)
+- `@satinhq/kit:ResourceSnapshot` (Type)
 - `@satinhq/kit:RouteDefinition` (Type)
 - `@satinhq/kit:RouteOptions` (Type)
 - `@satinhq/kit:RouteParameters` (Type)
@@ -1322,6 +1319,7 @@ The declarations below have no dedicated reviewed behavior metadata. Type-only d
 - `@satinhq/kit:WebFrameActionResult` (Type)
 - `@satinhq/kit:WebFrameController` (Type)
 - `@satinhq/kit:WebFrameState` (Type)
+- `@satinhq/kit:WebViewLink` (Type)
 - `@satinhq/kit:WebViewProps` (Type)
 - `@satinhq/kit:WriteFailure` (Type)
 - `@satinhq/kit:ZoomableProps` (Type)
@@ -1423,20 +1421,6 @@ The declarations below have no dedicated reviewed behavior metadata. Type-only d
 - `@satinhq/kit/internal:GLASS_DOCK_RADIUS_PX` (Value)
 - `@satinhq/kit/internal:GLASS_DOCK_SIDE_INSET_PX` (Value)
 - `@satinhq/kit/internal:GLASS_DOCK_WIDTH_PX` (Value)
-- `@satinhq/kit/internal:GLASS_LENS_BLUR_PX` (Value)
-- `@satinhq/kit/internal:GLASS_LENS_CHROMATIC_ABERRATION` (Value)
-- `@satinhq/kit/internal:GLASS_LENS_CURVATURE` (Value)
-- `@satinhq/kit/internal:GLASS_LENS_DEPTH_PX` (Value)
-- `@satinhq/kit/internal:GLASS_LENS_EDGE_EXPONENT` (Value)
-- `@satinhq/kit/internal:GLASS_LENS_EDGE_HIGHLIGHT` (Value)
-- `@satinhq/kit/internal:GLASS_LENS_EDGE_WIDTH_PX` (Value)
-- `@satinhq/kit/internal:GLASS_LENS_GLOW` (Value)
-- `@satinhq/kit/internal:GLASS_LENS_GLOW_EXPONENT` (Value)
-- `@satinhq/kit/internal:GLASS_LENS_GLOW_SPREAD` (Value)
-- `@satinhq/kit/internal:GLASS_LENS_SPECULAR` (Value)
-- `@satinhq/kit/internal:GLASS_LENS_SPECULAR_ANGLE_DEG` (Value)
-- `@satinhq/kit/internal:GLASS_LENS_SPLAY` (Value)
-- `@satinhq/kit/internal:GLASS_LENS_STRENGTH` (Value)
 - `@satinhq/kit/internal:GLASS_OVERSCAN_X_PX` (Value)
 - `@satinhq/kit/internal:GLASS_OVERSCAN_Y_PX` (Value)
 - `@satinhq/kit/internal:GLASS_REGION_LIMIT` (Value)
@@ -1444,8 +1428,6 @@ The declarations below have no dedicated reviewed behavior metadata. Type-only d
 - `@satinhq/kit/internal:GLASS_REGULAR_BRIGHTNESS` (Value)
 - `@satinhq/kit/internal:GLASS_REGULAR_SATURATION` (Value)
 - `@satinhq/kit/internal:GLASS_REGULAR_TINT_ALPHA` (Value)
-- `@satinhq/kit/internal:GLASS_RIM_HIGHLIGHT_ALPHA` (Value)
-- `@satinhq/kit/internal:GLASS_RIM_SHADOW_ALPHA` (Value)
 - `@satinhq/kit/internal:GLASS_SELECTION_DURATION_MS` (Value)
 - `@satinhq/kit/internal:GLASS_SELECTION_EASING` (Value)
 - `@satinhq/kit/internal:GLASS_TAB_BAR_BOTTOM_GAP_PX` (Value)
@@ -1873,16 +1855,16 @@ The declarations below have no dedicated reviewed behavior metadata. Type-only d
 
 ## Declaration graph fingerprints
 
-- `@satinhq/kit:5b502fa131b60af343ebbd357d1f227fee53f00ae67008cf80828ffc70e8b807`
-- `@satinhq/kit/vite:aae491af836b19471a7306a4f2fec9e5eb8cd68184ce26ec6aeea033e593a15e`
+- `@satinhq/kit:c8467816e2546662b2f534a74b7bb634df513439defe80f3f339aa0ba0d4d92e`
+- `@satinhq/kit/vite:2a5c37d7a4a86a6f4e93516451716df9b5c73b3c81ac98509061536453d43207`
 - `@satinhq/kit/install:e080a0874c9490077cf9cbb117e03d5d58252226e9424d84101be7ee4454a422`
-- `@satinhq/kit/internal:6494fcb7a68524c4155cf8871937213f0e6ca29751da0efaba30e07a9356d4c0`
-- `@satinhq/kit/unstable:59f001f3090a2b56ad18df3b0ef8b7d4546c5c7ccbbfc4f793da98d1ad27bf34`
+- `@satinhq/kit/internal:7cb35329e6619637d4fa028b65663162ac7b666aaffa325f6c36094b8fdbf261`
+- `@satinhq/kit/unstable:d429053ae5a14e1d724e3feb09226a36847eee07597cbb52aa76611e753e5ff6`
 - `@satinhq/kit/server:7d2b996d9541bd82fd0936e0482554f3182ffe004be56928e590ad4c4c8c79bd`
 - `@satinhq/kit/testing:04a86ddf0741e53228777bd599cbd00ff503b9e216a1f86a9791fdbee1bd5e12`
 - `@satinhq/kit/diagnostics:05327eaa9f5a55ab73834d5abaeaeffd98cfc6294fa5af5d3ba03a8609463eac`
-- `@satinhq/kit/internal/vite:127e9845619cf9939e4200986696109e5412492394afa432c1ae9c9cde98121b`
+- `@satinhq/kit/internal/vite:e5ab7060ef1d501162d5e487dd7f6b680f754b6c38b3a6868e2f5c911ab1cc3d`
 
 ## Framework source fingerprint
 
-SHA-256 of sorted TS/TSX/CSS source paths and bytes, excluding tests: bf8b531e4843108ecb5b120707eed8b7fb7bc18d677db5b073d1e0d4dd14f70e
+SHA-256 of sorted TS/TSX/CSS source paths and bytes, excluding tests: 72df7d6ac24747f6ac74cf8262fd39776d104702113ed949b9525f6697494d87

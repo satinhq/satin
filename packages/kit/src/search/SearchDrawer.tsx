@@ -4,9 +4,7 @@ import { NavigationSearchRow, navigationSearchRowOf } from '../navigation/Naviga
 import { animateElement } from '../motion/animate.ts'
 import { beginSearchBackdrop, endSearchBackdrop, refreshSearchBackdrop } from './searchBackdrop.ts'
 import {
-  useCallback,
   useContext,
-  useEffect,
   useLayoutEffect,
   useRef,
   useState,
@@ -27,7 +25,8 @@ import { NavigatorContext, ScreenContext } from '../navigation/navigationContext
 import type { NavigatorStore } from '../navigation/store.ts'
 import { SymbolImage } from '../symbols/Symbol.tsx'
 import { TextField } from '../text-input/TextField.tsx'
-import { validateSearchPresentation, type Searchable, type SearchSuggestion } from './searchable.ts'
+import { validateSearchPresentation, type Searchable } from './searchable.ts'
+import { useSearchPresentation } from './useSearchPresentation.ts'
 import {
   SEARCH_FIELD_SPRING,
   SEARCH_SCOPES_IN_SPRING,
@@ -87,55 +86,15 @@ function PhoneSearchDrawer({
   )
   const drawerRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
-  const [ownPresented, setOwnPresented] = useState(false)
-  const presented = configuration.isPresented ?? ownPresented
-  const [submittedText, setSubmittedText] = useState<string | null>(null)
+  const { presented, present, dismiss, change, submit, complete, suggestions } =
+    useSearchPresentation(configuration, inputRef)
   const [animating, setAnimating] = useState(false)
   const running = useRef<Running | null>(null)
   const appliedPresented = useRef<boolean | null>(null)
-  const configurationRef = useRef(configuration)
   const liquidRef = useRef(liquid)
   useLayoutEffect(() => {
-    configurationRef.current = configuration
     liquidRef.current = liquid
   })
-
-  const setPresented = useCallback((next: boolean) => {
-    const current = configurationRef.current
-    if (current.isPresented === undefined) setOwnPresented(next)
-    current.onPresentedChange?.(next)
-  }, [])
-
-  const present = () => {
-    if (!presented) setPresented(true)
-  }
-  const dismiss = () => {
-    inputRef.current?.blur()
-    setSubmittedText(null)
-    if (configurationRef.current.text) configurationRef.current.onTextChange('')
-    setPresented(false)
-  }
-  const change = (text: string) => {
-    setSubmittedText(null)
-    configuration.onTextChange(text)
-  }
-  const submit = () => {
-    setSubmittedText(configuration.text)
-    inputRef.current?.blur()
-    configuration.onSubmit?.()
-  }
-  const complete = (suggestion: SearchSuggestion) => {
-    change(suggestion.text)
-    if (inputRef.current) focusFromFramework(inputRef.current, { preventScroll: true })
-  }
-
-  // Native presents the field focused, including a programmatic `isPresented`.
-  useEffect(() => {
-    const input = inputRef.current
-    if (presented && input && document.activeElement !== input && appliedPresented.current) {
-      focusFromFramework(input, { preventScroll: true })
-    }
-  }, [presented])
 
   useLayoutEffect(() => {
     const element = scroller.current
@@ -229,7 +188,10 @@ function PhoneSearchDrawer({
       drawer.toggleAttribute('data-satin-search-pinned', glass > 0)
       drawer.style.setProperty('--satin-search-pin', String(pin))
       drawer.style.setProperty('--satin-search-glass', String(glass))
-      drawer.nextElementSibling?.setAttribute('style', `--satin-search-pin: ${pin}`)
+      ;(drawer.nextElementSibling as HTMLElement | null)?.style.setProperty(
+        '--satin-search-pin',
+        String(pin),
+      )
     }
     update()
     element.addEventListener('scroll', update, { passive: true })
@@ -244,8 +206,6 @@ function PhoneSearchDrawer({
 
   const prompt = configuration.prompt ?? 'Search'
   const scopes = configuration.scopes
-  const suggestions =
-    presented && submittedText !== configuration.text ? (configuration.suggestions ?? []) : []
   return (
     <>
       <div

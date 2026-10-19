@@ -31,6 +31,7 @@ import { ResidentPlanes } from './residentPlanes.ts'
 import { REGULAR_TRIGGER_MATERIAL, regularTriggerRegime } from '../regularTriggerMaterial.ts'
 import { WebGPUClient } from './client.ts'
 import { reportGlassError, getGlassErrors } from '../errors.ts'
+import { markGlassWebGPUCapable } from '../failurePolicy.ts'
 import {
   createRenderSpecs,
   type RuntimeOptions,
@@ -72,13 +73,15 @@ const SCROLL_IDLE_MS = 150
 /** Visible time a held menu run may wait for its surface to be installed and acknowledged before the missing glass is an error. */
 const MENU_SURFACE_BUDGET_MS = 10000
 /** A navigator transition (any layout, including split panes), a presentation in motion
- * (entrance, drag, release) or the bottom inset chain following the keyboard. Backdrop captures are deferred until it settles: a capture of a
+ * (entrance, drag, release), a swiped list row (contact and settle) or the bottom inset chain
+ * following the keyboard. Backdrop captures are deferred until it settles: a capture of a
  * moving scene is stale by the time it uploads, and it would run on the main thread in the
  * frames that start the motion. Presented menu morphs use the same policy; a pending
  * menu still needs its initial capture. Glass over motion samples the installed planes. */
 const sceneInMotion = (host?: HTMLElement) =>
   !!document.querySelector(
     '[data-satin-transition-active="true"],[data-satin-presentation-moving],[data-satin-keyboard-moving],' +
+      '[data-satin-row-swipe-moving],' +
       '[data-satin-menu-phase="closing"],' +
       '[data-satin-menu-phase="open"][data-satin-menu-rows="glass"]',
   ) || !!host?.hasAttribute('data-satin-search-moving')
@@ -391,6 +394,7 @@ export class ProductionGlassRuntime {
         ? 'worker'
         : 'document',
     )
+    markGlassWebGPUCapable()
     if (lagTraceRequested()) {
       setLagTrace(true)
       this.fire({ type: 'lag-trace', enabled: true })
@@ -570,24 +574,18 @@ export class ProductionGlassRuntime {
     this.unsubscribeAppearance?.()
     this.unsubscribeAppearance = undefined
   }
-  private bind(retained?: WorkerMinimize) {
-    this.bindAppearance()
+  /** Enable input only after the replacement frame has been made visible. */
+  activateRecovery() {
+    if (!this.options.recovery) return
+    this.options = { ...this.options, recovery: false }
+    this.bindInput()
+  }
+  private bindInput(retained?: WorkerMinimize) {
     this.options.elements.menu?.trigger.addEventListener('pointerdown', this.menuDown)
     this.options.elements.menu?.trigger.addEventListener('pointermove', this.menuMove)
     document.addEventListener('pointerup', this.menuUp, true)
     document.addEventListener('pointercancel', this.menuUp, true)
     window.addEventListener('blur', this.menuCancel)
-    this.appRegions.bind(this.options.regions, this.options.elements.contentHost)
-    window.addEventListener(KEYBOARD_CARRIER_MOTION, this.keyboardGeometry)
-    window.addEventListener(SCROLL_INSERTION_MOTION, this.keyboardGeometry)
-    this.unsubscribeRegionBackdrop =
-      this.options.regions &&
-      watchRegionBackdrop(this.options.regions, () => {
-        // A held first show is preparation, not motion. Normal scheduling
-        // still defers if another screen or presentation is actually moving.
-        this.schedulePrepare()
-      })
-    const host = this.options.elements.scroller
     this.minimizeDom =
       retained ??
       new WorkerMinimize(
@@ -602,12 +600,27 @@ export class ProductionGlassRuntime {
         },
         track => this.track('dock', track.specs, track.duration, track.at),
       )
+    this.options.elements.scroller.addEventListener('pointerdown', this.begin, { passive: true })
+    document.addEventListener('pointerup', this.endContact, true)
+  }
+  private bind(retained?: WorkerMinimize) {
+    this.bindAppearance()
+    if (!this.options.recovery) this.bindInput(retained)
+    this.appRegions.bind(this.options.regions, this.options.elements.contentHost)
+    window.addEventListener(KEYBOARD_CARRIER_MOTION, this.keyboardGeometry)
+    window.addEventListener(SCROLL_INSERTION_MOTION, this.keyboardGeometry)
+    this.unsubscribeRegionBackdrop =
+      this.options.regions &&
+      watchRegionBackdrop(this.options.regions, () => {
+        // A held first show is preparation, not motion. Normal scheduling
+        // still defers if another screen or presentation is actually moving.
+        this.schedulePrepare()
+      })
+    const host = this.options.elements.scroller
     this.unsubscribeNativeScroll = observeNativeScroll(host, snapshot =>
       this.scroll(snapshot.event, snapshot),
     )
     host.addEventListener('satin:search-geometry', this.searchGeometry)
-    host.addEventListener('pointerdown', this.begin, { passive: true })
-    document.addEventListener('pointerup', this.endContact, true)
     host.addEventListener('scrollend', this.endScrollGesture, { passive: true })
     document.addEventListener('visibilitychange', this.visibility, true)
     window.addEventListener('pagehide', this.visibility, true)
@@ -667,6 +680,7 @@ export class ProductionGlassRuntime {
         'data-satin-sidebar-hidden',
         'data-satin-transition-active',
         'data-satin-presentation-moving',
+        'data-satin-row-swipe-moving',
         'data-satin-search-moving',
         'data-satin-search-presented',
       ],
@@ -1414,6 +1428,8 @@ export class ProductionGlassRuntime {
     cancelAnimationFrame(this.resumeFrame)
     this.resumeFrame = 0
     if (this.lifecycleHidden) {
+      clearTimeout(this.growTimer)
+      this.growTimer = 0
       this.lifecycleCounts.hidden++
       // Nothing moves across a suspension: the tab bar's minimize transaction and the bottom
       // accessory's run end at their committed layout now (the renderer settles its tracks

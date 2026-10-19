@@ -167,6 +167,34 @@ describe('ScrollSurface registry', () => {
     )
   })
 
+  it('returns a surface saved at its bottom to its current bottom, not to the saved offset', () => {
+    // A chat thread saved at its bottom, restored after a reload whose layout is taller.
+    const saved = Object.assign(node(0, 4000), { scrollHeight: 5000, clientHeight: 1000 })
+    const before = createScrollSurfaceRegistry({ development: true, screenKey: 'thread-0' })
+    before.register({
+      axis: 'vertical',
+      element: saved,
+      id: 'thread',
+      primary: true,
+      followsEnd: () => true,
+    })
+    const snapshot = before.capture()
+    expect(snapshot.get('thread')).toEqual({ x: 0, y: 4000, atEnd: true })
+
+    const warning = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    const onRestore = vi.fn()
+    const restored = Object.assign(node(0, 0), { scrollHeight: 6200, clientHeight: 1000 })
+    const after = createScrollSurfaceRegistry({ development: true, screenKey: 'thread-0' })
+    after.register({ axis: 'vertical', element: restored, id: 'thread', primary: true, onRestore })
+    after.restore(snapshot, { warnOnMismatch: true })
+
+    expect(restored.scrollTop).toBe(5200)
+    expect(onRestore).toHaveBeenCalledOnce()
+    expect(warning).not.toHaveBeenCalled()
+    // Nothing stays pending: later layout belongs to the surface's own position controller.
+    expect(after.capture({ preservePending: true }).get('thread')).toEqual({ x: 0, y: 5200 })
+  })
+
   it('restores a pending snapshot when a surface registers late while uncovered', () => {
     const registry = createScrollSurfaceRegistry({
       development: true,

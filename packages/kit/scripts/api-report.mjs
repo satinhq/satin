@@ -66,7 +66,7 @@ try {
     ['Glass and imagery', 'Glass GlassEffect GlassEffectContainer SymbolImage Image'],
     [
       'Data and environment',
-      'defineDatabase collection useQuery useRecord useAppStorage useSceneStorage useNotifications useReachability',
+      'defineResource useResource defineDatabase collection useQuery useRecord useAppStorage useSceneStorage useNotifications useReachability',
     ],
   ]
   const available = new Set(entries.map(entry => entry.name))

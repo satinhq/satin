@@ -8,6 +8,24 @@ on an iPhone or iPad, or in the iOS Simulator, then install it on the Home Scree
 A desktop browser is not a supported way to run a Satin app. If it shows "This app is designed for iPhone and iPad",
 move testing to the supported runtime instead of changing `src/app.ts` to bypass the gate.
 
+## Test in the iOS Simulator
+
+Start the app with `npm run dev`. Boot an iPhone in Simulator, open Safari there,
+and visit `http://localhost:5390`. Use the port printed by Vite if you changed it.
+For an installed run, use Safari's Share menu, choose Add to Home Screen, then
+launch the new icon. Keep the dev server running while you test.
+
+When the Simulator cannot provide WebGPU, development automatically draws the
+fallback glass material. A small notice says "Glass: fallback material, WebGPU
+unavailable". It dismisses on your first interaction; the console record remains.
+Layout, navigation, sheets, lists and input remain available for
+iteration. A rendering failure on a working WebGPU device still reports an error.
+`?glass=strict` or `SATIN_STRICT_GLASS=1 npm run dev` forbids fallback for diagnostics.
+Reload after changing that policy.
+
+Check final glass appearance, touch, keyboard feel and performance in the installed
+app on a real device. Simulator fallback is approximate and does not prove those results.
+
 ## Find the contract before writing a screen
 
 This is a developer preview. An exported API is available to compile, not a promise of native equivalence. Use the installed package's version of these offline references:
@@ -80,10 +98,11 @@ Generated from the same reviewed metadata as the shipped Satin API reference. Li
 | [`GeometryReader`](node_modules/@satinhq/kit/dist/content/layout.d.ts) | Report the space a reader is given to a render function; frame() reads its position in the viewport or relative to an element. | Inside a scroll view, give it a definite height. The proxy reports no safe-area insets. |
 | [`ViewThatFits`](node_modules/@satinhq/kit/dist/content/layout.d.ts) | Show the first child whose natural size fits the constrained axes, or the last child when none fits. | Give it a definite height when it checks the vertical axis. Every child stays mounted: hidden children are inert and pause Satin tasks and activity indicators, but their own effects keep running. |
 | [`useScaledMetric`](node_modules/@satinhq/kit/dist/content/scaledMetric.d.ts) | Scale a number with the user's text size, relative to a text style. | largeTitle and callout scale by fixed fallbacks, because WebKit has no system font keyword for them. |
-| [`Text`](node_modules/@satinhq/kit/dist/content/content.d.ts), [`VStack`](node_modules/@satinhq/kit/dist/content/content.d.ts), [`HStack`](node_modules/@satinhq/kit/dist/content/content.d.ts), [`ZStack`](node_modules/@satinhq/kit/dist/content/content.d.ts), [`Spacer`](node_modules/@satinhq/kit/dist/content/content.d.ts), [`Divider`](node_modules/@satinhq/kit/dist/content/content.d.ts) | Lay out content with system text styles, semantic colours, padding and frame props. Plain React and HTML still work. | Default spacing and frame differences are listed in content.md. Props apply in a fixed order, not the order you write them. |
+| [`Text`](node_modules/@satinhq/kit/dist/content/content.d.ts), [`VStack`](node_modules/@satinhq/kit/dist/content/content.d.ts), [`HStack`](node_modules/@satinhq/kit/dist/content/content.d.ts), [`ZStack`](node_modules/@satinhq/kit/dist/content/content.d.ts), [`Spacer`](node_modules/@satinhq/kit/dist/content/content.d.ts), [`Divider`](node_modules/@satinhq/kit/dist/content/content.d.ts) | Set Text `font`, `foregroundStyle`, `lineLimit` and `multilineTextAlignment`; use stack `spacing`, `padding` and `frame` for layout. Plain React and HTML still work. | Default spacing and frame differences are listed in content.md. Props apply in a fixed order, not the order you write them. |
 | [`LazyVStack`](node_modules/@satinhq/kit/dist/content/content.d.ts), [`LazyHStack`](node_modules/@satinhq/kit/dist/content/content.d.ts) | Lay out a stack whose children keep their state. Use List for long data. | Every child renders at once; there is no virtualization. |
 | [`LazyVGrid`](node_modules/@satinhq/kit/dist/content/content.d.ts), [`LazyHGrid`](node_modules/@satinhq/kit/dist/content/content.d.ts), [`GridItem`](node_modules/@satinhq/kit/dist/content/content.d.ts) | Lay out grids with per-track spacing and alignment. Use List for long data. | Every child renders at once; there is no virtualization. An adaptive track must be the only track, and there is no Grid or GridRow. |
-| [`useTask`](node_modules/@satinhq/kit/dist/tasks/useTask.d.ts) | Run cancellable work while a screen shows. A change of id, or a call to the returned runner, replaces the current run. Pass the AbortSignal to fetch and publish through commit. | Cancellation is cooperative: state set outside commit cannot be stopped. The work runs in the foreground only; it is not a Web Worker or a background scheduler. |
+| [`defineResource`](node_modules/@satinhq/kit/dist/data/resource.d.ts), [`useResource`](node_modules/@satinhq/kit/dist/data/useResource.d.ts) | Share keyed remote data in memory. Seed details from list content. Use NavigationLink or Button prefetch(signal) to start data and image work on press-down; forward the signal to cancel abandoned contacts. Stale content remains visible while refreshing. | No automatic persistence, transport or background execution. Include account identity in keys and clear resources on sign-out. Cold, unseeded reads still need loading UI. |
+| [`useTask`](node_modules/@satinhq/kit/dist/tasks/useTask.d.ts) | Use defineResource/useResource for shared remote data. Run cancellable screen-specific work while a screen shows. A change of id, or a call to the returned runner, replaces the current run. Pass the AbortSignal to fetch and publish through commit. | Cancellation is cooperative: state set outside commit cannot be stopped. The work runs in the foreground only; it is not a Web Worker or a background scheduler. |
 | [`List`](node_modules/@satinhq/kit/dist/public/controls.d.ts), [`ScrollView`](node_modules/@satinhq/kit/dist/public/scroll.d.ts) | Pass refreshable to a vertical List or ScrollView to add pull to refresh. The indicator stays until the returned promise settles. | The refresh indicator holds a 60 pt inset while the action runs. |
 | [`defineApp`](node_modules/@satinhq/kit/dist/public/definition.d.ts), [`runApp`](node_modules/@satinhq/kit/dist/public/runtime.d.ts), [`defineNavigation`](node_modules/@satinhq/kit/dist/public/structure.d.ts) | Declare install metadata and primary navigation, then mount the app once with runApp. | One app root per page, for iPhone and iPad WebKit. There are no multiple windows. |
 | [`preferredColorScheme`](node_modules/@satinhq/kit/dist/app/appearance.d.ts), [`PreferredColorScheme`](node_modules/@satinhq/kit/dist/app/appearanceStore.d.ts) | Force light or dark for the whole app, or follow the system. runApp also takes an initial preferredColorScheme. | The override covers the whole app, presentations included; one view or sheet cannot differ. Persist the choice with useAppStorage and apply it at launch. |
@@ -94,7 +113,7 @@ Generated from the same reviewed metadata as the shipped Satin API reference. Li
 | [`ToolbarItem`](node_modules/@satinhq/kit/dist/public/toolbar.d.ts), [`ToolbarItemGroup`](node_modules/@satinhq/kit/dist/public/toolbar.d.ts), [`ToolbarSpacer`](node_modules/@satinhq/kit/dist/public/toolbar.d.ts) | Declare toolbar items through Screen. subtitle replaces the inline subtitle without growing the bar; largeTitle and largeSubtitle replace the expanded title rows, which scroll away. | Only the placements in ToolbarItemProps exist. |
 | [`List`](node_modules/@satinhq/kit/dist/public/controls.d.ts), [`Form`](node_modules/@satinhq/kit/dist/public/controls.d.ts), [`Section`](node_modules/@satinhq/kit/dist/list-form/ListForm.d.ts), [`ListRow`](node_modules/@satinhq/kit/dist/list-form/ListForm.d.ts) | List and Form own vertical scrolling, grouped or plain rows, and section headers and footers. | A ListRow is always one row: its children sit side by side. Use one ListRow per row. |
 | [`List`](node_modules/@satinhq/kit/dist/public/controls.d.ts), [`Form`](node_modules/@satinhq/kit/dist/public/controls.d.ts), [`ListProps`](node_modules/@satinhq/kit/dist/public/controls.d.ts) | Choose default or compact section spacing, or a gap in points. scrollContentBackground="hidden" removes the scroll background and keeps row fills. | A numeric gap changes the space between sections; header and footer space stays. visible keeps the default background; it does not make a sheet opaque. |
-| [`ListRow`](node_modules/@satinhq/kit/dist/list-form/ListForm.d.ts) | Set per-row insets, background and separators through ListRowProps. | Satin still owns row geometry. Do not use raw viewport or safe-area CSS in rows. |
+| [`ListRow`](node_modules/@satinhq/kit/dist/list-form/ListForm.d.ts) | Set `listRowInsets`, `listRowBackground` and `listRowSeparator` through ListRowProps. | Satin still owns row geometry. Do not use raw viewport or safe-area CSS in rows. |
 | [`ForEach`](node_modules/@satinhq/kit/dist/list-form/editing.d.ts), [`ListRow`](node_modules/@satinhq/kit/dist/list-form/ListForm.d.ts) | Identify rows by id. onDelete adds swipe-to-delete and the edit-mode delete control; onMove adds the reorder handle and drag. Both receive offsets into the declared rows. | ForEach must sit directly in a List or Section. Moving a selected group, two-finger selection and VoiceOver move actions are not available. |
 | [`moving`](node_modules/@satinhq/kit/dist/list-form/offsets.d.ts), [`removing`](node_modules/@satinhq/kit/dist/list-form/offsets.d.ts) | Apply ForEach's onMove and onDelete offsets to your data: moving(items, { fromOffsets, toOffset }) and removing(items, offsets) return new arrays. | Each returns a new array; store the result in state to update the rows. |
 | [`List`](node_modules/@satinhq/kit/dist/public/controls.d.ts), [`EditButton`](node_modules/@satinhq/kit/dist/public/controls.d.ts), [`useEditMode`](node_modules/@satinhq/kit/dist/list-form/editing.d.ts), [`ListRow`](node_modules/@satinhq/kit/dist/list-form/ListForm.d.ts) | Select one optional id or a Set of ids. EditButton toggles the screen edit mode, which shows selection circles for a Set. | Rows are identified by their ForEach ids. Edit mode belongs to each screen and cannot be set from outside it. Outside edit mode, plain rows cannot be selected with the keyboard. |
@@ -137,7 +156,7 @@ Generated from the same reviewed metadata as the shipped Satin API reference. Li
 | [`Selectable`](node_modules/@satinhq/kit/dist/root/SatinRoot.d.ts), [`Zoomable`](node_modules/@satinhq/kit/dist/zoom/Zoomable.d.ts) | Allow text selection in a region, or pinch to zoom in a bounded region. | Zoomable is the only region that zooms; the page itself never does. There is no general gesture composition. |
 | [`ContentUnavailableView`](node_modules/@satinhq/kit/dist/public/controls.d.ts) | Compose an empty state from a title, a symbol, an optional description and actions. Screens that need the server use it when offline. | Takes an explicit title, icon, description and actions; there is no built-in search variant. |
 | [`NavigationSplitView`](node_modules/@satinhq/kit/dist/public/runtime.d.ts) | Show the declared primary root as a sidebar and its pushes as a retained detail column. At compact width it collapses to a stack. | It renders an existing declared stack; it takes no modal or ad hoc root. |
-| [`Searchable`](node_modules/@satinhq/kit/dist/search/searchable.d.ts), [`SearchScopes`](node_modules/@satinhq/kit/dist/search/searchable.d.ts), [`SearchSuggestion`](node_modules/@satinhq/kit/dist/search/searchable.d.ts), [`SearchFieldPlacement`](node_modules/@satinhq/kit/dist/search/searchable.d.ts) | Pass searchable={{ text, onTextChange, prompt, placement, scopes, suggestions, onSubmit }} to Screen or List. With automatic placement, iPhone uses the bottom toolbar when the screen has no other bottom bar items, and the navigation bar drawer otherwise; iPad and scoped fields use the drawer. The bar owns the field, its clear and close buttons, the scope bar, suggestions and collapse on scroll. isPresented and onPresentedChange control whether search is active. | The bottom toolbar field does not animate in yet and draws no scope bar, so scoped fields stay in the drawer. A search tab draws no bottom field; role="search" is metadata only. Do not build your own search bar. |
+| [`Searchable`](node_modules/@satinhq/kit/dist/search/searchable.d.ts), [`SearchScopes`](node_modules/@satinhq/kit/dist/search/searchable.d.ts), [`SearchSuggestion`](node_modules/@satinhq/kit/dist/search/searchable.d.ts), [`SearchFieldPlacement`](node_modules/@satinhq/kit/dist/search/searchable.d.ts), [`useIsSearching`](node_modules/@satinhq/kit/dist/search/SearchEnvironment.d.ts), [`useDismissSearch`](node_modules/@satinhq/kit/dist/search/SearchEnvironment.d.ts) | Pass searchable to Screen or List. Its field owns clear, close, scopes, suggestions and keyboard motion. Search presentation leaves content unchanged. A child inside the searchable container reads useIsSearching() to choose browsing, recents or results, and exits with useDismissSearch(). Pass completion suggestions through suggestions. isPresented and onPresentedChange provide controlled presentation. Automatic placement uses a bottom field on eligible phone screens and the navigation toolbar on tablet. | The app supplies actual search results and recent queries. Submission dismisses the keyboard without exiting search. Scoped phone fields stay in the drawer. Minimized search-button behavior and exact installed-runtime timing remain under qualification; do not replace the framework field with an app-owned keyboard accessory. |
 | [`DefaultToolbarItem`](node_modules/@satinhq/kit/dist/public/toolbar.d.ts) | Place <DefaultToolbarItem kind="search" placement="bottomBar" /> in a Screen toolbar to put the search field in the bottom bar beside other items, for example a ToolbarSpacer and a compose button. | Only kind="search". Without a ToolbarSpacer the next item is not merged into the search capsule. iPad keeps the drawer. |
 | [`DatePicker`](node_modules/@satinhq/kit/dist/controls/DatePicker.d.ts) | Compact style: grey value capsules open the system date or time picker. selection is a Date, or a time-zone-free string (YYYY-MM-DD, HH:mm or YYYY-MM-DDTHH:mm) for days that must not shift across time zones. displayedComponents picks the date, the time or both, and in sets the range; out-of-range choices are clamped. | No graphical or wheel style. WebKit adds Reset and Done buttons to the system picker, centres it instead of anchoring it to the capsule, and does not grey out days outside the range. See controls.md. |
 | [`ColorPicker`](node_modules/@satinhq/kit/dist/controls/ColorPicker.d.ts) | A row with a colour well that opens the system colour picker: grid, spectrum, sliders, eyedropper and saved colours. supportsOpacity adds the opacity slider. selection is #RRGGBB or #RRGGBBAA. | The system picker is titled "Colors", not with the label. Output is sRGB hex; Display P3 choices are converted to sRGB. See controls.md. |
@@ -162,7 +181,7 @@ Use `Sheet` for short independent edits, `Alert` for a brief message or text ent
 
 ## Hard rules and lint
 
-Use the `satin-lint` checker when available in the framework checkout. Its rule names below are the review vocabulary too. The generated app currently has typecheck/build, not a published lint package; do not claim a lint pass without running that checker.
+The starter installs `@satinhq/lint` and Oxlint. Run `npm run lint`, which runs both the preset and `satin-lint src index.html`. `npm run build` includes this check and rejects warnings. The rule names below are the review vocabulary too.
 
 | Rule | Mechanical check |
 | --- | --- |
@@ -191,7 +210,7 @@ Use an authenticated HTTPS relay on your deployment. Match closed route rules on
 
 ## Before calling the app done
 
-- Run typecheck and production build, and the Satin lint checker if available. State any unavailable check.
+- Run `npm run build`, including typecheck, lint and the production build. State any unavailable check.
 - Exercise empty, loading, error and saved states, offline data, relaunch, and backup restore. Protect drafts and confirm destructive actions.
 - Check each tab's retained stack, re-tap, scroll restoration, keyboard, selection, labelled controls, large text, Reduce Motion, light/dark, and regular-width iPad layout.
 - Check installed warm/cold notification taps and denial/retry if push is used. Scheduled delivery needs a server scheduler; a suspended PWA timer is not an alarm.
@@ -219,7 +238,7 @@ Satin uses the default opaque status bar. Launch appearance configures backgroun
 
 Status-bar mode is installation metadata. A worker update, reload or runtime meta change does not migrate an existing installation. Report an install-time metadata mismatch to the owner. Never delete or replace a Home Screen app or clip to test a change; preserve its data and let the owner manage installation. If a delete alert appears, choose Cancel and stop device work.
 
-Satin owns the document and keeps the root and scroll surfaces full height. Do not fix the html, body or app mount with app CSS. Use `useSafeAreaInsets()` or the framework inset tokens for interactive content, and let backgrounds paint to the viewport edges. The settings content-origin tokens already include the top inset; do not add it twice. The viewport can grow after launch, so never cache its first height or hardcode a device's status-bar height. A larger CSS viewport ruler does not prove that the host can paint there; use the framework's observed geometry. `physicalInsets` describe comparison coordinates; they are not layout padding. To convert a viewport y coordinate to a calibrated screen y coordinate, add `physicalInsets.top - insets.top`.
+Satin owns the document and keeps the root and scroll surfaces full height. Do not fix the html, body or app mount with app CSS. Use `useSafeAreaInsets()` for custom interactive content, and let backgrounds paint to the viewport edges. The settings content-origin tokens already include the top inset; do not add it twice. The viewport can grow after launch, so never cache its first height or hardcode a device's status-bar height. A larger CSS viewport ruler does not prove that the host can paint there; use the framework's observed geometry. `physicalInsets` describe comparison coordinates; they are not layout padding. To convert a viewport y coordinate to a calibrated screen y coordinate, add `physicalInsets.top - insets.top`.
 
 Let iOS choose the status-text color. Keep the content behind the clock consistent with the active appearance. Validate cold launch, resume, both appearances, rotation, keyboard and sheets from a fresh Home Screen installation.
 
@@ -327,3 +346,53 @@ its ScrollView, inside the same `SafeAreaInset`. Pass the control as `content`.
 The reduced safe area and keyboard carrier belong to Satin. Do not read any
 `--satin-*` custom property in app CSS or JavaScript. Use public component props
 and `useSafeAreaInsets` for custom layouts. See `docs/messaging-scroll.md`.
+
+## Toolbar menu symbols and shared actions
+
+`Menu` gets its toolbar symbol from a `Label`, not a `symbol` prop:
+
+```tsx
+<ToolbarItem placement="topBarTrailing">
+  <Menu label={<Label symbol="ellipsis.circle">More</Label>} actions={actions} />
+</ToolbarItem>
+```
+
+Import `Menu`, `Label` and `ToolbarItem` from `@satinhq/kit`.
+`ActionItem.onPress` is optional and accepts async handlers. `Button.onPress` is
+required and returns void. Reuse an action with `onPress={() => void item.onPress?.()}`,
+and catch expected mutation failures inside the action so the user sees an error.
+
+## Task load failures
+
+An uncaught `useTask` error reaches the nearest React error boundary. Use that for
+unexpected failures that should replace the screen. For expected network or load
+failures, catch inside the task and use `commit` to store the error. Render a
+`ContentUnavailableView` with a retry action, and clear the error on retry. Pass
+the supplied signal to fetch and ignore cancellation; never show an aborted run
+as a load failure. Use `commit` for both successful results and error state so an
+old request cannot replace the current screen's state.
+
+## Search placement and search mode
+
+Choose search placement by its scope and how people enter it. A prominent field makes frequent searches within the current collection easy to find. A toolbar search button saves room beside other actions and opens a temporary search interaction. Use a dedicated search tab when search spans the app; a landing page can show categories or recent searches before typing. Keep the author’s explicit design choice when it differs from these defaults.
+
+Search presentation is separate from query text and keyboard visibility. An empty focused field is still searching, and submission can dismiss the keyboard without leaving search. Bare `searchable` leaves the list content unchanged, including with an empty query. To show recents or results instead of browsing content, render a child inside the searchable `List` or `Screen` that reads `useIsSearching()` and returns the appropriate content. Read the hook in that child, not in the parent that creates the searchable container. The app owns filtering and any state it wants to retain across its content swap. Use `useDismissSearch()` for an explicit exit: it clears the query, dismisses the keyboard and leaves search. Use `isPresented` and `onPresentedChange` when the screen must control presentation. Clearing text alone is not Cancel.
+
+Pass suggestions through `searchable.suggestions`. Each suggestion supplies an ID and completion text; selecting it completes the query. Choose recent searches and results from the app’s actual data, and make the search scope clear in the prompt. Do not fabricate recent searches or replace a framework field with an app-owned keyboard accessory.
+
+Adjacent toolbar items already share a glass capsule. Use `ToolbarSpacer` to separate a single primary action at the trailing end, such as Compose in Mail. It defines a group boundary, not arbitrary spacing.
+
+Sources: Apple’s [Searching](https://developer.apple.com/design/human-interface-guidelines/searching) and [Search fields](https://developer.apple.com/design/human-interface-guidelines/search-fields).
+## Remote data on navigation
+
+Use `defineResource` outside React and `useResource` inside screens for shared remote data.
+Seed detail resources from list summaries (no extra requests). Put
+`prefetch={signal => details.prefetch(id, signal)}` on `NavigationLink` or `Button`
+to start on press-down and cancel when the contact becomes a scroll or swipe.
+Do not bulk-prefetch list items by default.
+Keep loaded content visible during refresh and error; do not build each destination from
+empty useState plus useTask(fetch). Use useTask for cancellable screen-specific effects.
+Warm remote artwork in the same press callback with
+`AsyncImage.prefetch(url, { signal })`. Data stays in memory;
+use defineDatabase only when persistence is explicitly wanted. Include account identity in
+keys and clear resources on sign-out. Read the [remote data guide](node_modules/@satinhq/kit/dist/docs/remote-data.md).

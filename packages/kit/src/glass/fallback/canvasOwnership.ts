@@ -7,12 +7,14 @@ export class FallbackCanvasOwnership {
     const live = new Set(canvases)
     for (const [canvas, visibility] of this.visibility) {
       if (live.has(canvas)) continue
+      delete canvas.dataset.satinFallbackOwned
       canvas.style.visibility = visibility
       this.visibility.delete(canvas)
     }
     for (const canvas of live) {
       if (this.visibility.has(canvas)) continue
       this.visibility.set(canvas, canvas.style.visibility)
+      canvas.dataset.satinFallbackOwned = 'true'
       canvas.style.visibility = 'hidden'
     }
   }

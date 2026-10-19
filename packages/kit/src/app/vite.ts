@@ -1,3 +1,4 @@
+import { appDefinitionForBase } from '../public/definition.ts'
 import { inlinePolicySources } from './inlineCSP.ts'
 import { bundledLicenseNotices, renderNotices } from '../acknowledgements/bundledNotices.ts'
 import { serveStaticFile } from '../server.ts'
@@ -8,7 +9,7 @@ import { generateAppIcons, generateStartupImage } from './icons.ts'
 import { generateWebClipProfile } from './mdm.ts'
 import { launchScreenMarkup, prelaunchCSS } from './launchScreen.ts'
 import { startupImages } from './startup.ts'
-import { access, readFile, writeFile, mkdir } from 'node:fs/promises'
+import { access, readFile, writeFile, mkdir, readdir } from 'node:fs/promises'
 import { installPage, installRouteForBase } from './install.ts'
 import { resolve } from 'node:path'
 import type { Plugin } from 'vite'
@@ -29,7 +30,7 @@ export interface SatinAppOptions {
    * file. Proves this deployment server only, never the remote source or playback. */
   readonly mediaProbe?: string
   /** Keep renderer failures loud and forbid fallback, including explicit URL selection.
-   * Always enabled for development and dev-menu builds. Also set by SATIN_STRICT_GLASS=1. */
+   * Set explicitly here or with SATIN_STRICT_GLASS=1. Development still surfaces renderer failures. */
   readonly strictGlass?: boolean
   /** Development builds enable the menu automatically. Explicitly opt a test build in. */
   readonly devMenu?: boolean | { readonly statusUrl?: string; readonly version?: string }
@@ -86,26 +87,8 @@ export function satinAppFixtures(
   const covers = new Map<string, string>()
   const generatedIcons = new Map<string, Buffer>()
   const startupIcons = new Map<string, Buffer>()
-  const files = Object.assign(
-    {},
-    ...fixtures.map(({ app, display }) =>
-      Object.fromEntries(
-        Object.entries(appManifestFiles(app, appManifestStem(app))).map(([name, source]) => [
-          name,
-          display ? JSON.stringify({ ...JSON.parse(source), display }, null, 2) : source,
-        ]),
-      ),
-    ),
-  ) as Record<string, string>
-  const startup = fixtures.flatMap(({ app }) =>
-    startupImages(
-      appManifestStem(app),
-      app.appearance.background,
-      app.appearance.darkLaunch === 'match-light'
-        ? app.appearance.background
-        : app.appearance.darkLaunch.background,
-    ).map(image => ({ ...image, appId: app.id })),
-  )
+  let files: Record<string, string> = {}
+  let startup: (ReturnType<typeof startupImages>[number] & { appId: string })[] = []
   const startupScripts = new Map<string, string>()
   const generatedStartup = new Map<string, Promise<Buffer>>()
   const startupAsset = (image: (typeof startup)[number]) => {
@@ -161,6 +144,29 @@ export function satinAppFixtures(
         // Put the bundle graph in the shared app scope, including worker chunks.
         const requestedBase = config.base || '/'
         const viteBase = requestedBase.endsWith('/') ? requestedBase : requestedBase + '/'
+        fixtures.forEach((fixture, index) => {
+          fixture.app = appDefinitionForBase(input[index]!.app, viteBase)
+        })
+        files = Object.assign(
+          {},
+          ...fixtures.map(({ app, display }) =>
+            Object.fromEntries(
+              Object.entries(appManifestFiles(app, appManifestStem(app))).map(([name, source]) => [
+                name,
+                display ? JSON.stringify({ ...JSON.parse(source), display }, null, 2) : source,
+              ]),
+            ),
+          ),
+        ) as Record<string, string>
+        startup = fixtures.flatMap(({ app }) =>
+          startupImages(
+            appManifestStem(app),
+            app.appearance.background,
+            app.appearance.darkLaunch === 'match-light'
+              ? app.appearance.background
+              : app.appearance.darkLaunch.background,
+          ).map(image => ({ ...image, appId: app.id })),
+        )
         const scope = fixtures[0]!.app.scope
         if (fixtures.some(({ app }) => app.scope !== scope))
           throw new Error('Satin fixtures must share a service-worker scope for bundled workers.')
@@ -176,7 +182,9 @@ export function satinAppFixtures(
             : undefined)
         const enabled = environment.command === 'serve' || Boolean(devMenu)
         return {
-          build: { assetsDir },
+          // The bundled renderer includes its shader compiler. Keep a finite budget above
+          // the measured 1.8 MB runtime, while still warning about application growth.
+          build: { assetsDir, chunkSizeWarningLimit: config.build?.chunkSizeWarningLimit ?? 2000 },
           define: {
             'import.meta.env.SATIN_BUILD_INFO': JSON.stringify(buildInfo),
             // Explicit simulator diagnostic. Vite replaces this literal at build time;
@@ -185,7 +193,9 @@ export function satinAppFixtures(
               process.env.SATIN_DIAGNOSTIC_GLASS_OFF === '1',
             ),
             'import.meta.env.SATIN_STRICT_GLASS': JSON.stringify(
-              enabled || options.strictGlass === true || process.env.SATIN_STRICT_GLASS === '1',
+              (environment.command === 'build' && Boolean(devMenu)) ||
+                options.strictGlass === true ||
+                process.env.SATIN_STRICT_GLASS === '1',
             ),
             // Opt-in while document scrolling and installed status-strip sampling are qualified.
             'import.meta.env.SATIN_FLOW_SHELL': JSON.stringify(
@@ -505,7 +515,9 @@ export function satinAppFixtures(
           ? fixtures[0]!.app.scope.slice(base.length) + 'index.html'
           : 'index.html'
       },
-      shellUrl: fixtures.length === 1 ? fixtures[0]!.app.scope : '/',
+      get shellUrl() {
+        return fixtures.length === 1 ? fixtures[0]!.app.scope : '/'
+      },
       get additionalPrecache() {
         return [
           ...new Set(
@@ -530,13 +542,22 @@ export function satinAppFixtures(
             await validateBuiltDeployment(output, deploymentExpectation(app, base))
           }
           const policies: Record<string, ReturnType<typeof inlinePolicySources>> = {}
-          for (const path of [
-            fixtures[0]!.app.startRoute,
-            installRouteForBase(fixtures[0]!.app, base) + '/',
-          ]) {
-            const file = resolve(output, path.slice(base.length), 'index.html')
-            policies[path] = inlinePolicySources(await readFile(file, 'utf8'), prelaunchCSS)
+          // Enumerate final output, including platform gates and custom HTML entries.
+          const collectPolicies = async (directory: string, prefix = '') => {
+            for (const entry of await readdir(directory, { withFileTypes: true })) {
+              const relative = prefix + entry.name
+              if (entry.isDirectory())
+                await collectPolicies(resolve(directory, entry.name), relative + '/')
+              else if (/\.html$/i.test(entry.name)) {
+                const path = base + (entry.name === 'index.html' ? prefix : relative)
+                policies[path] = inlinePolicySources(
+                  await readFile(resolve(directory, entry.name), 'utf8'),
+                  prelaunchCSS,
+                )
+              }
+            }
           }
+          await collectPolicies(output)
           await writeFile(
             resolve(output, 'satin-csp.json'),
             JSON.stringify({ version: 1, policies }, null, 2),

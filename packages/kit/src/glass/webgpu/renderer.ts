@@ -600,7 +600,7 @@ export function createWebGPURenderer(
       queueMicrotask(() => {
         if (owner.liveDevice !== device) return
         emit({ appearanceRefresh: true, appearanceRevision })
-        if (firstPresent) setTimeout(prewarm, 1000)
+        if (firstPresent) schedulePrewarm()
       })
     }
     publishPresentationGate()
@@ -609,7 +609,21 @@ export function createWebGPURenderer(
   // first use (alerts, sheets, menus) compiles on the queue during its entrance motion.
   /** Background kernel compilation after the first present, and again on every restored device.
    * Failures are reported (a failure on a device lost meanwhile belongs to the loss, not the kernels). */
+  let prewarmTimer: ReturnType<typeof setTimeout> | undefined
+  let prewarmPending = false
+  const pausePrewarm = () => {
+    clearTimeout(prewarmTimer)
+    prewarmTimer = undefined
+  }
+  const schedulePrewarm = () => {
+    prewarmPending = true
+    pausePrewarm()
+    if (visible) prewarmTimer = setTimeout(prewarm, 1000)
+  }
   const prewarm = () => {
+    prewarmTimer = undefined
+    if (!visible) return
+    prewarmPending = false
     const device = owner.liveDevice
     if (!device) return
     const at = glassNow()
@@ -660,6 +674,7 @@ export function createWebGPURenderer(
       // Hide is an out-of-band cancellation barrier, not queued behind GPU waits.
       hideEpoch++
       visible = false
+      pausePrewarm()
       cancel()
       for (const scene of [
         ...layers.values(),
@@ -776,7 +791,7 @@ export function createWebGPURenderer(
               await prewarmKernels(canonicalDevice, ['menu', 'ink', 'contextComposite'])
               preparedCanonicalDevice = canonicalDevice
               glassTiming('menu-kernels-prewarmed', started)
-              setTimeout(prewarm, 1000)
+              schedulePrewarm()
             }
             if (request.request.type === 'appearance') {
               if (
@@ -1194,7 +1209,7 @@ export function createWebGPURenderer(
             if (!firstPresent && visible) {
               firstPresent = true
               glassTiming('first-present-complete')
-              setTimeout(prewarm, 1000)
+              schedulePrewarm()
             }
             wake()
             value = {
@@ -1280,7 +1295,7 @@ export function createWebGPURenderer(
             if (!firstPresent && visible && !request.setup.liftOverlay) {
               firstPresent = true
               glassTiming('first-present-complete')
-              setTimeout(prewarm, 1000)
+              schedulePrewarm()
             }
             menuInput.sourceInstalled()
             value = scene.report()
@@ -1498,6 +1513,7 @@ export function createWebGPURenderer(
                 presentationEpoch = receivedHideEpoch
                 restoredAppearance = receivedAppearance
                 visible = true
+                if (prewarmPending) schedulePrewarm()
                 appRegions.present()
                 render(x)
                 await raster.settled()
@@ -1547,6 +1563,8 @@ export function createWebGPURenderer(
   return {
     receive,
     stop: () => {
+      pausePrewarm()
+      prewarmPending = false
       owner.stop()
       cancel()
     },

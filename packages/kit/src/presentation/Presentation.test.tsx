@@ -2896,7 +2896,7 @@ it('publishes the final material sample to glass after detent geometry stops, in
 })
 
 for (const selection of ['medium', 'large'] as const) {
-  it(`retains ${selection} sheet glass and content through Done dismissal`, async () => {
+  it(`retains ${selection} sheet glass and content through Done dismissal, even content the owner removed`, async () => {
     vi.spyOn(window, 'matchMedia').mockReturnValue({ matches: false } as MediaQueryList)
     const finishers: (() => void)[] = []
     vi.spyOn(HTMLElement.prototype, 'animate').mockImplementation(
@@ -2918,7 +2918,8 @@ for (const selection of ['medium', 'large'] as const) {
         onPresentedChange={() => {}}
         onDismiss={dismissed}
       >
-        <button>Done</button>
+        {/* Owners clear the data their content reads in the same update that closes the sheet. */}
+        {open && <button>Done</button>}
       </Sheet>
     )
     render(view(true))

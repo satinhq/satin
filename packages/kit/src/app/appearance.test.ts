@@ -29,13 +29,24 @@ function fixture(
   const page = Object.assign(new EventTarget(), {
     hidden: false,
     documentElement: { dataset: {}, style: {} },
-    head: { appendChild() {} },
+    adoptedStyleSheets: [],
+    head: {
+      appendChild() {
+        throw Error('style-src blocked inline styles')
+      },
+    },
     createElement: () => ({ textContent: '' }),
   })
   const browser = new EventTarget()
   const storage = new Map(saved === null ? [] : [['test', saved]])
   vi.stubGlobal('window', browser)
   vi.stubGlobal('document', page)
+  vi.stubGlobal(
+    'CSSStyleSheet',
+    class {
+      replaceSync() {}
+    },
+  )
   vi.stubGlobal('matchMedia', () => media)
   vi.stubGlobal('getComputedStyle', () => ({ getPropertyValue: () => css }))
   vi.stubGlobal('addEventListener', browser.addEventListener.bind(browser))

@@ -1,4 +1,5 @@
 interface ImportMetaEnv {
+  readonly BASE_URL?: string
   readonly SATIN_FLOW_SHELL?: boolean
   readonly DEV: boolean
   readonly SATIN_BUILD_INFO?: import('./app/buildInfo.ts').BuildInfo

@@ -9,6 +9,7 @@
     "skipLibCheck": false,
     "noEmit": true,
     "allowArbitraryExtensions": true,
+    "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,

@@ -1,4 +1,4 @@
-import type { ScrollAxis, ScrollOffset, ScrollSnapshot } from './types.ts'
+import type { ScrollAxis, ScrollOffset, ScrollSnapshot, ScrollSnapshotOffset } from './types.ts'
 
 export type ScrollSurfaceNode = Pick<HTMLDivElement, 'scrollLeft' | 'scrollTo' | 'scrollTop'> &
   Partial<Pick<HTMLDivElement, 'scrollWidth' | 'scrollHeight' | 'clientWidth' | 'clientHeight'>>
@@ -9,6 +9,9 @@ export type ScrollSurfaceRegistration = Readonly<{
   id: string
   initialOffset?: () => ScrollOffset
   onRestore?: () => void
+  /** True while a bottom-anchored surface follows its bottom. Its snapshot then saves "at the
+   * bottom" rather than an offset, so restoration returns to the bottom. */
+  followsEnd?: () => boolean
   /** `true` claims the screen; `'automatic'` is a candidate (the first in document order wins). */
   primary: boolean | 'automatic'
 }>
@@ -59,7 +62,7 @@ export function createScrollSurfaceRegistry(
   const development = options.development ?? import.meta.env.DEV
   const listeners = new Set<() => void>()
   const registrations = new Map<string, ScrollSurfaceRegistration>()
-  let pendingSnapshot: Map<string, ScrollOffset> | undefined
+  let pendingSnapshot: Map<string, ScrollSnapshotOffset> | undefined
   const waiting = new Map<string, () => void>()
   const stopWaiting = (id: string) => {
     waiting.get(id)?.()
@@ -100,6 +103,11 @@ export function createScrollSurfaceRegistry(
     return () => undefined
   }
 
+  const captureOffset = (registration: ScrollSurfaceRegistration): ScrollSnapshotOffset => {
+    const offset = readScrollOffset(registration.element)
+    return registration.followsEnd?.() ? Object.freeze({ ...offset, atEnd: true }) : offset
+  }
+
   const restoreRegistration = (
     registration: ScrollSurfaceRegistration,
     snapshotOffset: ScrollOffset,
@@ -134,6 +142,20 @@ export function createScrollSurfaceRegistry(
     return result
   }
 
+  // A surface saved while following its bottom goes back to the bottom of its current
+  // content, at once. Its own position controller keeps it there while rows load, so there is
+  // no saved offset to wait for, and a moved bottom is expected rather than a mismatch.
+  const restoreToEnd = (
+    registration: ScrollSurfaceRegistration,
+    target: ScrollSnapshotOffset,
+    maxY: number,
+  ) => {
+    const end = { x: target.x, y: Number.isFinite(maxY) ? maxY : target.y }
+    const result = restoreRegistration(registration, end, false)
+    cancelRestoration(registration.id)
+    return result
+  }
+
   const attemptRestore = (registration: ScrollSurfaceRegistration) => {
     const target = pendingSnapshot?.get(registration.id)
     if (!target) return
@@ -148,6 +170,7 @@ export function createScrollSurfaceRegistry(
       element.scrollHeight === undefined || element.clientHeight === undefined
         ? Infinity
         : Math.max(0, element.scrollHeight - element.clientHeight)
+    if (target.atEnd) return restoreToEnd(registration, target, maxY)
     if (target.x > maxX + 0.5 || target.y > maxY + 0.5) return
     const result = restoreRegistration(registration, target, pendingWarnOnMismatch)
     if (offsetsMatch(readScrollOffset(element), target)) cancelRestoration(registration.id)
@@ -213,7 +236,7 @@ export function createScrollSurfaceRegistry(
         return new Map([
           ...Array.from(
             registrations,
-            ([id, registration]) => [id, readScrollOffset(registration.element)] as const,
+            ([id, registration]) => [id, captureOffset(registration)] as const,
           ),
           ...(pendingSnapshot ?? []),
         ])
@@ -235,7 +258,7 @@ export function createScrollSurfaceRegistry(
       return new Map(
         Array.from(registrations, ([id, registration]) => [
           id,
-          pendingSnapshot?.get(id) ?? readScrollOffset(registration.element),
+          pendingSnapshot?.get(id) ?? captureOffset(registration),
         ]),
       )
     },

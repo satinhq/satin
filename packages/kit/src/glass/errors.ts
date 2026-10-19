@@ -1,7 +1,13 @@
-import { automaticGlassFallbackAllowed, strictGlassRequested } from './failurePolicy.ts'
+import {
+  automaticGlassFallbackAllowed,
+  glassWebGPUWasCapable,
+  glassCapabilityUnavailable,
+  markGlassWebGPUCapable,
+  strictGlassRequested,
+} from './failurePolicy.ts'
 import { recordGraphicsEvent } from '../graphicsProbe.ts'
-/** Why the glass renderer failed, such as `gpu-unavailable` or `device-lost`. In a release build a
- * failure can switch glass to the fallback material. */
+/** Why the glass renderer failed, such as `gpu-unavailable` or `device-lost`.
+ * Releases can recover with fallback; development only tolerates missing startup capability. */
 export type GlassErrorCode =
   | 'gpu-unavailable'
   | 'adapter-unavailable'
@@ -31,10 +37,8 @@ const history: GlassError[] = []
 // Diagnostic history survives recovery; it is not the fallback state.
 let fallbackRequired = false
 let permanentFallback = false
-let adapterRecoveryPending = false
-let transportRecoveryPending = false
-let nextTransportRetry = 0
-let transportFailures = 0
+let recoveryAttempts = 0
+let developmentFallbackNoticeShown = false
 const fallbackListeners = new Set<() => void>()
 export function subscribeGlassFallback(listener: () => void) {
   fallbackListeners.add(listener)
@@ -42,13 +46,10 @@ export function subscribeGlassFallback(listener: () => void) {
     fallbackListeners.delete(listener)
   }
 }
-/** Retire a device outage only after resource reconstruction and presentation settle. */
+/** A recovery signal proves this document previously owned a working GPU device.
+ * Recovery can finish before fallback, but cannot retire an already disposed renderer's material. */
 export function setGlassAdapterRecovery(pending: boolean) {
-  adapterRecoveryPending = pending
-  if (!pending && fallbackRequired && !permanentFallback) {
-    fallbackRequired = false
-    for (const listener of fallbackListeners) listener()
-  }
+  if (pending) markGlassWebGPUCapable()
 }
 export function glassFallbackRequired() {
   return fallbackRequired
@@ -71,6 +72,9 @@ export function reportGlassError(
   const transient =
     code === 'adapter-unavailable' &&
     !strictGlassRequested() &&
+    (import.meta.env.DEV !== true ||
+      import.meta.env.MODE === 'test' ||
+      automaticGlassFallbackAllowed({ code, message })) &&
     message.includes('navigator.gpu.requestAdapter returned null')
   const error: GlassError = {
     code,
@@ -84,31 +88,17 @@ export function reportGlassError(
   recordGraphicsEvent('glass-error', { ...error })
   history.push(error)
   if (history.length > 100) history.shift()
-  const release = automaticGlassFallbackAllowed()
+  const release = automaticGlassFallbackAllowed(error)
   if (release && !error.recovering) {
-    const transportFailure =
-      code === 'worker-startup' ||
-      (!adapterRecoveryPending &&
-        ['adapter-unavailable', 'device-request', 'readiness-timeout'].includes(code)) ||
-      (code === 'presentation' &&
-        /import.*module|module.*script|loading.*chunk|load failed/i.test(message))
-    if (transportFailure) {
-      transportRecoveryPending = true
-      nextTransportRetry = Date.now() + Math.min(3000 * 2 ** transportFailures++, 30_000)
-    } else if (
-      !adapterRecoveryPending ||
-      ['gpu-unavailable', 'unsupported-configuration', 'shader-compilation', 'validation'].includes(
-        code,
-      )
-    )
-      permanentFallback = true
+    permanentFallback ||= !glassWebGPUWasCapable() && glassCapabilityUnavailable(error)
     fallbackRequired = true
     for (const listener of fallbackListeners) listener()
   }
   // Exhausted null-adapter bursts remain retryable in strict development. Release
   // apps use CSS now; they must not wait for another foreground event to launch.
   if (transient && !release) return error
-  console.error(`[Satin glass: ${code}] ${stage}: ${error.message}`, reason ?? '')
+  if (release && import.meta.env.DEV === true) showDevelopmentFallbackNotice()
+  else console.error(`[Satin glass: ${code}] ${stage}: ${error.message}`, reason ?? '')
   // A release app that switched to the fallback material keeps running, so the
   // event says so. Launch must not turn a handled failure into "Unable to Open App".
   // A release renderer that is still recovering (e.g. a null adapter while it retries) also
@@ -123,6 +113,32 @@ export function reportGlassError(
   for (const listener of listeners) listener(error)
   return error
 }
+
+function showDevelopmentFallbackNotice() {
+  if (developmentFallbackNoticeShown) return
+  developmentFallbackNoticeShown = true
+  const notice = document.createElement('div')
+  notice.dataset.satinGlassNotice = 'true'
+  notice.textContent = 'Glass: fallback material, WebGPU unavailable'
+  notice.setAttribute('role', 'status')
+  notice.style.cssText =
+    'position:fixed;top:calc(var(--satin-inset-top,0px) + 4px);left:50%;transform:translateX(-50%);' +
+    'z-index:2147483646;width:max-content;max-width:calc(100% - 24px);text-align:center;' +
+    'padding:4px 8px;border-radius:6px;background:#242424;' +
+    'color:white;font:11px/1.4 -apple-system,BlinkMacSystemFont,sans-serif;pointer-events:none'
+  const root = document.querySelector('[data-satin-root]') ?? document.documentElement
+  root.append(notice)
+  // This is startup information, not a permanent overlay on navigation titles.
+  // Observe the first interaction without cancelling or retargeting its input.
+  const dismiss = () => {
+    notice.remove()
+    document.removeEventListener('pointerdown', dismiss, true)
+    document.removeEventListener('keydown', dismiss, true)
+  }
+  document.addEventListener('pointerdown', dismiss, { capture: true, once: true })
+  document.addEventListener('keydown', dismiss, { capture: true, once: true })
+  console.info(notice.textContent)
+}
 export function subscribeGlassErrors(listener: (error: GlassError) => void) {
   listeners.add(listener)
   return () => {
@@ -133,36 +149,50 @@ export function getGlassErrors(): readonly GlassError[] {
   return history.slice()
 }
 
-/** Retry a failed transport on a visible page; device reconstruction keeps its own owner. */
-export function watchGlassTransportRecovery() {
+/** Called only after the material owner has exposed a settled GPU frame. */
+export function completeGlassFallbackRecovery() {
+  if (permanentFallback) return
+  fallbackRequired = false
+  for (const listener of fallbackListeners) listener()
+}
+
+/** The callback probes without relinquishing CSS. Five document attempts, then foreground only. */
+export function watchGlassTransportRecovery(recover: () => Promise<boolean>) {
+  if (permanentFallback || strictGlassRequested()) return () => {}
+  let stopped = false
+  let inFlight = false
+  let foregroundCredits = 0
+  let visible = document.visibilityState === 'visible'
   let timer: ReturnType<typeof setTimeout> | undefined
-  const retry = () => {
+  const schedule = () => {
     clearTimeout(timer)
-    if (
-      !fallbackRequired ||
-      permanentFallback ||
-      !transportRecoveryPending ||
-      adapterRecoveryPending
-    )
-      return
-    if (document.visibilityState !== 'visible') return
-    const delay = nextTransportRetry - Date.now()
-    if (delay > 0) {
-      timer = setTimeout(retry, delay)
-      return
-    }
-    transportRecoveryPending = false
-    fallbackRequired = false
-    for (const listener of fallbackListeners) listener()
+    if (stopped || permanentFallback || !fallbackRequired || !visible || inFlight) return
+    if (!foregroundCredits && recoveryAttempts >= 5) return
+    const delay = foregroundCredits ? 0 : Math.min(3000 * 2 ** recoveryAttempts, 30_000)
+    timer = setTimeout(() => {
+      if (stopped || !visible || permanentFallback || !fallbackRequired) return
+      if (foregroundCredits) foregroundCredits--
+      else recoveryAttempts++
+      inFlight = true
+      void recover()
+        .catch(() => false)
+        .finally(() => {
+          inFlight = false
+          schedule()
+        })
+    }, delay)
   }
-  document.addEventListener('visibilitychange', retry)
-  window.addEventListener('pageshow', retry)
-  window.addEventListener('focus', retry)
-  retry()
+  const visibility = () => {
+    const next = document.visibilityState === 'visible'
+    if (next && !visible) foregroundCredits++
+    visible = next
+    schedule()
+  }
+  document.addEventListener('visibilitychange', visibility)
+  schedule()
   return () => {
+    stopped = true
     clearTimeout(timer)
-    document.removeEventListener('visibilitychange', retry)
-    window.removeEventListener('pageshow', retry)
-    window.removeEventListener('focus', retry)
+    document.removeEventListener('visibilitychange', visibility)
   }
 }

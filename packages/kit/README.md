@@ -232,7 +232,7 @@ For a Safari-tab development build, set `advanced: { updateProfile: 'preview' }`
 | Presentation | `Sheet`, `Alert`, `ConfirmationDialog`, `Menu`, `ContextMenu` |
 | Animation | `withAnimation`, `Animation` |
 | Glass and imagery | `Glass`, `GlassEffect`, `GlassEffectContainer`, `SymbolImage`, `Image` |
-| Data and environment | `defineDatabase`, `collection`, `useQuery`, `useRecord`, `useAppStorage`, `useSceneStorage`, `useNotifications`, `useReachability` |
+| Data and environment | `defineResource`, `useResource`, `defineDatabase`, `collection`, `useQuery`, `useRecord`, `useAppStorage`, `useSceneStorage`, `useNotifications`, `useReachability` |
 
 See the packaged API reference for every export, prop and limitation.
 <!-- public-api:end -->
@@ -392,7 +392,7 @@ The default orientation policy requests iPhone portrait and iPad portrait/landsc
 
 ## Talking to the network
 
-Use `useTask(action, { id })` for cancellable appearance work and pass its returned runner to `List refreshable` or `ScrollView refreshable`. See [Talking to the network](dist/docs/networking.md) for the complete fetch example, guarded state updates, CORS, installed-app authentication, server push and offline writes.
+Use `defineResource` and `useResource` for shared remote content, seeding and prefetch. See [Remote data](dist/docs/remote-data.md). Use `useTask(action, { id })` for cancellable appearance work and pass its returned runner to `List refreshable` or `ScrollView refreshable`. See [Talking to the network](dist/docs/networking.md) for the complete fetch example, guarded state updates, CORS, installed-app authentication, server push and offline writes.
 
 ## Content composition
 
@@ -452,3 +452,10 @@ Set `acknowledgements: false` in `defineApp` to remove the screen. The action th
 Please consider crediting Satin in your app About screen. Credit is optional.
 
 iPhone, iPad, iOS, Safari and Liquid Glass are trademarks of Apple Inc. Satin is not affiliated with or endorsed by Apple.
+
+### Tab bar action
+
+`TabView.trailingAction?: ReactNode` places one app action beside the destinations.
+Use a symbol `Button`, or a `Menu` with a symbol Button trigger. The action runs
+without selecting or re-tapping a tab. Combining it with a search-role tab throws
+an error because both need the trailing position. The source checkout includes a complete recipe in `docs/app-recipes.md`.

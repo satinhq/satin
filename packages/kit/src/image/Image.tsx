@@ -532,3 +532,12 @@ export interface AsyncImageProps extends Omit<ImageProps, 'src'> {
 export function AsyncImage(props: AsyncImageProps) {
   return <Artwork {...props} remote data-satin-async-image="true" />
 }
+
+/** Warm the existing bounded decode cache on press-down. Pass the press signal
+ * to cancel speculative work unless another image reader has adopted it.
+ * Match the destination's responsive and request options. Failures reject for the caller
+ * to handle; no image response is added to Satin's persistent shell cache. */
+AsyncImage.prefetch = (
+  src: string,
+  request: import('./resource.ts').ImageRequest & { readonly signal?: AbortSignal } = {},
+): Promise<void> => decodedImage(src, request, request.signal).then(() => undefined)

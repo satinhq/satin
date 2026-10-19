@@ -111,3 +111,54 @@ Use a bridge when the callback cannot access the initiating app's storage or ope
 Register stores the SHA-256 base64url hash of a fresh 256-bit private proof, a bounded expiry and app/provider binding. Read and clear must hash and compare that proof. The proof never appears in the provider URL or callback. Knowledge of state alone must not permit reading or claiming a login. Complete must atomically accept only the first response for an unexpired registered state, reject malformed inputs, and never mint a session. The final server exchange still verifies PKCE. Reject cross-origin requests, bound sizes and rates, and expire abandoned transactions. A non-read success must explicitly return `accepted: true`; HTTP 200 alone is insufficient.
 
 The fixture in `fixtures/web-handoff` implements this protocol and verifies one-use PKCE codes. It demonstrates OAuth code exchange with PKCE, not OpenID Connect identity-token validation. Its in-memory IdP and bridge are for local testing only; use durable transactional server storage in production.
+
+## Showing email or article HTML
+
+Serve sanitized HTML from your own origin. Keep scripts and forms disabled. For an email
+inside a `ScrollView`, use content sizing:
+
+```tsx
+<ScrollView id="email" axis="vertical">
+  <WebView url="/messages/42/body" title="Message from Alex" sizing="content" />
+</ScrollView>
+```
+
+`fitsWidth` defaults to true. The parent measures the unscaled document and scales wide
+content down to the frame width. Images and media are constrained to that width. Content
+height follows image loads, font completion, document mutations and body resizes. This is
+for ordinary flow content, not documents whose height depends on the frame viewport.
+Set `fitsWidth={false}` to retain the document's authored width. `sizing="fill"` remains the
+default and requires a height from the parent.
+
+`onOpenURL` is unavailable for scripts-off sandboxed documents on WebKit, which blocks
+even parent-installed frame event listeners ([WebKit 218086](https://bugs.webkit.org/show_bug.cgi?id=218086)).
+Neither callback delivery nor prevention of frame navigation is promised in that mode.
+Keep untrusted email scripts disabled; expose application-owned `Link` controls outside
+the frame when link policy is required. Do not enable scripts as a workaround.
+
+For trusted same-origin documents that already allow scripts, `onOpenURL(url, { target })`
+handles document links synchronously. The target
+comes from the link or its `base` element. Returning does not navigate the frame. Without
+a handler, HTTP(S) links open an auxiliary browser context through the same handoff as
+`useOpenURL`. `_self`, `_parent` and `_top` cannot replace the frame or app; the default
+handoff always uses a new browser context. Applications that need named-target reuse
+must implement that policy in `onOpenURL`. Unsupported schemes are blocked. The browser
+chooses whether the new context uses Safari controls or a separate browser; Satin cannot
+force a particular presentation.
+
+Sizing and available link policies are installed at the frame's load event before it
+becomes visible, avoiding an initial unscaled flash. A foreign or denied
+frame falls back to fill sizing: the parent cannot inspect its height, scale its content,
+or intercept its links. Neither navigation policy nor content sizing is promised for that
+case. Use a normal `Link` when the app needs those guarantees.
+
+`className` and `style` now apply to a containing wrapper. The inner iframe fills it.
+The wrapper owns its relative positioning and isolated stacking context; put external
+positioning on a parent if needed. Each wrapper also owns the menu input catcher, which
+follows its layout and stays inside a sheet's dialog. Menu previews remain interactive.
+A tap, drag or wheel over a caught frame dismisses the menu without activating content
+under the frame. The catcher remains through preparation and the closing morph.
+
+Retained pages, press-prefetch, pinch zoom and installed back-swipe equivalence remain
+pending. This change does
+not introduce a `WebPage` API or claim that unmounting a WebView preserves its document.

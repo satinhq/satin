@@ -50,6 +50,16 @@ export const swipeDragLimit = (width: number, count: number, buttonWidth = 60) =
 
 const clamp = (value: number) => Math.max(0, Math.min(1, value))
 
+/**
+ * How much a contact that caught an open or settling row still shows the row's resting
+ * actions (1) rather than the drag's own poses (0). It fades out over one open-tray width of
+ * travel, so dragging the caught row further grows its action and can take over again, as
+ * native does after a light swipe, a release and a second swipe.
+ */
+export function caughtRowRest(initial: number, raw: number, initialRaw: number, openWidth: number) {
+  return initial ? clamp(1 - Math.abs(raw - initialRaw) / openWidth) : 0
+}
+
 // Tall stock List rows reveal a 50pt button over 40..70pt of recognized travel.
 // Held-input probes at 40, 60 and 80pt produce scale/alpha 0, 2/3 and 1.
 function revealScale(distance: number) {
@@ -272,6 +282,10 @@ export function swipeActionTracks(
   })
 }
 
+/** One 60 Hz display refresh: how long after its animation frame starts a painted
+ * swipe frame is shown. */
+const SWIPE_PRESENTATION_LEAD_MS = 1000 / 60
+
 /** Native scroll offset is authoritative; resistance maps it to the presented row position. */
 export function rowSwipePosition(
   raw: number,
@@ -470,7 +484,7 @@ export function createRowScrub(
         if (position * sign <= 0) return
         const seconds = Math.max(0, (now - previousTime) / 1000)
         previousTime = now
-        const rest = initial ? clamp(1 - Math.abs(raw - initialRaw) / openWidth) : 0
+        const rest = caughtRowRest(initial, raw, initialRaw, openWidth)
         for (const action of actions) {
           const frame = action.frame(position, raw, rest, takeover)
           const response = responses.get(action.element)
@@ -515,25 +529,34 @@ export function createRowScrub(
   // compositor row with main-thread pills exposes every delayed main-thread frame.
   // The contact maps the raw offset, so a takeover's anchor moves row and pills alike.
   let actionFrame = 0
+  /** The latest time a painted frame was evaluated for. Reads between frames never go
+   * back before it, so a release starts from the pose that was last on screen. */
+  let presentedAt = -Infinity
   const rawPosition = () => contact.translation(initialRaw + origin - source.scrollLeft)
   /** Present the current scroll sample. A release passes `evaluate: false`: lifting
    * the finger cannot start a takeover that no frame has shown. */
   const flush = (now = performance.now(), evaluate = true) => {
+    const at = Math.max(now, presentedAt)
     const raw = rawPosition()
-    const position = contact.present(raw, now, evaluate)
+    const position = contact.present(raw, at, evaluate)
     Object.assign(content.style, contentFrame(position, initial ? 1 : 0))
-    for (const update of actionUpdates) update(now, raw, position)
+    for (const update of actionUpdates) update(at, raw, position)
     return { raw, position }
   }
-  const paintActions = (now: number) => {
-    flush(now)
+  // A frame painted in an animation frame callback reaches the display one refresh
+  // later. Native evaluates its contact motion (the takeover jump, the pill
+  // takeover) for the frame's presentation time, so the row is computed for when
+  // it will be seen (installed iPad slow commit: the jump otherwise trails native by one frame).
+  const paintActions = (frameTime: number) => {
+    presentedAt = frameTime + SWIPE_PRESENTATION_LEAD_MS
+    flush(presentedAt)
     actionFrame = requestAnimationFrame(paintActions)
   }
   paintActions(performance.now())
   return {
     flush,
     rawPosition,
-    position: () => contact.present(rawPosition(), performance.now(), false),
+    position: () => contact.present(rawPosition(), Math.max(performance.now(), presentedAt), false),
     cancel: () => {
       cancelAnimationFrame(actionFrame)
       // Outside contact, the settled side's visibility belongs to the row CSS.

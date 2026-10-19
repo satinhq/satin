@@ -7,7 +7,12 @@ export type ScrollOffset = Readonly<{
   y: number
 }>
 
-export type ScrollSnapshot = ReadonlyMap<string, ScrollOffset>
+/** A saved scroll position. `atEnd` marks a bottom-anchored view that was following its
+ * bottom when it was saved: restoring it returns to the bottom, wherever that now is. An
+ * absolute offset would land in the middle of a thread whose layout changed meanwhile. */
+export type ScrollSnapshotOffset = ScrollOffset & Readonly<{ atEnd?: true }>
+
+export type ScrollSnapshot = ReadonlyMap<string, ScrollSnapshotOffset>
 
 /** Options for `scrollToTop`: whether to animate. */
 export type ScrollToTopOptions = Readonly<{

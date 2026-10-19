@@ -37,11 +37,13 @@ export function usePressInteraction<T extends HTMLButtonElement | HTMLInputEleme
   disabled = false,
   feedback = 'opacity',
   onPress,
+  prefetch,
   onPressStateChange,
   nativeActivation = false,
 }: {
   disabled?: boolean
   feedback?: 'opacity' | 'row'
+  prefetch?: (signal: AbortSignal) => void | Promise<unknown>
   onPress?: () => void
   onPressStateChange?: (state: PressState) => void
   nativeActivation?: boolean
@@ -57,13 +59,39 @@ export function usePressInteraction<T extends HTMLButtonElement | HTMLInputEleme
   const pointerCancellationCleanupRef = useRef<(() => void) | undefined>(undefined)
   const keyboardSessionRef = useRef<KeyboardActivationSession | undefined>(undefined)
   const keyboardCleanupRef = useRef<number | undefined>(undefined)
+  const prefetchControllerRef = useRef<AbortController | undefined>(undefined)
+  const prefetchRef = useRef(prefetch)
   const onPressRef = useRef(onPress)
   const onPressStateChangeRef = useRef(onPressStateChange)
 
   useEffect(() => {
+    prefetchRef.current = prefetch
     onPressRef.current = onPress
     onPressStateChangeRef.current = onPressStateChange
-  }, [onPress, onPressStateChange])
+  }, [onPress, prefetch, onPressStateChange])
+
+  const cancelPrefetch = () => {
+    prefetchControllerRef.current?.abort()
+    prefetchControllerRef.current = undefined
+  }
+  const beginPrefetch = () => {
+    cancelPrefetch()
+    if (!prefetchRef.current) return
+    const controller = new AbortController()
+    prefetchControllerRef.current = controller
+    try {
+      // Preparation never delays or prevents the press action. The destination
+      // owns error UI; a rejected speculative request must not escape its event.
+      void Promise.resolve(prefetchRef.current(controller.signal)).catch(() => {})
+    } catch {
+      // Synchronous preparation errors also leave activation available.
+    }
+  }
+  const acceptPrefetch = () => {
+    // A successful release hands work to the destination. Do not abort it when
+    // navigation unmounts the source control before the destination subscribes.
+    prefetchControllerRef.current = undefined
+  }
 
   const renderPressState = (nextState: PressState) => {
     if (pressStateRef.current === nextState) return
@@ -97,6 +125,7 @@ export function usePressInteraction<T extends HTMLButtonElement | HTMLInputEleme
   }
 
   const clearPointerSession = (element = elementRef.current) => {
+    cancelPrefetch()
     const session = pointerSessionRef.current
     // A native input's browser click must retire with its cancelled contact.
     // Buttons already own activation; leave their receipt path unchanged.
@@ -159,6 +188,7 @@ export function usePressInteraction<T extends HTMLButtonElement | HTMLInputEleme
     if (event.pointerType === 'mouse') element.setPointerCapture(event.pointerId)
     updateRowFeedback('down')
     renderPressState('pressed')
+    beginPrefetch()
   }
 
   const handlePointerMove = (event: PointerEvent<T>) => {
@@ -171,8 +201,10 @@ export function usePressInteraction<T extends HTMLButtonElement | HTMLInputEleme
       feedback === 'row' ? 0 : PRESSABLE_RETENTION_OFFSET_PX,
     )
     pointerSessionRef.current = nextSession
-    if (nextSession.state === 'deactivated') updateRowFeedback('cancel')
-    else if (rowFeedbackRef.current === 'idle') updateRowFeedback('down')
+    if (nextSession.state === 'deactivated') {
+      cancelPrefetch()
+      updateRowFeedback('cancel')
+    } else if (rowFeedbackRef.current === 'idle') updateRowFeedback('down')
     renderPressState(nextSession.state)
   }
 
@@ -189,6 +221,8 @@ export function usePressInteraction<T extends HTMLButtonElement | HTMLInputEleme
       feedback === 'row' ? 0 : PRESSABLE_RETENTION_OFFSET_PX,
     )
     const release = releasePointerPress(finalSession)
+    if (release.fire) acceptPrefetch()
+    else cancelPrefetch()
     pointerSessionRef.current = undefined
     pointerCancellationCleanupRef.current?.()
     pointerCancellationCleanupRef.current = undefined
@@ -223,6 +257,8 @@ export function usePressInteraction<T extends HTMLButtonElement | HTMLInputEleme
     const result = beginKeyboardActivation(keyboardSessionRef.current, event.key as PressKey)
     keyboardSessionRef.current = result.session
     if (!result.started) return
+    beginPrefetch()
+    if (result.fire) acceptPrefetch()
     updateRowFeedback('down')
     updateRowFeedback('hold')
     renderPressState('pressed')
@@ -234,6 +270,7 @@ export function usePressInteraction<T extends HTMLButtonElement | HTMLInputEleme
     const result = releaseKeyboardActivation(keyboardSessionRef.current, event.key as PressKey)
     if (!result) return
     keyboardSessionRef.current = result.session
+    acceptPrefetch()
     updateRowFeedback('release')
     renderPressState('idle')
     if (result.fire && !nativeActivation) onPressRef.current?.()
@@ -249,11 +286,14 @@ export function usePressInteraction<T extends HTMLButtonElement | HTMLInputEleme
       return
     }
 
+    beginPrefetch()
+    acceptPrefetch()
     onPressRef.current?.()
   }
 
   const handleBlur = () => {
     const hadKeyboardSession = !!keyboardSessionRef.current
+    if (hadKeyboardSession) cancelPrefetch()
     clearKeyboardSession()
     if (!pointerSessionRef.current) {
       // Pointer activation can blur while its release animation is still visible.
@@ -270,6 +310,7 @@ export function usePressInteraction<T extends HTMLButtonElement | HTMLInputEleme
 
   useEffect(
     () => () => {
+      cancelPrefetch()
       clearKeyboardSession()
       clearRowDelay()
       const session = pointerSessionRef.current

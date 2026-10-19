@@ -162,6 +162,8 @@ export function createFullSwipeContact(options: FullSwipeContactOptions) {
   /** Row-local x of the latest finger sample, and when it was delivered. */
   let finger: number | undefined = options.origin?.finger
   let fingerTime = options.origin?.time ?? options.now
+  /** The finger sample delivered before the latest one, for timing a zone entry. */
+  let previousFinger: { x: number; time: number } | undefined
   let translating = options.origin === undefined
   /** Sign of the recognized pan, and when it was recognized (performance clock). */
   let panDirection = 0
@@ -224,6 +226,31 @@ export function createFullSwipeContact(options: FullSwipeContactOptions) {
     )
   }
 
+  /** Distance from the finger to the row's far edge on `side`. */
+  function fromFarEdge(x: number, side: Side) {
+    return side === 'trailing' ? x : width - x
+  }
+
+  /**
+   * When the finger entered the destructive zone. UIKit sees every 120 Hz touch
+   * sample, so its takeover starts at the sample that reaches the zone edge.
+   * WebKit can coalesce that sample into a later one (installed iPad slow commit: native
+   * x89 at 2325ms; Satin's first delivered in-zone sample is x85 at 2333ms), so
+   * interpolate between the delivered samples around the edge. When travel, not
+   * the finger, was the last condition met, the takeover starts at this sample.
+   */
+  function zoneEntryTime(side: Side, now: number) {
+    const edge = destructiveFullSwipe.edgeZone
+    if (finger === undefined) return now
+    const previous = previousFinger
+    if (!previous || fromFarEdge(previous.x, side) <= edge) return Math.min(fingerTime, now)
+    const before = fromFarEdge(previous.x, side)
+    const after = fromFarEdge(finger, side)
+    const progress = before > after ? (before - edge) / (before - after) : 1
+    const entered = previous.time + (fingerTime - previous.time) * Math.min(1, progress)
+    return Math.min(entered, now)
+  }
+
   function anchoredPosition(raw: number, side: Side, offset: number) {
     const sign = sides[side]
     // The anchor keeps the row on its side even if the finger crosses back.
@@ -245,7 +272,12 @@ export function createFullSwipeContact(options: FullSwipeContactOptions) {
         const sign = sides[side]
         const target = sign * (width - destructiveFullSwipe.anchorInset)
         const before = ordinary
-        anchor = { side, offset: target - raw, gap: before - target, time: now }
+        anchor = {
+          side,
+          offset: target - raw,
+          gap: before - target,
+          time: zoneEntryTime(side, now),
+        }
       }
     }
     if (!anchor) return ordinary
@@ -276,7 +308,9 @@ export function createFullSwipeContact(options: FullSwipeContactOptions) {
       : raw * sides[side] >= thresholds[side]
         ? 1
         : 0
-    const sample = takeovers[side].sample(target, now)
+    // The destructive pill takes over with the row's jump, from the same zone entry.
+    const changedAt = isDestructive(edge) && anchor?.side === side ? anchor.time : now
+    const sample = takeovers[side].sample(target, now, changedAt)
     return reducedMotion ? target : Math.max(0, Math.min(1, sample))
   }
 
@@ -306,6 +340,7 @@ export function createFullSwipeContact(options: FullSwipeContactOptions) {
     /** Record the finger's row-local x and its delivery time; observe/present
      * evaluates it during contact. `lifted` marks the lift-off sample. */
     track(x: number, time: number, lifted = false) {
+      if (finger !== undefined) previousFinger = { x: finger, time: fingerTime }
       finger = x
       fingerTime = time
       followPan(x, time, lifted)
@@ -333,24 +368,24 @@ export function createFullSwipeContact(options: FullSwipeContactOptions) {
 
 export type FullSwipeContact = ReturnType<typeof createFullSwipeContact>
 
-/** A takeover spring that retargets from its presented position and velocity. */
+/** A takeover spring that retargets from its presented position and velocity.
+ * A new target starts at `changedAt` (when its cause happened, never after
+ * `time`), so a takeover first seen by a later frame is already under way. */
 function springState(initial: number, now: number) {
   const state = { from: initial, target: initial, velocity: 0, started: now }
+  const at = (time: number) =>
+    takeoverSample(state.from, state.target, state.velocity, (time - state.started) / 1000)
   return {
-    sample(target: number, time: number) {
-      const sample = takeoverSample(
-        state.from,
-        state.target,
-        state.velocity,
-        (time - state.started) / 1000,
-      )
+    sample(target: number, time: number, changedAt = time) {
       if (target !== state.target) {
-        state.from = sample.position
-        state.velocity = sample.velocity
+        const start = Math.max(state.started, Math.min(changedAt, time))
+        const retarget = at(start)
+        state.from = retarget.position
+        state.velocity = retarget.velocity
         state.target = target
-        state.started = time
+        state.started = start
       }
-      return sample.position
+      return at(time).position
     },
   }
 }

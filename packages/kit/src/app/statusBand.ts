@@ -260,6 +260,11 @@ export function installStatusBand(root: HTMLElement) {
       'data-satin-render-suspended',
       'data-satin-covered',
       'data-satin-tab-active',
+      // Primary election happens after a surface mounts. Its fill and List
+      // variant can change without a child/style mutation on the screen.
+      'data-satin-primary',
+      'data-satin-list',
+      'data-satin-scroll-content-background',
       'data-satin-scroll-edge-visible',
     ],
   })

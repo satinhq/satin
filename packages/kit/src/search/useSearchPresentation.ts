@@ -1,12 +1,12 @@
+import { useContext } from 'react'
+import { SearchEnvironmentContext } from './SearchEnvironment.tsx'
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react'
 import { focusFromFramework } from '../focus/programmaticFocus.ts'
 import { validateSearchPresentation, type Searchable, type SearchSuggestion } from './searchable.ts'
 
 /*
- * The state of one `searchable` field, whatever draws it: presentation (owned or controlled by
- * `isPresented:`), text changes, submission and suggestion completion search
- * controller. The bottom toolbar field uses it (SearchToolbarField.tsx); the navigation bar drawer
- * keeps its own copy until reference adopts this hook (spec notes, reference construction update).
+ * Drawer and toolbar fields share presentation, focus, submission and suggestion completion.
+ * Placement must not change whether clearing, submitting or controlled dismissal exits search.
  */
 export function useSearchPresentation(
   configuration: Searchable,
@@ -70,9 +70,16 @@ export function useSearchPresentation(
     if (presented && element && document.activeElement !== element && (pad || mounted.current)) {
       focusFromFramework(element, { preventScroll: true })
     }
-    if (pad && !presented && element === document.activeElement) element?.blur()
+    if (!presented && element === document.activeElement) element?.blur()
     mounted.current = true
   }, [presented, input, pad])
+
+  const environment = useContext(SearchEnvironmentContext)
+  useLayoutEffect(() => {
+    environment?.update(presented, dismiss)
+  })
+
+  useLayoutEffect(() => () => environment?.update(false, () => {}), [environment])
 
   const suggestions =
     presented && (!pad || focused) && submittedText !== configuration.text

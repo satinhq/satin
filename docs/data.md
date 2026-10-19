@@ -1,5 +1,8 @@
 # Local data
 
+For remote data that should stay in memory, use [resources](remote-data.md).
+Persistence through this database is opt-in.
+
 Satin stores personal app data in IndexedDB. Define one database per app and keep its name stable across releases.
 
 ```ts

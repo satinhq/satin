@@ -27,6 +27,11 @@ assert.equal(
   'Template must install the released framework',
 )
 assert.equal(
+  template.devDependencies[packages.lint],
+  identity.version,
+  'Template must install the released lint preset',
+)
+assert.equal(
   fixture.dependencies[packages.kit],
   `file:.artifacts/${packages.kit.replace(/^@/, '').replaceAll('/', '-')}-${identity.version}.tgz`,
   'Consumer fixture must use the released framework archive',

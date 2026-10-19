@@ -22,6 +22,18 @@ NavigationStack stays a single stack. Declare `NavigationSplitView` explicitly f
 
 Use `Sheet` for a short independent edit and `Alert` for a brief message, with at most three actions. Use `ConfirmationDialog` for destructive choices. Name the affected data, provide Cancel, and perform the write only in the destructive action. Keep presentation state in the owning screen. Sheet detents accept `medium`, `large`, `{ height: 320 }` or `{ fraction: 0.4 }`; use `interactiveDismissDisabled` while losing a draft would be harmful, with an explicit Cancel or Save control. Put a separate `<NavigationStack modal root="editor" />` inside a sheet that needs its own navigation, with a registered editor route. Pass a trigger ref as `anchor` to confirmation dialogs for iPad placement.
 
+## Search placement and search mode
+
+Choose search placement by its scope and how people enter it. A prominent field makes frequent searches within the current collection easy to find. A toolbar search button saves room beside other actions and opens a temporary search interaction. Use a dedicated search tab when search spans the app; a landing page can show categories or recent searches before typing. Keep the author’s explicit design choice when it differs from these defaults.
+
+Search presentation is separate from query text and keyboard visibility. An empty focused field is still searching, and submission can dismiss the keyboard without leaving search. Bare `searchable` leaves the list content unchanged, including with an empty query. To show recents or results instead of browsing content, render a child inside the searchable `List` or `Screen` that reads `useIsSearching()` and returns the appropriate content. Read the hook in that child, not in the parent that creates the searchable container. The app owns filtering and any state it wants to retain across its content swap. Use `useDismissSearch()` for an explicit exit: it clears the query, dismisses the keyboard and leaves search. Use `isPresented` and `onPresentedChange` when the screen must control presentation. Clearing text alone is not Cancel.
+
+Pass suggestions through `searchable.suggestions`. Each suggestion supplies an ID and completion text; selecting it completes the query. Choose recent searches and results from the app’s actual data, and make the search scope clear in the prompt. Do not fabricate recent searches or replace a framework field with an app-owned keyboard accessory.
+
+Adjacent toolbar items already share a glass capsule. Use `ToolbarSpacer` to separate a single primary action at the trailing end, such as Compose in Mail. It defines a group boundary, not arbitrary spacing.
+
+Sources: Apple’s [Searching](https://developer.apple.com/design/human-interface-guidelines/searching) and [Search fields](https://developer.apple.com/design/human-interface-guidelines/search-fields).
+
 ## Put glass on controls above content
 
 Use `TabView`, `Button` and `ToolbarItemGroup` for chrome. Put per-screen toolbar content in `Screen toolbar`. Ordinary form entry uses `TextField`. Content rows, paragraphs, settings groups and error messages need readable solid surfaces.
@@ -81,3 +93,18 @@ Delayed content may restore its saved offset only after enough content exists. C
 Use `swipeActions` and `contextMenu` on `NavigationLink`, `Button` and `LabeledContent` inside `List`. Use the generic `ContextMenu` wrapper for other content. All share the `Action` type with `Menu`; do not build competing app gestures. Persist deletions in the action callback and handle write failures in app state. Context menus use the shared WebGPU renderer. Native VoiceOver Actions rotor entries and haptics remain unavailable; named accessible buttons are provided.
 
 On iPad, declare each column action through its own `Screen toolbar` and `ToolbarItem placement="primaryAction"` or `"topBarLeading"`. Satin reserves the sidebar toggle. Never position an action over the navigation bar or add sidebar-dependent app offsets. See AGENTS.md, "iPad column toolbars".
+
+Use `TabView.trailingAction` for a persistent app-wide action beside the tabs; use a toolbar `primaryAction` for an action belonging to the current screen.
+## Remote data on navigation
+
+Use `defineResource` outside React and `useResource` inside screens for shared remote data.
+Seed detail resources from list summaries (no extra requests). Put
+`prefetch={signal => details.prefetch(id, signal)}` on `NavigationLink` or `Button`
+to start on press-down and cancel when the contact becomes a scroll or swipe.
+Do not bulk-prefetch list items by default.
+Keep loaded content visible during refresh and error; do not build each destination from
+empty useState plus useTask(fetch). Use useTask for cancellable screen-specific effects.
+Warm remote artwork in the same press callback with
+`AsyncImage.prefetch(url, { signal })`. Data stays in memory;
+use defineDatabase only when persistence is explicitly wanted. Include account identity in
+keys and clear resources on sign-out. Read the [remote data guide](node_modules/@satinhq/kit/dist/docs/remote-data.md).

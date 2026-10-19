@@ -1,4 +1,5 @@
 import { TabBadge } from './TabBadge.tsx'
+import { TabTrailingSlot } from './TabTrailingSlot.tsx'
 import {
   PadSearchPresentationContext,
   PadSearchTabContext,
@@ -66,6 +67,8 @@ export type TabViewProps<Id extends string = string> = Readonly<{
   defaultSelection?: Id
   onSelectionChange?: (id: Id) => void
   bottomAccessory?: ReactNode
+  /** One app action beside the tabs. Mutually exclusive with a search-role tab. */
+  trailingAction?: ReactNode
   /** Regular capsule glass by default. Use custom when the accessory supplies its own material. */
   bottomAccessoryMaterial?: 'glass' | 'custom'
   tabViewStyle?: 'automatic' | 'sidebarAdaptable'
@@ -140,6 +143,7 @@ export function TabView<Id extends string = string>({
   defaultSelection,
   onSelectionChange,
   bottomAccessory,
+  trailingAction,
   bottomAccessoryMaterial = 'glass',
   tabViewStyle = 'automatic',
 }: TabViewProps<Id>) {
@@ -283,6 +287,10 @@ export function TabView<Id extends string = string>({
     [],
   )
   const searchTab = tabs.find(tab => tab.role === 'search')
+  const hasTrailingAction = trailingAction != null && trailingAction !== false
+  if (hasTrailingAction && searchTab) {
+    throw new Error('TabView accepts either trailingAction or a Tab with role="search", not both.')
+  }
   function select(id: string) {
     const target = tabs.find(tab => tab.id === id && !tab.disabled)
     if (!target) return
@@ -411,10 +419,12 @@ export function TabView<Id extends string = string>({
             <div
               ref={bottomChrome}
               data-satin-tab-bottom-chrome={readDeviceIdiom() === 'phone' ? 'phone' : 'pad'}
+              data-satin-tab-has-action={hasTrailingAction || undefined}
               // Search's compact hit target uses the full dock, even when its resting bar hugs
               // two or three items. Only an actual accessory makes that resting bar full-width.
               style={
-                (bottomAccessory != null || searchTab) && readDeviceIdiom() === 'phone'
+                hasTrailingAction ||
+                ((bottomAccessory != null || searchTab) && readDeviceIdiom() === 'phone')
                   ? {
                       width: glassDockWidth(
                         metrics.layoutViewport.width,
@@ -471,6 +481,7 @@ export function TabView<Id extends string = string>({
                     selected={selected}
                     onSelect={select}
                     onShowSidebar={canShowSidebar ? () => changeSidebar(true) : undefined}
+                    trailingAction={trailingAction}
                   />
                 </TabBarAccessoryContext>
               )}
@@ -478,7 +489,7 @@ export function TabView<Id extends string = string>({
                 // The minimized tab bar draws this circle and its magnifier as its own trailing
                 // member (glass/webgpu/minimize.ts), so the parting and the merge are one glass
                 // field. This is only the circle's control, like the leading shortcut's.
-                <div data-satin-tab-compact-search="true">
+                <TabTrailingSlot kind="compact-search">
                   <button
                     type="button"
                     aria-label={searchTab.accessibilityLabel ?? searchTab.label}
@@ -489,7 +500,7 @@ export function TabView<Id extends string = string>({
                       if (selected !== searchTab.id) select(searchTab.id)
                     }}
                   />
-                </div>
+                </TabTrailingSlot>
               )}
             </div>
           }

@@ -88,7 +88,9 @@ const guidesDirectory = resolve(outputDirectory, 'docs')
 await mkdir(guidesDirectory, { recursive: true })
 for (const guide of [
   'app-recipes.md',
+  'web-handoff.md',
   'data.md',
+  'remote-data.md',
   'tokens.md',
   'tailwind.md',
   'networking.md',

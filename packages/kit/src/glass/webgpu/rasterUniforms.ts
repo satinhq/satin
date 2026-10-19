@@ -13,7 +13,12 @@ import { morphFieldUniforms } from '../morphField.ts'
 import lightingFit from './lensLightingFit.json'
 import { TAB_MOTION_FIT } from '../lens/tabMotionFit.ts'
 import { tabInkBand } from './tabGlyphInk.ts'
-import { materialUniformMix, materialUniformValues } from '../lens/materialUniforms.ts'
+import {
+  materialUniformMix,
+  materialUniformValues,
+  SEARCH_LIGHT_MIXTURE,
+  SEARCH_LIGHT_OUTER_KERNEL,
+} from '../lens/materialUniforms.ts'
 import selectionRecipes from '../lens/selectionParameters.json'
 import type { Appearance } from '../lens/theme.ts'
 import type { RasterSetup } from '../worker/protocol.ts'
@@ -233,6 +238,8 @@ export function materialUniforms(
   const first = spec.shape.first
   const second = spec.shape.second ?? first
   const menu = spec.materialProfile === 'menu'
+  const lightSearch = spec.materialProfile === 'searchField' && appearance === 'light'
+  const baselineSearch = materialUniformValues('bar', appearance)
   const material: Values = {
     ...touchLightUniforms(spec.touchLight, spec.sampleInsetX, spec.sampleInsetY),
     ...morphFieldUniforms(spec),
@@ -265,7 +272,23 @@ export function materialUniforms(
     uCoverageWidth: 0.5 / resolution,
     uDiagnosticOutput: 0,
     uInnerShade: CONTROL_INTERIOR_SHADE,
-    uTabBarOptics: [usesTabBarOptics(spec) ? 1 : 0, spec.materialProfile === 'searchField' ? 0 : 1],
+    uTabBarOptics: [
+      usesTabBarOptics(spec) ? 1 : 0,
+      spec.materialProfile === 'searchField' && !lightSearch ? 0 : 1,
+    ],
+    uSearchBaselineFill: baselineSearch.uMaterialBlurFill,
+    uSearchMixture: [
+      SEARCH_LIGHT_MIXTURE,
+      SEARCH_LIGHT_OUTER_KERNEL,
+      lightSearch ? 1 : 0,
+      controlOpticalScale(first.halfWidth * 2, first.halfHeight * 2),
+    ],
+    uSearchBaselineBlur: baselineSearch.uMaterialBlurDifferences,
+    uSearchBaselineTransmission: controlTransmission(
+      appearance,
+      first.halfWidth * 2,
+      first.halfHeight * 2,
+    ),
     uControlRim: controlRimUniform(appearance),
     uControlSpecular: CONTROL_SPECULAR,
     uControlTransmission:

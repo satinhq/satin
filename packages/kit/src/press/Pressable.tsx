@@ -22,6 +22,9 @@ export type PressableProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, Press
   Readonly<{
     children?: ReactNode
     disabled?: boolean
+    /** Starts at press begin. Forward the signal to data/image prefetch so a
+     * scroll, swipe or cancelled contact releases speculative work. */
+    prefetch?: (signal: AbortSignal) => void | Promise<unknown>
     onPress: () => void
     onPressStateChange?: (state: PressState) => void
     /** Grouped rows highlight their background after the scroll-intent delay. */
@@ -37,6 +40,7 @@ export const Pressable = forwardRef<HTMLButtonElement, PressableProps>(function 
     children,
     disabled = false,
     onPress,
+    prefetch,
     onPressStateChange,
     pressedStyle,
     feedback = 'opacity',
@@ -50,7 +54,13 @@ export const Pressable = forwardRef<HTMLButtonElement, PressableProps>(function 
   if (iconOnly && !props['aria-label']?.trim())
     throw new Error('An icon-only Pressable requires a meaningful aria-label.')
   const { elementRef, pressState, attributes, handlers, onClick } =
-    usePressInteraction<HTMLButtonElement>({ disabled, feedback, onPress, onPressStateChange })
+    usePressInteraction<HTMLButtonElement>({
+      disabled,
+      feedback,
+      onPress,
+      prefetch,
+      onPressStateChange,
+    })
 
   const renderedStyle =
     pressState === 'pressed' && pressedStyle ? { ...style, ...pressedStyle } : style

@@ -45,12 +45,12 @@ it('delivers exact upstream notices for modules in a real consumer bundle, exclu
       expect.arrayContaining([
         'Satin',
         'Framework7 Icons',
-        'liquid-glass-web-react',
         'react',
         'react-dom',
         'scheduler',
       ]),
     )
+    expect(names).not.toContain('liquid-glass-web-react')
     expect(names).not.toContain('sharp')
     expect(names).not.toContain('typescript')
     const upstream = await readFile(
@@ -59,7 +59,8 @@ it('delivers exact upstream notices for modules in a real consumer bundle, exclu
     )
     expect(renderNotices(notices)).toContain(upstream)
     const preserved = await readFile(join(process.cwd(), 'THIRD_PARTY_NOTICES.md'), 'utf8')
-    expect(preserved).toContain('Pallav Agarwal')
+    expect(preserved).toContain('Vladimir Kharlampidi')
+    expect(preserved).not.toContain('liquid-glass-web-react')
   } finally {
     await rm(root, { recursive: true, force: true })
   }

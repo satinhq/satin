@@ -50,6 +50,14 @@ export type AppDefinitionInput = {
   | { readonly connectivity?: 'local'; readonly reachability?: never }
   | { readonly connectivity: 'server'; readonly reachability: ServerReachabilityConfig }
 )
+const appInputs = new WeakMap<AppDefinition, AppDefinitionInput>()
+
+/** Resolve the same public definition after Vite supplies its deployment base. */
+export function appDefinitionForBase(app: AppDefinition, base: string): AppDefinition {
+  const input = appInputs.get(app)
+  return input ? defineAppAtBase(input, base) : app
+}
+
 /**
  * Declares app identity, install metadata and capabilities once. Pass the result to `runApp` and
  * to the `@satinhq/kit/vite` plugin. Everything not given is defaulted and the whole definition is
@@ -59,11 +67,22 @@ export type AppDefinitionInput = {
  * export const app = defineApp({ id: 'notes', name: 'Notes', icons: { source: '/icon.png' } })
  */
 export function defineApp(input: AppDefinitionInput): AppDefinition {
+  return defineAppAtBase(input, import.meta.env?.BASE_URL ?? '/')
+}
+
+function defineAppAtBase(input: AppDefinitionInput, base: string): AppDefinition {
   if (!input.id.startsWith('/') && !/^[a-z][a-z0-9-]*$/.test(input.id))
     throw new Error('App id must be a slug or root-relative identity')
   const advanced = input.advanced ?? {}
-  const scope = advanced.scope ?? '/app/'
-  const source = 'source' in input.icons ? input.icons.source : undefined
+  const scopedPath = (path: string) =>
+    !path.startsWith('/') || path.startsWith(base) ? path : base + path.slice(1)
+  const scope = advanced.scope ?? (base === '/' ? '/app/' : base)
+  const startRoute = advanced.startRoute ?? scope
+  if (startRoute.split('?')[0] !== scope)
+    throw new Error(
+      'Invalid Satin startRoute: the app entry is emitted at scope. Omit startRoute or set it to scope.',
+    )
+  const source = 'source' in input.icons ? scopedPath(input.icons.source) : undefined
   const directory = source?.slice(0, source.lastIndexOf('/') + 1) ?? '/'
   const icons: readonly AppIcon[] = source
     ? [180, 192, 512].map(size => ({
@@ -71,8 +90,8 @@ export function defineApp(input: AppDefinitionInput): AppDefinition {
         sizes: `${size}x${size}`,
         type: 'image/png',
       }))
-    : (input.icons as readonly AppIcon[])
-  return defineSatinApp({
+    : (input.icons as readonly AppIcon[]).map(icon => ({ ...icon, src: scopedPath(icon.src) }))
+  const app = defineSatinApp({
     id: input.id.startsWith('/') ? input.id : `/${input.id}`,
     name: input.name,
     acknowledgements: input.acknowledgements ?? true,
@@ -81,8 +100,6 @@ export function defineApp(input: AppDefinitionInput): AppDefinition {
     icons,
     ...(source ? { iconSource: source } : {}),
     scope,
-    startRoute: scope,
-    installRoute: '/install',
     platforms: 'ios',
     appearance: {
       ...(input.appearance?.tint ? { tint: input.appearance.tint } : {}),
@@ -100,10 +117,22 @@ export function defineApp(input: AppDefinitionInput): AppDefinition {
     updateActivation: 'cold-launch',
     updateProfile: 'release',
     ...advanced,
+    startRoute,
+    installRoute: scopedPath(advanced.installRoute ?? '/install'),
     appShell: {
       additionalPrecache: advanced.appShell?.additionalPrecache ?? [],
     },
     connectivity: input.connectivity ?? 'local',
-    ...(input.reachability ? { reachability: input.reachability } : {}),
+    ...(input.reachability
+      ? {
+          reachability: {
+            ...input.reachability,
+            probe: { ...input.reachability.probe, url: scopedPath(input.reachability.probe.url) },
+          },
+        }
+      : {}),
   } as AppDeploymentInput)
+  // Retain the validated declaration independently of later caller mutations.
+  appInputs.set(app, structuredClone(input))
+  return app
 }

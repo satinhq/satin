@@ -34,10 +34,11 @@ export function installAppearanceStore(key = 'satin-appearance:v1'): AppearanceS
   const media = matchMedia('(prefers-color-scheme: dark)')
   let dark = media.matches
   try {
-    const style = document.createElement('style')
-    style.textContent =
+    const rules =
       ':root{--satin-system-appearance:light}@media(prefers-color-scheme:dark){:root{--satin-system-appearance:dark}}'
-    document.head.appendChild(style)
+    const sheet = new CSSStyleSheet()
+    sheet.replaceSync(rules)
+    document.adoptedStyleSheets = [...document.adoptedStyleSheets, sheet]
     const css = getComputedStyle(document.documentElement)
       .getPropertyValue('--satin-system-appearance')
       .trim()

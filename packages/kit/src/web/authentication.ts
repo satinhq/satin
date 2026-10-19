@@ -1,3 +1,4 @@
+import { visibleInterval } from '../lifecycle/visibleInterval.ts'
 import { secureWebURL } from './urlPolicy.ts'
 import { consumeWebAuthenticationURL } from '../push/urlProjection.ts'
 
@@ -564,12 +565,21 @@ export function defineWebAuthentication(
       window.addEventListener('storage', storage)
       window.addEventListener('message', message)
       document.addEventListener('visibilitychange', reconcileOnReturn)
-      const timer = setInterval(() => {
-        if (['pending', 'completing'].includes(snapshot.status)) reconcileOnReturn()
-      }, 1000)
+      let stopPolling: (() => void) | undefined
+      const updatePolling = () => {
+        const pending = ['pending', 'completing'].includes(snapshot.status)
+        if (pending && !stopPolling) stopPolling = visibleInterval(reconcileOnReturn, 1000)
+        else if (!pending && stopPolling) {
+          stopPolling()
+          stopPolling = undefined
+        }
+      }
+      listeners.add(updatePolling)
+      updatePolling()
       reconcileOnReturn()
       return () => {
-        clearInterval(timer)
+        listeners.delete(updatePolling)
+        stopPolling?.()
         window.removeEventListener('pageshow', reconcileOnReturn)
         window.removeEventListener('focus', reconcileOnReturn)
         window.removeEventListener('storage', storage)

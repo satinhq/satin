@@ -7,9 +7,33 @@ export function installLaunchWatchdog(budgetMs: number) {
   let revealed = false
   let failed = false
   let recordedError = ''
+  let timer: ReturnType<typeof setTimeout> | undefined
+  let visible = !document.hidden
+  let pageHidden = false
+  const stopDeadline = () => {
+    clearTimeout(timer)
+    timer = undefined
+  }
+  const armDeadline = () => {
+    stopDeadline()
+    if (revealed || failed || document.hidden || pageHidden) return
+    timer = setTimeout(
+      () => {
+        timer = undefined
+        if (document.hidden || pageHidden) return
+        showFailure(
+          recordedError
+            ? 'Launch failed. ' + recordedError.split('\n')[0]!.slice(0, 160)
+            : 'Launch stopped making progress. Please retry.',
+        )
+      },
+      Math.max(0, budgetMs - idleVisibleMs),
+    )
+  }
   const showFailure = (reason: string) => {
     if (failed || revealed) return
     failed = true
+    stopDeadline()
     const marks = performance
       .getEntriesByType('mark')
       .filter(mark => mark.name.startsWith('satin-'))
@@ -66,6 +90,7 @@ export function installLaunchWatchdog(budgetMs: number) {
       idleVisibleMs = 0
       previousTime = performance.now()
       recover()
+      armDeadline()
     } else if (!progress) {
       lastBytes = 0
       lastActivity = 0
@@ -160,24 +185,25 @@ export function installLaunchWatchdog(budgetMs: number) {
   // never finishes holds DOMContentLoaded back: the worker's "this resource stalled" message
   // would then never arrive. Open the queue now that the listener exists.
   navigator.serviceWorker?.startMessages?.()
+  const visibilityChanged = (event?: Event) => {
+    if (event?.type === 'pagehide') pageHidden = true
+    if (event?.type === 'pageshow') pageHidden = false
+    const now = performance.now()
+    if (visible) idleVisibleMs += now - previousTime
+    previousTime = now
+    visible = !document.hidden && !pageHidden
+    armDeadline()
+  }
   window.addEventListener('satin-launch-revealed', () => {
     revealed = true
     recover()
-    clearInterval(timer)
+    stopDeadline()
+    document.removeEventListener('visibilitychange', visibilityChanged)
+    window.removeEventListener('pagehide', visibilityChanged)
+    window.removeEventListener('pageshow', visibilityChanged)
   })
-  document.addEventListener('visibilitychange', () => {
-    previousTime = performance.now()
-  })
-  const timer = setInterval(() => {
-    const now = performance.now()
-    if (!document.hidden) idleVisibleMs += now - previousTime
-    previousTime = now
-    if (idleVisibleMs >= budgetMs) {
-      showFailure(
-        recordedError
-          ? 'Launch failed. ' + recordedError.split('\n')[0]!.slice(0, 160)
-          : 'Launch stopped making progress. Please retry.',
-      )
-    }
-  }, 250)
+  document.addEventListener('visibilitychange', visibilityChanged)
+  window.addEventListener('pagehide', visibilityChanged)
+  window.addEventListener('pageshow', visibilityChanged)
+  armDeadline()
 }

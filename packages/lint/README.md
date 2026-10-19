@@ -1,9 +1,9 @@
 # @satinhq/lint
 
-Fidelity lint preset for Satin apps. Extend it from an app's `.oxlintrc.json`:
+Install with `npm install --save-dev @satinhq/lint oxlint`. The package supplies the `satin-lint` command. Extend the preset from your app's `.oxlintrc.json`:
 
 ```json
-{ "extends": ["../../packages/lint/oxlint.json"] }
+{ "extends": ["./node_modules/@satinhq/lint/oxlint.json"] }
 ```
 
 The preset exists to make Satin's invariants hard to violate. It bans browser-history routers and any `pushState` or `replaceState` property access in app code. The framework package does not extend the preset, so its future URL-projection module can own the single allowed `replaceState` call.
@@ -13,7 +13,7 @@ Oxlint cannot inspect CSS or determine whether a style expression contains viewp
 ```json
 {
   "scripts": {
-    "lint": "oxlint && node ../../packages/lint/scripts/check-fidelity.mjs src"
+    "lint": "oxlint --deny-warnings && satin-lint src index.html"
   }
 }
 ```

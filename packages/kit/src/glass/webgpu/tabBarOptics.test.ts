@@ -66,11 +66,11 @@ it('bounds tab fragment work around every moving capsule without shrinking its s
   expect(tabMaterialBounds(toolbarButton)).toBeUndefined()
 })
 
-function uniformsFor(spec: SurfaceRenderSpec) {
+function uniformsFor(spec: SurfaceRenderSpec, appearance: 'light' | 'dark' = 'dark') {
   const pyramid = { width: 80, height: 42 } as Target
   const layout = {
     spec,
-    appearance: 'dark',
+    appearance,
     resolution: 1,
     sampleWidth: spec.sampleWidth,
     sampleHeight: spec.sampleHeight,
@@ -104,7 +104,7 @@ it('packs the bar uniforms in the order the bar shader declares their slots', ()
   const struct = /struct Parameters \{([^}]*)\}/.exec(shaders.bar.wgsl)![1]
   const slots = [...struct.matchAll(/(\w+)_slot: vec4<f32>/g)].map(match => match[1])
   expect(slots).toEqual([...shaders.bar.uniforms, 'kernelScale'])
-  expect(shaders.bar.uniforms.slice(-5)).toEqual([
+  expect(shaders.bar.uniforms.slice(-9, -4)).toEqual([
     'uTabBarOptics',
     'uControlRim',
     'uControlSpecular',
@@ -176,4 +176,15 @@ it('registers fractional bar contours on output pixels independently of pyramid 
       expect((19.75 / sampleWidth) * filterScale[0]! * sampleWidth).toBeCloseTo(19.75, 10)
       expect(filterScale).toEqual([1, 1])
     }
+})
+
+it('enables the constant search mixture only for the light field', () => {
+  const search = surface({ id: 'region:search', materialProfile: 'searchField' })
+  expect(uniformsFor(search, 'light').uTabBarOptics).toEqual([0, 1])
+  expect((uniformsFor(search, 'light').uSearchMixture as readonly number[])[2]).toBe(1)
+  expect((uniformsFor(search, 'dark').uSearchMixture as readonly number[])[2]).toBe(0)
+  expect(uniformsFor(search, 'dark').uTabBarOptics).toEqual([0, 0])
+  for (const appearance of ['light', 'dark'] as const) {
+    expect((uniformsFor(toolbarButton, appearance).uSearchMixture as readonly number[])[2]).toBe(0)
+  }
 })

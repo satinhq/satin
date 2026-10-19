@@ -5,6 +5,7 @@ import {
   shapeTrackClock,
   shapeTrackEnvelope,
   shapeTrackFrame,
+  shapeTrackOpacity,
   type GlassShapeTrack,
 } from './shapeTrack.ts'
 import {
@@ -178,7 +179,16 @@ export function submenuGlassFrames(from: Frame, to: Frame, direction: 'open' | '
       height: from.height + (to.height - from.height) * size,
     })
   }
-  return { frames, duration: (frames.length - 1) * SAMPLE_MS }
+  const duration = (frames.length - 1) * SAMPLE_MS
+  // The returning title survives the child material. Fade the material on the existing
+  // back-content response instead of removing an opaque row-sized rim at settlement.
+  const opacities =
+    direction === 'back'
+      ? frames.map((_, index) =>
+          index === frames.length - 1 ? 0 : 1 - springProgress(BACK.fade, index * SAMPLE_MS),
+        )
+      : undefined
+  return { frames, duration, opacities }
 }
 
 /**
@@ -306,7 +316,12 @@ export function animateSubmenuFrame(
     run.write(at, finished ? contentTo : placeAt(at - track.epoch))
     // Freeze the renderer at the same point before a reversal or whole-menu dismissal.
     const frame = shapeTrackFrame(track, at)
-    setGlassShapeTrack(parts.glass, { epoch: Number.MAX_VALUE, duration: 0, frames: [frame] })
+    setGlassShapeTrack(parts.glass, {
+      epoch: Number.MAX_VALUE,
+      duration: 0,
+      frames: [frame],
+      ...(track.opacities ? { opacities: [shapeTrackOpacity(track, at)] } : {}),
+    })
     if (activeRuns.get(parts.platter) === live) activeRuns.delete(parts.platter)
     for (const animation of animations) animation.cancel()
     if (finished) {
@@ -349,12 +364,12 @@ function startRun(
   epoch: number,
 ) {
   const { platter, glass, clip, content, cornerRadius } = parts
-  const { frames, duration } = submenuGlassFrames(from, to, direction)
+  const { frames, duration, opacities } = submenuGlassFrames(from, to, direction)
   const laidOut = layoutBox(platter)
   const envelope = shapeTrackEnvelope(laidOut ? [laidOut, ...frames] : frames)
   writeBox(platter, envelope)
   const local = (frame: Frame) => ({ ...frame, x: frame.x - envelope.x, y: frame.y - envelope.y })
-  const track: GlassShapeTrack = { epoch, duration, frames: frames.map(local) }
+  const track: GlassShapeTrack = { epoch, duration, frames: frames.map(local), opacities }
   setGlassShapeTrack(glass, track)
   const frameAt = (at: number) => {
     const frame = shapeTrackFrame(track, at)

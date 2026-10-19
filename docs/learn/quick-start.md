@@ -27,8 +27,10 @@ pnpm install --frozen-lockfile
 PREVIEW_DIR="$(mktemp -d "${TMPDIR:-/tmp}/satin-preview.XXXXXX")"
 mkdir -p "$PREVIEW_DIR/packages" "$PREVIEW_DIR/scaffolder"
 KIT_ARCHIVE="$(node -p "const { name, version } = require('./packages/kit/package.json'); name.replace(/^@/, '').replaceAll('/', '-') + '-' + version + '.tgz'")"
+LINT_ARCHIVE="$(node -p "const { name, version } = require('./packages/lint/package.json'); name.replace(/^@/, '').replaceAll('/', '-') + '-' + version + '.tgz'")"
 CREATE_ARCHIVE="$(node -p "const { name, version } = require('./packages/create-satin/package.json'); name.replace(/^@/, '').replaceAll('/', '-') + '-' + version + '.tgz'")"
 pnpm --filter @satinhq/kit pack --pack-destination "$PREVIEW_DIR/packages"
+pnpm --filter @satinhq/lint pack --pack-destination "$PREVIEW_DIR/packages"
 pnpm --filter create-satin pack --pack-destination "$PREVIEW_DIR/packages"
 tar -xzf "$PREVIEW_DIR/packages/$CREATE_ARCHIVE" -C "$PREVIEW_DIR/scaffolder"
 
@@ -36,6 +38,7 @@ cd "$PREVIEW_DIR"
 node scaffolder/package/bin/create-satin.mjs my-app --yes --name "My App" --id my-app \
   --satin-package "$PREVIEW_DIR/packages/$KIT_ARCHIVE"
 cd my-app
+node -e 'const fs = require("node:fs"); const pkg = JSON.parse(fs.readFileSync("package.json", "utf8")); pkg.devDependencies["@satinhq/lint"] = process.argv[1]; fs.writeFileSync("package.json", JSON.stringify(pkg, null, 2) + "\n")' "$PREVIEW_DIR/packages/$LINT_ARCHIVE"
 npm install
 ```
 

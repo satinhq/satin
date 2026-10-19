@@ -46,6 +46,7 @@ it('shows a stalled document failure even before its body arrives', () => {
 it('does not spend the budget while hidden or download bytes advance', () => {
   installLaunchWatchdog(10_000)
   Object.defineProperty(document, 'hidden', { configurable: true, value: true })
+  document.dispatchEvent(new Event('visibilitychange'))
   vi.advanceTimersByTime(30_000)
   Object.defineProperty(document, 'hidden', { configurable: true, value: false })
   document.dispatchEvent(new Event('visibilitychange'))
@@ -218,4 +219,21 @@ it('counts headers again after an in-app preparation restart', () => {
   report({ loaded: 0, activity: 1 })
   vi.advanceTimersByTime(9000)
   expect(prelaunchDOM.getElementById('satin-launch-error')).toBeNull()
+})
+
+it('preserves the remaining launch deadline across suspension', () => {
+  installLaunchWatchdog(10_000)
+  vi.advanceTimersByTime(4_125)
+  Object.defineProperty(document, 'hidden', { configurable: true, value: true })
+  document.dispatchEvent(new Event('visibilitychange'))
+  vi.advanceTimersByTime(600_000)
+  expect(prelaunchDOM.getElementById('satin-launch-error')).toBeNull()
+  Object.defineProperty(document, 'hidden', { configurable: true, value: false })
+  document.dispatchEvent(new Event('visibilitychange'))
+  vi.advanceTimersByTime(5_874)
+  expect(prelaunchDOM.getElementById('satin-launch-error')).toBeNull()
+  vi.advanceTimersByTime(1)
+  expect(prelaunchDOM.getElementById('satin-launch-error')?.textContent).toContain(
+    'stopped making progress',
+  )
 })

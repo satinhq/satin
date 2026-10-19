@@ -60,3 +60,34 @@ If the check is slow or the phone is offline, the app opens with the version it 
 - [Notifications](notifications.md): ask for permission and send reminders.
 - [Data](data.md): store records on the device and offer backups.
 - [Release updates](../getting-started.md#release-updates): the full update policy.
+
+## Serving under a sub-path
+
+Set Vite's `base` once. For example, serve `dist/` at `/ios/`:
+
+```ts
+export default defineConfig({
+  base: '/ios/',
+  plugins: [react(), satinApp(defineApp(app))],
+})
+```
+
+Keep `icons.source: '/icon-source.png'` in `src/app.ts`. Satin derives the app
+scope and start URL as `/ios/`, the install page as `/ios/install`, and prefixes
+icon and reachability probe URLs with `/ios/`. Already-prefixed paths stay as
+written. Omit `advanced.startRoute`; it names the emitted entry page, not an
+in-memory navigation route. Run `satin check https://your-host/ios/` after deploying.
+
+`dist/satin-csp.json` includes each emitted HTML page, including `unsupported.html`.
+Apply its script and style hashes to your existing CSP and allow same-origin
+external assets. When a deep link serves `index.html` through SPA fallback, use
+the policy for that `index.html`, regardless of the requested path. Runtime
+appearance and presentation rules use constructed stylesheets and require no
+`unsafe-inline` allowance for style elements.
+
+Satin sets Vite's default chunk warning budget to 2,000 kB of minified,
+uncompressed JavaScript per chunk. The renderer and its shader compiler account
+for about 1.8 MB in the starter. This is a finite runtime budget, not a download
+size estimate or a performance guarantee. Vite still prints actual output and
+gzip sizes. App growth beyond the budget still warns. Set
+`build.chunkSizeWarningLimit` explicitly if your deployment needs a stricter budget.

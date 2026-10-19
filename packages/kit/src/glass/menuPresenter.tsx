@@ -68,7 +68,7 @@ import {
   refreshSafeAreaMetrics,
   useObservedSafeAreaMetrics,
 } from '../safe-area/useSafeAreaMetrics.ts'
-import { bindMenuOutside } from '../menu/menuOutside.ts'
+import { bindMenuOutside, holdEmbeddedFrameInput } from '../menu/menuOutside.ts'
 import { focusFromFramework } from '../focus/programmaticFocus.ts'
 import { GlassEffect, GlassLayer, type GlassEffectProps } from './GlassEffect.tsx'
 import { MaterialEffectContext } from './liquidContext.ts'
@@ -765,20 +765,25 @@ export function useMenuPresenter({
   // underneath the menu. A fresh contact still goes through once the menu is closed.
   const openRef = useRef(open)
   openRef.current = open
+  const shownRef = useRef(shown)
+  shownRef.current = shown
+  useLayoutEffect(() => {
+    if (shown) return holdEmbeddedFrameInput(anchor.current?.ownerDocument ?? document)
+  }, [shown, anchor])
   /** Leaves the top submenu, if one is open (Escape closes one level at a time). */
   const submenuBack = useRef<(() => boolean) | undefined>(undefined)
-  useEffect(
-    () =>
-      bindMenuOutside({
-        contains: node =>
-          node instanceof Node &&
-          Boolean(anchor.current?.contains(node) || panel.current?.contains(node)),
-        isOpen: () => openRef.current,
-        dismiss: close,
-        back: () => submenuBack.current?.() ?? false,
-      }),
-    [close],
-  )
+  useLayoutEffect(() => {
+    if (!shown) return
+    return bindMenuOutside({
+      contains: node =>
+        node instanceof Node &&
+        Boolean(anchor.current?.contains(node) || panel.current?.contains(node)),
+      isOpen: () => openRef.current,
+      isShown: () => shownRef.current,
+      dismiss: close,
+      back: () => submenuBack.current?.() ?? false,
+    })
+  }, [close, shown])
   useEffect(() => {
     if (!open) return
     const viewport = window.visualViewport

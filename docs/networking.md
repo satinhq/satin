@@ -3,8 +3,9 @@
 Use `useReachability().fetch` for requests to the app server so transport outcomes
 update the declared offline presentation. It returns the browser's `Response`
 and preserves request options, HTTP errors and cancellation. Use browser `fetch`
-for unrelated services. Satin supplies screen-bound tasks and pull-to-refresh;
-it does not supply a response cache or backend.
+for unrelated services. Use `defineResource` and `useResource` for shared remote data, prefetch and retained
+content on navigation. See [Remote data](remote-data.md). Use screen-bound tasks for
+work that should cancel when covered. Satin does not supply a backend.
 
 ## Declare a server dependency
 

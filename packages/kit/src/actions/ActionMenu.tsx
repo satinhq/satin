@@ -5,6 +5,20 @@ import { useRef, type KeyboardEvent, type ReactNode } from 'react'
 import type { Action, ActionItem } from './types.ts'
 
 const menuActivations = new WeakMap<HTMLElement, () => void>()
+
+/** Keep the same glyph and box when a submenu title returns to its parent row. */
+export function MenuChevron({ title = false }: { title?: boolean }) {
+  return (
+    <span
+      role="presentation"
+      data-satin-submenu-chevron="true"
+      style={title ? undefined : { transform: 'rotate(-90deg)' }}
+    >
+      <SymbolImage name="chevron.down" />
+    </span>
+  )
+}
+
 export function activateMenuAction(element: HTMLElement) {
   ownMenuCompatibilityClick(element.ownerDocument)
   menuActivations.get(element)?.()
@@ -145,7 +159,7 @@ export function ActionMenu({
           )}
           {action.icon ?? (action.symbol ? <SymbolImage name={action.symbol} /> : null)}
           <span data-satin-action-label="true">{action.label}</span>
-          <span role="presentation">{'submenu' in action ? '›' : null}</span>
+          {'submenu' in action ? <MenuChevron /> : <span role="presentation" />}
         </ActionButton>
       ),
     )

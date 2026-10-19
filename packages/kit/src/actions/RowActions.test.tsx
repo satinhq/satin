@@ -302,7 +302,7 @@ it('traverses all menu sections once and keeps submenu traversal separate', () =
     key('ArrowDown')
     sequence.push(document.activeElement?.textContent)
   }
-  expect(sequence).toEqual(['Third', 'More›', 'Last', 'First', 'Second', 'Third'])
+  expect(sequence).toEqual(['Third', 'More', 'Last', 'First', 'Second', 'Third'])
   key('End')
   expect(document.activeElement?.textContent).toBe('Last')
   key('Home')
@@ -316,7 +316,9 @@ it('traverses all menu sections once and keeps submenu traversal separate', () =
   key('ArrowLeft')
   expect(document.activeElement?.getAttribute('data-satin-action-id')).toBe('More')
   expect(
-    node.querySelector('[data-satin-menu-level="0"] [aria-hidden]:not(input[type="checkbox"])'),
+    node.querySelector(
+      '[data-satin-menu-level="0"] [aria-hidden]:not(input[type="checkbox"]):not([data-satin-symbol])',
+    ),
   ).toBeNull()
 })
 
@@ -718,6 +720,89 @@ it('closes an open phone-width row from a fresh touch at the native reverse brac
     contact([300, 265])
     expect(host.dataset.satinSwipeActive).toBe('false')
     expect(select).not.toHaveBeenCalled()
+  } finally {
+    vi.unstubAllGlobals()
+  }
+})
+
+it("keeps an open row's tray while a new contact drags it back, until the row passes rest", () => {
+  vi.stubGlobal('PointerEvent', class extends Event {})
+  vi.stubGlobal('matchMedia', () => ({ matches: true }))
+  try {
+    render(
+      <Row
+        label="Note"
+        swipeActions={[
+          { edge: 'leading' as const, actions: [{ id: 'read', label: 'Read', onPress() {} }] },
+          {
+            edge: 'trailing' as const,
+            actions: [{ id: 'archive', label: 'Archive', onPress() {} }],
+          },
+        ]}
+      />,
+    )
+    const host = node.querySelector<HTMLElement>('[data-satin-row-actions]')!
+    phoneRow(host)([20, 170])
+    expect(host.dataset.satinSwipeSide).toBe('leading')
+    const touch = (type: string, x: number) =>
+      act(() =>
+        host.dispatchEvent(
+          Object.assign(new Event(type, { bubbles: true, cancelable: true }), {
+            changedTouches: [{ identifier: 7, clientX: x, clientY: 26 }],
+            touches: type === 'touchend' ? [] : [{}],
+          }),
+        ),
+      )
+    // Owner mail app: dragging an open row back showed the other side's action at once.
+    touch('touchstart', 300)
+    touch('touchmove', 280)
+    touch('touchmove', 250)
+    expect(host.dataset.satinSwipeSide).toBe('leading')
+    touch('touchmove', 150)
+    expect(host.dataset.satinSwipeSide).toBe('trailing')
+    touch('touchend', 150)
+  } finally {
+    vi.unstubAllGlobals()
+  }
+})
+
+it('grows the action again when a new contact drags an open row further, on the touch path', () => {
+  vi.stubGlobal('PointerEvent', class extends Event {})
+  vi.stubGlobal('matchMedia', () => ({ matches: true }))
+  try {
+    render(
+      <Row
+        label="Note"
+        swipeActions={{
+          edge: 'leading' as const,
+          actions: [{ id: 'read', label: 'Read', onPress() {} }],
+        }}
+      />,
+    )
+    const host = node.querySelector<HTMLElement>('[data-satin-row-actions]')!
+    const end = host.querySelector<HTMLElement>('[data-satin-swipe-fill="end"]')!
+    const growth = () => Number(end.style.transform.match(/translate3d\(([-\d.]+)px/)?.[1] ?? 0)
+    // A two- or three-line mail row: the capsule with its caption below.
+    host.dataset.satinSwipeLabelLayout = 'below'
+    const swipe = phoneRow(host)
+    swipe([20, 170])
+    // Owner mail app (pushed Inbox, touch path): a light swipe, a release, then a second swipe
+    // caught the row but its action never grew or took over until the finger lifted.
+    const touch = (type: string, x: number) =>
+      act(() =>
+        host.dispatchEvent(
+          Object.assign(new Event(type, { bubbles: true, cancelable: true }), {
+            changedTouches: [{ identifier: 9, clientX: x, clientY: 26 }],
+            touches: type === 'touchend' ? [] : [{}],
+          }),
+        ),
+      )
+    touch('touchstart', 170)
+    touch('touchmove', 200)
+    touch('touchmove', 260)
+    touch('touchmove', 330)
+    expect(growth()).toBeGreaterThan(40)
+    touch('touchend', 330)
   } finally {
     vi.unstubAllGlobals()
   }

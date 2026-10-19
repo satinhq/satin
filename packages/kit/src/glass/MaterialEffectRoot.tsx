@@ -1,10 +1,5 @@
 import { fallbackGlassRequested } from './fallback/selection.ts'
-import {
-  glassFallbackRequired,
-  reportGlassError,
-  subscribeGlassFallback,
-  watchGlassTransportRecovery,
-} from './errors.ts'
+import { glassFallbackRequired, reportGlassError, subscribeGlassFallback } from './errors.ts'
 import { GlassRegionRegistry } from './regionRegistry.ts'
 import { observeTabSources } from '../tabs/sourceRevision.ts'
 import {
@@ -43,9 +38,6 @@ export function MaterialEffectRoot({
     glassFallbackRequired,
     () => false,
   )
-  useEffect(() => {
-    if (automaticFallback) return watchGlassTransportRecovery()
-  }, [automaticFallback])
   const [requestedFallback] = useState(fallbackGlassRequested)
   const backend =
     requestedFallback || automaticFallback ? ('fallback' as const) : ('webgpu' as const)

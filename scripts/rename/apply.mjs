@@ -193,6 +193,7 @@ for (const [directory, name] of [
 const templatePath = resolve(root, 'templates/basic/package.json')
 const template = JSON.parse(readFileSync(templatePath, 'utf8'))
 template.dependencies[packages.kit] = config.version
+template.devDependencies[packages.lint] = config.version
 writeFileSync(templatePath, `${JSON.stringify(template, null, 2)}\n`)
 // Release pins and notice metadata follow the same configured version.
 const fixturePath = resolve(root, 'fixtures/consumer/package.json')

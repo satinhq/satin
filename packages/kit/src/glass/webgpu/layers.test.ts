@@ -1,5 +1,6 @@
 import { afterEach, describe, it, expect, vi } from 'vitest'
 import { LayerDevice } from './layers.ts'
+import { glassFailureCode } from './errorCode.ts'
 function fixture() {
   const devices: {
     destroy: ReturnType<typeof vi.fn>
@@ -38,6 +39,46 @@ function fixture() {
 }
 afterEach(() => vi.unstubAllGlobals())
 describe('page device and glass layers', () => {
+  it('distinguishes unavailable device requirements from a real acquisition failure', async () => {
+    const fixtureState = fixture()
+    vi.stubGlobal('navigator', {
+      gpu: {
+        requestAdapter: async () => ({
+          limits: { maxTextureDimension2D: 16384 },
+          requestDevice: fixtureState.requestDevice,
+        }),
+      },
+    })
+    fixtureState.requestDevice.mockRejectedValueOnce(
+      new DOMException(
+        'Required maxTextureDimension2D exceeds the supported limit',
+        'OperationError',
+      ),
+    )
+    const acquire = () =>
+      new LayerDevice().attach(
+        { id: 'chrome', depth: 10, attachment: { kind: 'fixed' } },
+        fixtureState.canvas().value,
+      )
+    const unavailable = await acquire().catch((error: unknown) => error)
+    expect(glassFailureCode('worker startup', unavailable)).toBe('gpu-unavailable')
+    vi.stubGlobal('navigator', {
+      gpu: {
+        requestAdapter: async () => ({
+          features: new Set(['timestamp-query']),
+          requestDevice: fixtureState.requestDevice,
+        }),
+      },
+    })
+    fixtureState.requestDevice.mockRejectedValueOnce(new TypeError('Feature not supported'))
+    const missingFeature = await acquire().catch((error: unknown) => error)
+    expect(glassFailureCode('worker startup', missingFeature)).toBe('gpu-unavailable')
+    fixtureState.requestDevice.mockRejectedValueOnce(
+      new DOMException('GPU allocation failed: memory limit reached', 'OperationError'),
+    )
+    const failure = await acquire().catch((error: unknown) => error)
+    expect(glassFailureCode('device acquisition', failure)).toBe('device-request')
+  })
   it('shares one device across concurrent canvas attachments and detaches without replacement', async () => {
     const f = fixture(),
       owner = new LayerDevice(),

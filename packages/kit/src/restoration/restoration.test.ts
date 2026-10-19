@@ -68,6 +68,14 @@ describe('process reconstruction', () => {
       primary: true,
       element: { scrollTop: 512, scrollLeft: 0, scrollTo() {} },
     })
+    // A bottom-anchored view saved at its bottom keeps that fact, not only its offset.
+    scroll.register({
+      axis: 'vertical',
+      id: 'thread',
+      primary: false,
+      element: { scrollTop: 900, scrollLeft: 0, scrollTo() {} },
+      followsEnd: () => true,
+    })
     a.navigator[navigatorScrollRuntime].bind(key, scroll)
     a.navigator[navigatorScrollRuntime].capture([key])
     a.scene.flush()
@@ -78,6 +86,11 @@ describe('process reconstruction', () => {
       { id: 'two' },
     ])
     expect(b.navigator.getState().entries.at(-1)?.scrollSnapshot?.get('list')?.y).toBe(512)
+    expect(b.navigator.getState().entries.at(-1)?.scrollSnapshot?.get('thread')).toEqual({
+      x: 0,
+      y: 900,
+      atEnd: true,
+    })
     expect(b.scene.read(`entry:home:${key}:draft`)).toEqual({
       version: 1,
       value: 'half logged set',

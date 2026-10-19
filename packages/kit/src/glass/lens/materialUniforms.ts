@@ -32,18 +32,21 @@ export const MENU_SHADOW_RESPONSE: Readonly<
   dark: [12.8, 0.1, 0, 1],
 }
 
-/* The search drawer field has its own measured transmission row (reference, Oct 12).
- * Preserve that fit independently of the hardware-calibrated regular controls:
- * uniform interior diffusion and the original wide-fill weights. Its face, rim
- * and tint still follow regular glass. Native hardware search fidelity is not
- * inferred from the four control shapes in the round-3 matrix.
+/* Light search uses a separate default-setting native fit. Its constant mixture
+ * with regular transmission preserves stripe contrast without adding transverse
+ * bands. Dark retains the shipped recipe until a measured fill-boundary model
+ * can preserve its sharp rim. Face, tint and specular stay shared.
  */
 export const SEARCH_FIELD_RECIPE: Readonly<
   Record<Appearance, Readonly<{ diffusion: number; blurFill: readonly number[] }>>
 > = {
-  light: { diffusion: 0.075, blurFill: [8, 0.576, 0, 0.32] },
+  light: { diffusion: 0.075, blurFill: [8, 1, 0, 0.6117782350589273] },
   dark: { diffusion: 0.075, blurFill: [8, 0, 0.576, 0.32] },
 }
+
+/** Constant light-search transmission mixture; default-setting native stripe/photo fit. */
+export const SEARCH_LIGHT_MIXTURE = 1
+export const SEARCH_LIGHT_OUTER_KERNEL = 0.98
 
 type MaterialSurface = 'bar' | 'searchField' | 'menu'
 

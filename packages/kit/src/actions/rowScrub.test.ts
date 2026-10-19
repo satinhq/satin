@@ -573,3 +573,38 @@ it('uses the travel pose immediately when reduced motion is enabled', () => {
   expect(host.querySelector('button')!.style.transform).toContain('scale(1)')
   scrub.cancel()
 })
+
+it('computes each painted frame for its presentation, one refresh after the frame starts', () => {
+  let paint: FrameRequestCallback | undefined
+  vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+    paint = callback
+    return 1
+  })
+  vi.stubGlobal('cancelAnimationFrame', () => {})
+  const host = document.createElement('div')
+  host.innerHTML =
+    '<div data-satin-swipe-tray="leading"></div>' +
+    '<div data-satin-swipe-tray="trailing"><button data-satin-swipe-action style="width:60px"></button></div>'
+  const source = document.createElement('div')
+  Object.defineProperties(source, { scrollWidth: { value: 2000 }, clientWidth: { value: 400 } })
+  source.scrollLeft = 800
+  const configuration = { edge: 'trailing' as const, allowsFullSwipe: true, actions }
+  const contact = swipeContact(configuration)
+  const present = vi.spyOn(contact, 'present')
+  const scrub = createRowScrub(
+    host,
+    source,
+    document.createElement('div'),
+    0,
+    400,
+    configuration,
+    contact,
+  )!
+  const frameTime = performance.now() + 100
+  paint!(frameTime)
+  expect(present.mock.calls.at(-1)![1]).toBeCloseTo(frameTime + 1000 / 60, 6)
+  // A release read between frames starts from the pose that was last on screen.
+  scrub.flush(frameTime + 5, false)
+  expect(present.mock.calls.at(-1)![1]).toBeCloseTo(frameTime + 1000 / 60, 6)
+  scrub.cancel()
+})

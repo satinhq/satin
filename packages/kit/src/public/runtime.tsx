@@ -344,6 +344,8 @@ export type TabViewProps<D = RegisteredNavigation> = {
   selection?: TabId<D>
   onSelectionChange?: (id: TabId<D>) => void
   bottomAccessory?: ReactNode
+  /** One trailing Button or Menu action. Cannot accompany a search-role tab. */
+  trailingAction?: ReactNode
   /** Use custom when the accessory already supplies its own material. Defaults to glass. */
   bottomAccessoryMaterial?: EngineTabViewProps['bottomAccessoryMaterial']
   tabViewStyle?: 'automatic' | 'sidebarAdaptable'

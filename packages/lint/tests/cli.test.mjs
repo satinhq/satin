@@ -20,13 +20,18 @@ test('keeps the no-target CLI usage and exit code', () => {
   const result = runChecker([])
   assert.equal(result.status, 2)
   assert.equal(result.stdout, '')
-  assert.equal(result.stderr, 'Usage: check-fidelity <source file or directory> [...]\n')
+  assert.equal(result.stderr, 'Usage: satin-lint <source file or directory> [...]\n')
 })
 
 test('stays silent with exit 0 for a clean target', async context => {
   const directory = await mkdtemp(join(tmpdir(), 'satin-lint-clean-'))
   context.after(() => rm(directory, { recursive: true, force: true }))
-  await writeFile(join(directory, 'clean.tsx'), '<Pressable onPress={save}>Save</Pressable>\n')
+  for (let index = 0; index < 12; index += 1) {
+    await writeFile(
+      join(directory, `clean-${index}.tsx`),
+      '<Pressable onPress={save}>Save</Pressable>\n',
+    )
+  }
 
   const result = runChecker([directory])
   assert.equal(result.status, 0)

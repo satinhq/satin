@@ -328,3 +328,66 @@ it('filters ordinary travel and retains row velocity when the finger lifts', asy
   expect(settled).toBeCloseTo(-85, 5)
   expect(row.velocity()).toBeCloseTo(0, 5)
 })
+
+/** Deliver `samples` ([time, screen x]) to a fresh contact recognized at x375, presenting
+ * each, and call `frame` after each one as a paint would. */
+function deliver(
+  samples: Array<[number, number]>,
+  frame: (row: ReturnType<typeof contact>, time: number) => void = () => {},
+) {
+  const row = contact()
+  for (const [time, finger] of samples) {
+    row.track(finger - inset, time)
+    row.present(finger - 375, time)
+    frame(row, time)
+  }
+  return row
+}
+
+/** The share of the jump still to come at each of `times` (ascending), for a held finger
+ * at screen x85, relative to the pose at `before`. Presenting the settled pose finishes
+ * the jump, so it is read last. */
+function jumpCurve(row: ReturnType<typeof contact>, times: number[], before: number) {
+  const raw = 85 - 375
+  const start = row.present(raw, before)
+  const poses = times.map(time => row.present(raw, time))
+  const settled = row.present(raw, times.at(-1)! + 1000)
+  return poses.map(pose => (pose - settled) / (start - settled))
+}
+
+it('times a takeover from the zone entry when WebKit coalesces the entering sample', () => {
+  // Installed iPad slow commit: UIKit's 120 Hz stream reaches the zone edge (screen x89)
+  // at 2325ms; Satin's delivered stream skips it (x93.5 at 2316, x85 at 2333ms).
+  // The anchor keeps the delivered sample's finger offset, as native's does; the
+  // jump's timing must not depend on which sample was delivered.
+  const lead = path(375, 95).map((finger, index): [number, number] => [(index * 1000) / 60, finger])
+  const last = lead.at(-1)![0]
+  const entry = last + 10
+  const every = deliver([...lead, [entry, 89], [last + 16.7, 85]])
+  const coalesced = deliver([...lead, [last + 16.7, 85]])
+  const afters = [25, 40, 60]
+  const times = afters.map(after => entry + after)
+  const expected = jumpCurve(every, times, last + 16.7)
+  const actual = jumpCurve(coalesced, times, last + 16.7)
+  afters.forEach((after, index) => {
+    // Anchoring at the coalesced sample's time would leave 0.045 more jump at +25ms.
+    expect(actual[index]).toBeCloseTo(expected[index], 3)
+    expect(expected[index]).toBeCloseTo(destructiveJumpRemaining(after / 1000), 3)
+  })
+})
+
+it('starts the Delete takeover at the zone entry, not at the first frame that reads it', () => {
+  const samples = path(375, 85).map((finger, index): [number, number] => [
+    (index * 1000) / 60,
+    finger,
+  ])
+  const entry = samples.find(([, finger]) => finger <= 89)![0]
+  const raw = 85 - 375
+  const eachFrame = deliver(samples, (row, time) => row.takeover('trailing', raw, time))
+  const readLate = deliver(samples)
+  const time = entry + 33
+  const late = readLate.takeover('trailing', raw, time)
+  expect(late).toBeCloseTo(eachFrame.takeover('trailing', raw, time), 6)
+  expect(late).toBeGreaterThan(0.5)
+  expect(late).toBeLessThan(1)
+})

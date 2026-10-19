@@ -42,7 +42,12 @@ export function scrollSnapshotsEqual(
 
   for (const [id, leftOffset] of left) {
     const rightOffset = right.get(id)
-    if (!rightOffset || leftOffset.x !== rightOffset.x || leftOffset.y !== rightOffset.y) {
+    if (
+      !rightOffset ||
+      leftOffset.x !== rightOffset.x ||
+      leftOffset.y !== rightOffset.y ||
+      leftOffset.atEnd !== rightOffset.atEnd
+    ) {
       return false
     }
   }

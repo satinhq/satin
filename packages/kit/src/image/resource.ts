@@ -1,3 +1,4 @@
+import { shareRequest } from '../async/sharedRequest.ts'
 import {
   prepareMountedContent,
   hasPendingContent,
@@ -16,7 +17,7 @@ export interface ImageRequest {
   readonly priority?: boolean
 }
 type DecodedImage = {
-  promise: Promise<HTMLImageElement>
+  join: (signal?: AbortSignal) => Promise<HTMLImageElement>
   image: HTMLImageElement
   ready: boolean
   users: number
@@ -79,13 +80,18 @@ export function retryFailedImage(url: string, request: ImageRequest = {}) {
   const entry = decoded.get(imageRequestKey(url, request))
   if (entry?.failed) for (const [key, value] of decoded) if (value === entry) decoded.delete(key)
 }
-export function decodedImage(url: string, request: ImageRequest = {}): Promise<HTMLImageElement> {
+export function decodedImage(
+  url: string,
+  request: ImageRequest = {},
+  signal?: AbortSignal,
+): Promise<HTMLImageElement> {
+  if (signal?.aborted) return Promise.reject(signal.reason)
   const key = imageRequestKey(url, request)
   const existing = decoded.get(key)
   if (existing && !existing.failed) {
     touch(existing)
     if (request.priority) existing.image.fetchPriority = 'high'
-    return existing.promise
+    return existing.join(signal)
   }
   if (existing) {
     for (const [key, value] of decoded) if (value === existing) decoded.delete(key)
@@ -98,40 +104,51 @@ export function decodedImage(url: string, request: ImageRequest = {}): Promise<H
   if (request.sizes) image.sizes = request.sizes
   if (request.srcSet) image.srcset = request.srcSet
   image.src = sourceKey(url)
+  let cancelled = false
+  const promise = image
+    .decode()
+    .then(() => {
+      if (cancelled) throw new DOMException('Image prefetch cancelled', 'AbortError')
+      if (request.srcSet && image.currentSrc) {
+        image.src = image.currentSrc
+        image.srcset = ''
+      }
+      entry.ready = true
+      entry.bytes = image.naturalWidth * image.naturalHeight * 4 || 0
+      // Glass uses the browser-selected URL, so it reuses these exact pixels.
+      decoded.set(
+        imageRequestKey(image.currentSrc || url, {
+          crossOrigin: request.crossOrigin,
+          referrerPolicy: request.referrerPolicy,
+        }),
+        entry,
+      )
+      trimDecoded()
+      return image
+    })
+    .catch(error => {
+      entry.failed = !cancelled
+      trimDecoded()
+      throw error
+    })
   const entry: DecodedImage = {
     image,
     ready: false,
     users: 0,
     bytes: 0,
     failed: false,
-    promise: image
-      .decode()
-      .then(() => {
-        if (request.srcSet && image.currentSrc) {
-          image.src = image.currentSrc
-          image.srcset = ''
-        }
-        entry.ready = true
-        entry.bytes = image.naturalWidth * image.naturalHeight * 4 || 0
-        // Glass uses the browser-selected URL, so it reuses these exact pixels.
-        decoded.set(
-          imageRequestKey(image.currentSrc || url, {
-            crossOrigin: request.crossOrigin,
-            referrerPolicy: request.referrerPolicy,
-          }),
-          entry,
-        )
-        trimDecoded()
-        return image
-      })
-      .catch(error => {
-        entry.failed = true
-        trimDecoded()
-        throw error
-      }),
+    join: shareRequest(promise, () => {
+      if (entry.ready || entry.failed || entry.users) return
+      cancelled = true
+      for (const [key, value] of decoded) if (value === entry) decoded.delete(key)
+      // Retire this detached speculative image; existing artwork/decode readers
+      // adopt the shared request and therefore never reach this cancellation.
+      image.removeAttribute('srcset')
+      image.removeAttribute('src')
+    }),
   }
   decoded.set(key, entry)
-  return entry.promise
+  return entry.join(signal)
 }
 
 export function retainDecodedImage(url: string, request: ImageRequest = {}) {

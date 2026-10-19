@@ -332,8 +332,9 @@ describe('definition build integration', () => {
       },
       cancelAnimationFrame() {},
       window: { addEventListener() {}, __SATIN_PRELAUNCH__: { version: 1, appearance() {} } },
-      setTimeout: (callback: () => void) => {
-        timeouts.push(callback)
+      setTimeout: (callback: () => void, delay: number) => {
+        // This fixture advances the appearance timer, not the launch deadline.
+        if (delay <= 1000) timeouts.push(callback)
         return timeouts.length
       },
       clearTimeout() {},
@@ -436,6 +437,7 @@ it('emits an isolated app scope, public install flow and a managed WebClip', asy
   dirs.push(root)
   await mkdir(join(root, 'public'))
   await writeFile(join(root, 'public/brand.png'), iconBytes)
+  await writeFile(join(root, 'public/myindex.html'), '<script>window.extraPage = true</script>')
   await writeFile(
     join(root, 'index.html'),
     '<html><head></head><body><div id="root"></div></body></html>',
@@ -468,6 +470,15 @@ it('emits an isolated app scope, public install flow and a managed WebClip', asy
   expect(await readFile(join(root, 'dist/app/unsupported.html'), 'utf8')).toContain(
     'This app is designed for iPhone and iPad',
   )
+  const csp = JSON.parse(await readFile(join(root, 'dist/satin-csp.json'), 'utf8'))
+  expect(Object.keys(csp.policies).sort()).toEqual([
+    '/',
+    '/app/',
+    '/app/unsupported.html',
+    '/install/',
+    '/myindex.html',
+  ])
+  expect(csp.policies['/app/unsupported.html'].scriptSrc.length).toBeGreaterThan(0)
   const worker = await readFile(join(root, 'dist/app/sw.js'), 'utf8')
   expect(worker).toContain('const SHELL_URL = "/app/"')
   expect(JSON.parse(await readFile(join(root, 'dist/app/satin-version.json'), 'utf8')).format).toBe(

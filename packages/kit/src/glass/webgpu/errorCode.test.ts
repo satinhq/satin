@@ -9,3 +9,14 @@ it('keeps worker-local device loss retryable through production startup reportin
   ).toBe('worker-startup')
   expect(glassFailureCode('draw', Error('device lost'))).toBe('device-lost')
 })
+
+it('recognizes an unavailable adapter inside a worker-startup wrapper', () => {
+  expect(
+    glassFailureCode(
+      'production glass startup',
+      Error(
+        'Worker startup rejected: navigator.gpu.requestAdapter returned null after five attempts',
+      ),
+    ),
+  ).toBe('adapter-unavailable')
+})

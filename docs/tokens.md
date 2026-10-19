@@ -1,6 +1,6 @@
 # Geometry and appearance tokens
 
-`satinApp()` includes framework styles automatically. Satin supplies these properties inside its mounted root and may override geometry in adaptive pane descendants. Consume the nearest value; do not copy root measurements into a sidebar or detail pane. Unknown custom-property names do not produce a TypeScript error and can leave a CSS declaration invalid.
+`satinApp()` includes framework styles automatically. Satin supplies these properties inside its mounted root and may override geometry in adaptive pane descendants. These custom properties are framework implementation details and diagnostic values. App CSS and JavaScript must not read `--satin-*` properties. Use public component props and `useSafeAreaInsets()` for custom content; the hook reads the nearest surface, including adaptive panes. Unknown custom-property names do not produce a TypeScript error and can leave a CSS declaration invalid.
 
 | Property | Value | Use |
 | --- | --- | --- |
@@ -15,22 +15,23 @@
 | `--satin-layout-horizontal` | `compact` or `regular` | Diagnostic layout class, not a length |
 | `--satin-layout-vertical` | `compact` or `regular` | Diagnostic layout class, not a length |
 
-```css
-.custom-content {
-  padding-inline: var(--satin-inset-left) var(--satin-inset-right);
-  padding-bottom: var(--satin-inset-bottom);
-  background: var(--satin-background);
-  font: -apple-system-body;
+```tsx
+import { useSafeAreaInsets } from '@satinhq/kit'
+
+function CustomContent() {
+  const insets = useSafeAreaInsets()
+  return <div style={{ paddingInlineStart: insets.leading, paddingInlineEnd: insets.trailing,
+    paddingBottom: insets.bottom }}>Custom content</div>
 }
 ```
 
 Let List/Form/ScrollView and framework chrome apply their own insets. Adding the same inset again inside those components causes double padding. Never use raw viewport-height units or `env(safe-area-inset-*)` to replace framework geometry. Do not fix html, body or the mount in app CSS.
 
-`useSafeAreaInsets()` returns numeric layout insets in CSS pixels. `useSafeAreaMetrics()` also exposes `layoutViewport`, `visualViewport`, `screen`, `safeFrame` and `physicalSafeFrame`, with numeric CSS-pixel dimensions. `physicalInsets` are comparison coordinates, not padding. React numeric padding values become px; CSS custom properties already contain their unit. Never append another `px` to a token.
+`useSafeAreaInsets()` returns numeric `top`, `leading`, `bottom` and `trailing` layout insets in CSS pixels. Leading and trailing follow the document writing direction. The internal geometry diagnostics also include viewport, screen and safe-frame dimensions; apps must not import the internal metrics hook. `physicalInsets` are comparison coordinates, not padding. React numeric padding values become px. Prefer `SafeAreaInset`, `SafeAreaPadding` and `Overlay` when they express the layout. Do not scrape computed custom properties, cache root insets, or add padding already owned by a List, Form or ScrollView.
 
 ## Settings composition
 
-These settings tokens are also CSS lengths in px:
+These internal settings tokens are CSS lengths in px. App layouts use the public settings components instead:
 
 | Property | Meaning |
 | --- | --- |

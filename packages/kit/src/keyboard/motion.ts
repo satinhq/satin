@@ -1,13 +1,13 @@
 import { menuSpring } from '../glass/lens/menuSpring.ts'
 
 /**
- * The software keyboard's show and hide motion. Measured per frame from the native composer's
- * presentation layer (`ScrollView` + `.safeAreaInset(edge: .bottom)` chat, iOS 27.0
- * Simulator, 4 shows and 4 hides; UIKit reports duration 0.3833 s, curve 7): a spring with mass 1,
- * stiffness 535 and damping 45.5, released at rest, fits every frame of both directions within
- * 0.84 pt of a 313 pt travel. UIKit ends the animation at 383 ms (0.4 pt short of rest).
+ * Shared software-keyboard curve, measured from physical-device USB frames in both directions.
+ * A joint mass-1 fit to the independently timed show/hide samples has normalized RMS error
+ * 0.001525 (0.94 source pixels over 616 pixels of travel). Original-frame fits and onset
+ * uncertainty are documented in the search-mode specification notes. The existing measured
+ * viewport-report leads below remain separate from this system-animation curve.
  */
-export const KEYBOARD_SPRING = Object.freeze({ stiffness: 535, damping: 45.5 })
+export const KEYBOARD_SPRING = Object.freeze({ stiffness: 557.4321, damping: 47.302635 })
 export const KEYBOARD_DURATION_MS = 383
 
 /**

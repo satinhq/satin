@@ -106,6 +106,34 @@ it('follows appended and streamed content only while pinned, then resumes after 
   run.grow(50)
   expect(run.surface.scrollTop).toBe(0)
 })
+it('keeps following its bottom when the page was resized while hidden', () => {
+  const run = fixture()
+  let visibility: DocumentVisibilityState = 'visible'
+  Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => visibility })
+  cleanup.push(() => delete (document as { visibilityState?: unknown }).visibilityState)
+  const setVisibility = (next: DocumentVisibilityState) => {
+    visibility = next
+    document.dispatchEvent(new Event('visibilitychange'))
+  }
+  // iPadOS snapshots a hidden page at another size, and WebKit clamps the offset to that layout.
+  // The clamp's scroll event arrives on return, after the size is back.
+  setVisibility('hidden')
+  run.surface.scrollTop = 120
+  visibility = 'visible'
+  run.surface.dispatchEvent(new Event('scroll'))
+  setVisibility('visible')
+  expect(run.surface.scrollTop).toBe(200)
+  expect(run.controller.followsEnd()).toBe(true)
+  // The visibility change can also come first.
+  setVisibility('hidden')
+  run.surface.scrollTop = 120
+  setVisibility('visible')
+  run.surface.dispatchEvent(new Event('scroll'))
+  expect(run.surface.scrollTop).toBe(200)
+  // A reader's own scroll after returning still leaves the bottom.
+  run.read(50)
+  expect(run.controller.followsEnd()).toBe(false)
+})
 it('preserves the visible message through prepends and viewport changes while keeping a pinned bottom', () => {
   const run = fixture()
   run.read(65)

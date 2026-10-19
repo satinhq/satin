@@ -468,24 +468,26 @@ export function Section({ children, header, footer, className, style }: SectionP
   )
 }
 
-export type RowProps = RowActionsProps & {
-  buttonProps?: Omit<PressableProps, 'children' | 'onPress'>
-  label: ReactNode
-  leading?: ReactNode
-  trailing?: ReactNode
-  onPress?: () => void
-  disabled?: boolean
-  destructive?: boolean
-  className?: string
-  value?: ReactNode
-  accessibilityLabel?: string
-}
+export type RowProps = RowActionsProps &
+  Pick<PressableProps, 'prefetch'> & {
+    buttonProps?: Omit<PressableProps, 'children' | 'onPress'>
+    label: ReactNode
+    leading?: ReactNode
+    trailing?: ReactNode
+    onPress?: () => void
+    disabled?: boolean
+    destructive?: boolean
+    className?: string
+    value?: ReactNode
+    accessibilityLabel?: string
+  }
 export const Row: ForwardRefExoticComponent<RowProps & RefAttributes<HTMLButtonElement>> =
   forwardRef<HTMLButtonElement, RowProps>(function Row(
     {
       swipeActions,
       contextMenu,
       buttonProps,
+      prefetch,
       label,
       leading,
       trailing,
@@ -539,6 +541,7 @@ export const Row: ForwardRefExoticComponent<RowProps & RefAttributes<HTMLButtonE
         ref={ref}
         feedback="row"
         disabled={disabled}
+        prefetch={item?.pressSelects ? undefined : (prefetch ?? buttonProps?.prefetch)}
         onPress={item?.pressSelects ? item.select : onPress}
         aria-label={accessibilityLabel}
       >

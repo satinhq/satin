@@ -47,8 +47,11 @@ it('collapses a phone submenu so its title lands exactly on the row that opened 
   expect(landed.x + titleOffset.x).toBeCloseTo(row.x, 3)
   expect(landed.y + titleOffset.y).toBeCloseTo(row.y, 3)
   // The glass collapses to the row itself, so the platter can leave without anything moving.
-  const glass = submenuGlassFrames(expanded, row, 'back').frames
-  expect(glass.at(-1)).toEqual(row)
+  const glass = submenuGlassFrames(expanded, row, 'back')
+  expect(glass.frames.at(-1)).toEqual(row)
+  expect(glass.opacities?.[0]).toBe(1)
+  expect(glass.opacities?.at(-1)).toBe(0)
+  expect(submenuGlassFrames(row, expanded, 'open').opacities).toBeUndefined()
   // Opening starts from that same place: the title does not jump when the platter appears.
   const opening = submenuContentAt(end, expanded, 'open', 0)
   expect(opening.y + titleOffset.y).toBeCloseTo(row.y, 3)

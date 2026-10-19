@@ -1,3 +1,4 @@
+import { SearchEnvironment } from '../search/SearchEnvironment.tsx'
 import { ExpandedNavigationTitle } from '../navigation/NavigationTitleSlots.tsx'
 import { observeToolbarMinimization } from '../navigation/toolbarMinimization.ts'
 import {
@@ -290,7 +291,7 @@ export const ScrollSurface = forwardRef<ScrollSurfaceHandle, ScrollSurfaceProps>
       ? (chrome.searchToolbarItem ?? chrome.bottomToolbar)
       : chrome.trailingToolbar
     const content = (
-      <>
+      <SearchEnvironment>
         {largeTitle}
         {searchable && !toolbarSearch && (
           <SearchDrawer configuration={searchable} scroller={elementRef} />
@@ -304,7 +305,7 @@ export const ScrollSurface = forwardRef<ScrollSurfaceHandle, ScrollSurfaceProps>
           />
         )}
         <ContentAdmission>{children}</ContentAdmission>
-      </>
+      </SearchEnvironment>
     )
     if (positioning && axis !== 'vertical') {
       throw new Error('ScrollView positioning currently supports only the vertical axis.')
@@ -395,6 +396,7 @@ export const ScrollSurface = forwardRef<ScrollSurfaceHandle, ScrollSurfaceProps>
         id,
         primary: preference,
         onRestore: () => controller.current?.adoptRestoredOffset(),
+        followsEnd: () => controller.current?.followsEnd() ?? false,
         initialOffset: () => ({
           x: 0,
           y:

@@ -65,7 +65,7 @@ export const apiBehaviors = [
   mapped(
     'Text and stacks',
     'Text VStack HStack ZStack Spacer Divider',
-    'Lay out content with system text styles, semantic colours, padding and frame props. Plain React and HTML still work.',
+    'Set Text `font`, `foregroundStyle`, `lineLimit` and `multilineTextAlignment`; use stack `spacing`, `padding` and `frame` for layout. Plain React and HTML still work.',
     'Default spacing and frame differences are listed in content.md. Props apply in a fixed order, not the order you write them.',
   ),
   mapped(
@@ -81,9 +81,15 @@ export const apiBehaviors = [
     'Every child renders at once; there is no virtualization. An adaptive track must be the only track, and there is no Grid or GridRow.',
   ),
   mapped(
+    'Remote data',
+    'defineResource useResource',
+    'Share keyed remote data in memory. Seed details from list content. Use NavigationLink or Button prefetch(signal) to start data and image work on press-down; forward the signal to cancel abandoned contacts. Stale content remains visible while refreshing.',
+    'No automatic persistence, transport or background execution. Include account identity in keys and clear resources on sign-out. Cold, unseeded reads still need loading UI.',
+  ),
+  mapped(
     'useTask',
     'useTask',
-    'Run cancellable work while a screen shows. A change of id, or a call to the returned runner, replaces the current run. Pass the AbortSignal to fetch and publish through commit.',
+    'Use defineResource/useResource for shared remote data. Run cancellable screen-specific work while a screen shows. A change of id, or a call to the returned runner, replaces the current run. Pass the AbortSignal to fetch and publish through commit.',
     'Cancellation is cooperative: state set outside commit cannot be stopped. The work runs in the foreground only; it is not a Web Worker or a background scheduler.',
   ),
   mapped(
@@ -149,7 +155,7 @@ export const apiBehaviors = [
   mapped(
     'Row overrides',
     'ListRow',
-    'Set per-row insets, background and separators through ListRowProps.',
+    'Set `listRowInsets`, `listRowBackground` and `listRowSeparator` through ListRowProps.',
     'Satin still owns row geometry. Do not use raw viewport or safe-area CSS in rows.',
   ),
   mapped(
@@ -407,9 +413,9 @@ export const apiBehaviors = [
   ),
   mapped(
     'Search',
-    'Searchable SearchScopes SearchSuggestion SearchFieldPlacement',
-    'Pass searchable={{ text, onTextChange, prompt, placement, scopes, suggestions, onSubmit }} to Screen or List. With automatic placement, iPhone uses the bottom toolbar when the screen has no other bottom bar items, and the navigation bar drawer otherwise; iPad and scoped fields use the drawer. The bar owns the field, its clear and close buttons, the scope bar, suggestions and collapse on scroll. isPresented and onPresentedChange control whether search is active.',
-    'The bottom toolbar field does not animate in yet and draws no scope bar, so scoped fields stay in the drawer. A search tab draws no bottom field; role="search" is metadata only. Do not build your own search bar.',
+    'Searchable SearchScopes SearchSuggestion SearchFieldPlacement useIsSearching useDismissSearch',
+    'Pass searchable to Screen or List. Its field owns clear, close, scopes, suggestions and keyboard motion. Search presentation leaves content unchanged. A child inside the searchable container reads useIsSearching() to choose browsing, recents or results, and exits with useDismissSearch(). Pass completion suggestions through suggestions. isPresented and onPresentedChange provide controlled presentation. Automatic placement uses a bottom field on eligible phone screens and the navigation toolbar on tablet.',
+    'The app supplies actual search results and recent queries. Submission dismisses the keyboard without exiting search. Scoped phone fields stay in the drawer. Minimized search-button behavior and exact installed-runtime timing remain under qualification; do not replace the framework field with an app-owned keyboard accessory.',
   ),
   mapped(
     'Search in the bottom bar',

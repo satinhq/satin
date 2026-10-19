@@ -409,3 +409,38 @@ Supply your `messages` and `startVideoCall` action. The default HStack alignment
 buttons on the entire avatar/name stack. In the native 98 pt composition, button centers
 are 11 pt below the avatar center. If the design calls for avatar-centered buttons, choose
 that alignment deliberately in the composition.
+
+## Tab bar with an action button
+
+Use `trailingAction` for an app-wide action such as composing a thread. Declare
+only destinations in `defineNavigation`; the action does not become a tab.
+
+```tsx
+function App() {
+  const [composing, setComposing] = useState(false)
+  return <>
+    <TabView trailingAction={
+      <Button symbol="square.and.pencil" aria-label="New Thread"
+        onPress={() => setComposing(true)} />
+    } />
+    <Sheet isPresented={composing} onPresentedChange={setComposing} title="New Thread">
+      <Text>Write your thread here.</Text>
+    </Sheet>
+  </>
+}
+```
+
+The example uses `useState` from React and `TabView`, `Button`, `Sheet` and `Text`
+from `@satinhq/kit`. The app's navigation declaration supplies its tabs. The slot
+cannot accompany a tab declared with `role: 'search'`. For a menu, supply
+`<Menu label="New" actions={actions} trigger={props =>
+<Button {...props} symbol="plus" aria-label="New" />} />` as the action. Forward
+all trigger props so disabled state, menu accessibility and activation work.
+## Showing email or article HTML
+
+Use a same-origin sanitized document with `<WebView sizing="content" url={bodyURL}
+ title="Message body" />` inside `ScrollView`. Width fitting defaults on; scripts and
+forms default off. WebKit makes `onOpenURL` unavailable with scripts disabled; use
+application-owned `Link` controls outside the frame when link policy is required. See
+[the complete recipe and origin limits](web-handoff.md#showing-email-or-article-html).
+Live page retention and press-time prefetch are not available in this implementation yet.

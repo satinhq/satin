@@ -44,7 +44,7 @@ import {
 import * as Rows from '../list-form/ListForm.tsx'
 import * as Fields from '../text-input/TextField.tsx'
 import { TextEditor as Editor } from '../text-input/TextEditor.tsx'
-import { Pressable } from '../press/Pressable.tsx'
+import { Pressable, type PressableProps } from '../press/Pressable.tsx'
 import { glassRadius } from '../glass/regions.ts'
 import { GlassButton } from '../glass/GlassEffect.tsx'
 import { resolveButtonBorderShape, type ButtonBorderShape } from './buttonBorderShape.ts'
@@ -192,6 +192,7 @@ export function Form(props: FormProps) {
 }
 /** Button's action, label and control properties. An `iconOnly` button needs an `aria-label`. */
 export type ButtonProps = AriaAttributes &
+  Pick<PressableProps, 'prefetch'> &
   RowInteractionProps & {
     children?: ReactNode
     symbol?: SymbolName
@@ -418,15 +419,17 @@ export function EditButton() {
 export type NavigationLinkProps<R extends Routes = RegisteredRoutes> = [
   keyof R['definitions'],
 ] extends [never]
-  ? RowInteractionProps & {
-      to: never
-      params?: never
-      children: ReactNode
-      symbol?: SymbolName
-      leading?: ReactNode
-    }
+  ? RowInteractionProps &
+      Pick<PressableProps, 'prefetch'> & {
+        to: never
+        params?: never
+        children: ReactNode
+        symbol?: SymbolName
+        leading?: ReactNode
+      }
   : {
       [K in keyof R['definitions'] & string]: { to: K } & RowInteractionProps &
+        Pick<PressableProps, 'prefetch'> &
         ({} extends RouteProps<R, K>
           ? { params?: RouteProps<R, K> }
           : { params: RouteProps<R, K> }) & {
@@ -440,7 +443,8 @@ export type NavigationLinkProps<R extends Routes = RegisteredRoutes> = [
     }[keyof R['definitions'] & string]
 /**
  * Pushes a declared route. In a `List` it draws a disclosure row; elsewhere it is a plain
- * pressable.
+ * pressable. Use `prefetch={signal => resource.prefetch(key, signal)}` to start
+ * loading on press-down; scrolling or swiping cancels speculative work.
  *
  * @example
  * <NavigationLink to="note" params={{ id: note.id }}>{note.title}</NavigationLink>

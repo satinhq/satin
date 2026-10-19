@@ -203,13 +203,32 @@ export class LayerDevice {
   private async acquire() {
     if (!navigator.gpu) throw Error('navigator.gpu is unavailable in the glass renderer')
     const adapter = await this.requestAdapter()
+    const requiredFeatures: GPUFeatureName[] = adapter.features?.has('timestamp-query')
+      ? ['timestamp-query']
+      : []
+    const requiredLimits = glassDeviceLimits(adapter)
     this.stats.deviceRequests++
     const device = await glassTimedAsync('requestDevice', () =>
       adapter.requestDevice({
-        requiredFeatures: adapter.features?.has('timestamp-query') ? ['timestamp-query'] : [],
-        requiredLimits: glassDeviceLimits(adapter),
+        requiredFeatures,
+        requiredLimits,
       }),
     ).catch(error => {
+      // Only a platform capability rejection permits development fallback. Validation,
+      // allocation, shader and transport failures must remain loud on capable devices.
+      const unsupportedFeature = error instanceof TypeError && requiredFeatures.length > 0
+      const unsupportedLimit =
+        error instanceof DOMException &&
+        error.name === 'OperationError' &&
+        Object.keys(requiredLimits).some(limit => error.message.includes(limit))
+      if (
+        unsupportedFeature ||
+        unsupportedLimit ||
+        (error instanceof DOMException && error.name === 'NotSupportedError')
+      )
+        throw Error(
+          `GlassCapabilityUnavailable: required WebGPU features or limits: ${String(error)}`,
+        )
       throw Error(`requestDevice rejected: ${String(error)}`)
     })
     // requestDevice may resolve after a quick re-background. Do not rebuild or

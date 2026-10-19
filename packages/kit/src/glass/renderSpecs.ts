@@ -384,6 +384,8 @@ export type RuntimeGeometry = Readonly<{
 export type RuntimeOptions = Readonly<{
   regions?: GlassRegionRegistry
   consumerMode?: boolean
+  /** A replacement may prepare frames while CSS retains material and input ownership. */
+  recovery?: boolean
   appearance: Appearance
   bridgeEnabled: boolean
   elements: RuntimeElements

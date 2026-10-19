@@ -1,3 +1,5 @@
+import { useSearchKeyboardMotion } from './useSearchKeyboardMotion.ts'
+import { useDarkAppearance } from '../app/appearance.ts'
 import { usePadSearchFieldMotion } from './usePadSearchFieldMotion.ts'
 import {
   PadSearchPresentationContext,
@@ -34,7 +36,7 @@ import { useSearchPresentation } from './useSearchPresentation.ts'
  *
  * `host` is the screen's bottom toolbar slot, or the element a `DefaultToolbarItem kind="search"`
  * placed among the bottom items. Suggestions stand in for the scroll view's content, as in the
- * drawer. Presentation is not animated yet: native's motion is not measured (spec notes, reference).
+ * drawer. The bottom field shares the compositor keyboard carrier in both directions.
  */
 export function SearchToolbarField({
   configuration,
@@ -49,6 +51,7 @@ export function SearchToolbarField({
   navigation?: boolean
   drawer?: boolean
 }) {
+  const darkAppearance = useDarkAppearance()
   const tabSearch = useContext(PadSearchPresentationContext)
   const searchTab = useContext(PadSearchTabContext)
   const setSearchOwner = tabSearch?.setOwner
@@ -63,6 +66,7 @@ export function SearchToolbarField({
   const pad = navigation && readDeviceIdiom() === 'pad'
   const search = useSearchPresentation(configuration, inputRef, pad)
   const { presented } = search
+  useSearchKeyboardMotion(rowRef, !navigation, presented)
   usePadSearchFieldMotion(rowRef, pad && !drawer, presented, searchTab !== null, liquid?.regions)
   useLayoutEffect(() => {
     if (!pad || !searchTab || !setSearchOwner || !presented || stacked) return
@@ -91,38 +95,6 @@ export function SearchToolbarField({
     }
   }, [presented, scroller, screenKey, stacked, navigation, drawer])
 
-  // The field moves with the keyboard on the keyboard's own curve (styles.css). Glass regions
-  // follow a moving element only when told: refresh them while it moves.
-  useLayoutEffect(() => {
-    const row = rowRef.current?.closest<HTMLElement>('[data-satin-navigation-toolbar-slot]')
-    if (!row || !liquid?.regions) return
-    const regions = liquid.regions
-    let frame = 0
-    let moving = 0
-    const tick = () => {
-      regions.invalidate()
-      frame = moving > 0 ? requestAnimationFrame(tick) : 0
-    }
-    const start = () => {
-      moving++
-      if (!frame) frame = requestAnimationFrame(tick)
-    }
-    const end = () => {
-      moving = Math.max(0, moving - 1)
-      regions.invalidate()
-    }
-    regions.invalidate()
-    row.addEventListener('transitionrun', start)
-    row.addEventListener('transitionend', end)
-    row.addEventListener('transitioncancel', end)
-    return () => {
-      cancelAnimationFrame(frame)
-      row.removeEventListener('transitionrun', start)
-      row.removeEventListener('transitionend', end)
-      row.removeEventListener('transitioncancel', end)
-    }
-  }, [liquid?.regions, presented])
-
   const prompt = configuration.prompt ?? 'Search'
   const ownsItem = !host.hasAttribute('data-satin-search-toolbar-host')
   const row = (
@@ -135,7 +107,7 @@ export function SearchToolbarField({
       data-satin-search-toolbar-presented={presented || undefined}
     >
       <div data-satin-search-toolbar-field="">
-        <GlassBackground shape="capsule" />
+        <GlassBackground shape="capsule" recipe={darkAppearance ? undefined : 'searchField'} />
         <SymbolImage
           name="magnifyingglass"
           weight="medium"

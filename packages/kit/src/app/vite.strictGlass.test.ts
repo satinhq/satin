@@ -42,7 +42,7 @@ it('release defaults to auto-fallback', async () => {
   expect((await defines())['import.meta.env.SATIN_STRICT_GLASS']).toBe('false')
 })
 it.each(['serve', 'dev-menu-option', 'dev-menu-env', 'strict-option', 'strict-env'])(
-  '%s builds force strict glass',
+  '%s builds select their glass policy',
   async mode => {
     vi.stubEnv('SATIN_STRICT_GLASS', mode === 'strict-env' ? '1' : '')
     vi.stubEnv('SATIN_DEV_MENU', mode === 'dev-menu-env' ? '1' : '')
@@ -54,7 +54,7 @@ it.each(['serve', 'dev-menu-option', 'dev-menu-env', 'strict-option', 'strict-en
       (await defines(options, mode === 'serve' ? 'serve' : 'build'))[
         'import.meta.env.SATIN_STRICT_GLASS'
       ],
-    ).toBe('true')
+    ).toBe(mode === 'serve' ? 'false' : 'true')
   },
 )
 

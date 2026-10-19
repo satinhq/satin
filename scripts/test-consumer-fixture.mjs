@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict'
-import { spawnSync } from 'node:child_process'
+import { execFile, spawnSync } from 'node:child_process'
+import { createServer } from 'node:http'
+import { promisify } from 'node:util'
 import {
   access,
   cp,
@@ -7,11 +9,12 @@ import {
   mkdtemp,
   readFile,
   readdir,
+  rm,
   realpath,
   writeFile,
 } from 'node:fs/promises'
 import { dirname, isAbsolute, relative, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { assertPublicDoc, checkShippedDocs } from '../packages/create-satin/scripts/agent-docs.mjs'
 
 const workspace = resolve(dirname(fileURLToPath(import.meta.url)), '..')
@@ -46,12 +49,16 @@ function run(command, args, cwd, options = {}) {
   transcript += line + (result.stdout ?? '') + (result.stderr ?? '')
   if (!args.includes('--json')) process.stdout.write(result.stdout ?? '')
   process.stderr.write(result.stderr ?? '')
+  if (options.rejectWarnings) {
+    assert.equal(result.stderr, '', 'Generated app build must have no stderr warnings')
+    assert.doesNotMatch(result.stdout, /\(!\)|\bWARN\b|\b[1-9]\d* warnings\b/)
+  }
   if (result.error) throw result.error
   if (result.status !== 0) throw new Error(`${command} exited ${result.status}`)
   return result.stdout
 }
 
-async function verifyPackage(app) {
+async function verifyPackage(app, rejectWarnings = true) {
   const installed = resolve(app, 'node_modules/@satinhq/kit')
   for (const path of [
     'dist/index.js',
@@ -114,7 +121,9 @@ async function verifyPackage(app) {
     await writeFile(resolve(app, `src/satin-reference-${index}.tsx`), snippet[1])
   }
   run('npm', ['run', 'typecheck'], app)
-  run('npm', ['run', 'build'], app)
+  for (const [index] of snippets.entries())
+    await rm(resolve(app, `src/satin-reference-${index}.tsx`))
+  run('npm', ['run', 'build'], app, { rejectWarnings })
   const output = resolve(app, 'dist')
   const cssFiles = (await readdir(output, { recursive: true })).filter(file =>
     file.endsWith('.css'),
@@ -133,6 +142,7 @@ try {
   const packs = {}
   for (const [name, directory] of [
     ['@satinhq/kit', 'kit'],
+    ['@satinhq/lint', 'lint'],
     ['create-satin', 'create-satin'],
   ]) {
     const cwd = resolve(workspace, 'packages', directory)
@@ -196,6 +206,10 @@ try {
       '<!-- public-api:start -->',
     ),
   )
+  const consumerPackagePath = resolve(app, 'package.json')
+  const consumerPackage = JSON.parse(await readFile(consumerPackagePath, 'utf8'))
+  consumerPackage.devDependencies['@satinhq/lint'] = packs['@satinhq/lint']
+  await writeFile(consumerPackagePath, JSON.stringify(consumerPackage, null, 2) + '\n')
   run('npm', ['install', '--no-audit', '--no-fund'], app)
   const compiler = JSON.parse(
     await readFile(resolve(app, 'node_modules/typescript/package.json'), 'utf8'),
@@ -242,14 +256,7 @@ try {
   const configPath = resolve(subpathApp, 'vite.config.ts')
   await writeFile(
     configPath,
-    (await readFile(configPath, 'utf8')).replace('defineConfig({', "defineConfig({ base: '/app/',"),
-  )
-  const definitionPath = resolve(subpathApp, 'src/app.ts')
-  await writeFile(
-    definitionPath,
-    (await readFile(definitionPath, 'utf8'))
-      .replaceAll("src: '/", "src: '/app/")
-      .replaceAll("source: '/", "source: '/app/"),
+    (await readFile(configPath, 'utf8')).replace('defineConfig({', "defineConfig({ base: '/ios/',"),
   )
   run('npm', ['install', '--no-audit', '--no-fund'], subpathApp)
   await verifyPackage(subpathApp)
@@ -260,10 +267,10 @@ try {
   const subpathPrecache = JSON.parse(
     await readFile(resolve(subpathDist, subpathManifestName), 'utf8'),
   )
-  assert.equal(subpathPrecache.shellUrl, '/app/')
+  assert.equal(subpathPrecache.shellUrl, '/ios/')
   for (const entry of subpathPrecache.entries) {
-    assert.ok(entry.url.startsWith('/app/'), entry.url)
-    const file = entry.url === '/app/' ? 'index.html' : entry.url.slice('/app/'.length)
+    assert.ok(entry.url.startsWith('/ios/'), entry.url)
+    const file = entry.url === '/ios/' ? 'index.html' : entry.url.slice('/ios/'.length)
     assert.equal((await readFile(resolve(subpathDist, file))).length, entry.bytes, entry.url)
   }
   const subpathHtml = await readFile(resolve(subpathDist, 'index.html'), 'utf8')
@@ -275,8 +282,8 @@ try {
   )
   assert.equal(
     builtDefinition.installRoute,
-    '/install',
-    'Public URL projection must not mutate the definition compared by SatinRoot',
+    '/ios/install',
+    'Build and runtime must share the base-derived install URL',
   )
   assert.ok(
     subpathHtml.includes('satin-document-head'),
@@ -285,11 +292,43 @@ try {
   for (const file of ['install/index.html', 'unsupported.html']) {
     const html = await readFile(resolve(subpathDist, file), 'utf8')
     const manifestUrl = html.match(/rel="manifest" href="([^"]+)"/)[1]
-    assert.ok(manifestUrl.startsWith('/app/'))
+    assert.ok(manifestUrl.startsWith('/ios/'))
     const manifest = JSON.parse(await readFile(resolve(subpathDist, manifestUrl.slice(5)), 'utf8'))
-    assert.equal(manifest.scope, '/app/')
-    assert.equal(manifest.start_url, '/app/')
+    assert.equal(manifest.scope, '/ios/')
+    assert.equal(manifest.start_url, '/ios/')
     for (const icon of manifest.icons) await access(resolve(subpathDist, icon.src.slice(5)))
+  }
+  // Exercise the published checker against a server mounting dist at /ios/.
+  const { serveStaticFile } = await import(
+    pathToFileURL(resolve(subpathApp, 'node_modules/@satinhq/kit/dist/server.js')).href
+  )
+  const deploymentServer = createServer((request, response) => {
+    if (!request.url?.startsWith('/ios/')) {
+      response.writeHead(404).end('Outside deployment base')
+      return
+    }
+    request.url = request.url?.replace(/^\/ios(?=\/|$)/, '') || '/'
+    serveStaticFile(request, response, subpathDist, 'index.html').catch(error => {
+      response.writeHead(500).end(String(error))
+    })
+  })
+  await new Promise(resolveListening => deploymentServer.listen(0, '127.0.0.1', resolveListening))
+  try {
+    const address = deploymentServer.address()
+    const result = await promisify(execFile)(
+      process.execPath,
+      [
+        resolve(subpathApp, 'node_modules/@satinhq/kit/bin/satin.mjs'),
+        'check',
+        `http://127.0.0.1:${address.port}/ios/`,
+      ],
+      { timeout: 60000 },
+    )
+    assert.equal(result.stderr, '')
+    console.log(result.stdout)
+    await writeFile(resolve(evidence, 'subpath-check.txt'), result.stdout)
+  } finally {
+    await new Promise(resolveClosed => deploymentServer.close(resolveClosed))
   }
   await access(resolve(subpathDist, 'sw.js'))
   await writeFile(
@@ -344,7 +383,7 @@ try {
   fixturePkg.dependencies['@satinhq/kit'] = packs['@satinhq/kit']
   await writeFile(resolve(fixture, 'package.json'), `${JSON.stringify(fixturePkg, null, 2)}\n`)
   run('npm', ['install', '--no-audit', '--no-fund'], fixture)
-  await verifyPackage(fixture)
+  await verifyPackage(fixture, false)
   await writeFile(
     resolve(evidence, 'consumer-result.json'),
     `${JSON.stringify({ app, subpathApp, fixture, runner, packs, precacheName, node: process.version, verifiedAt: new Date().toISOString() }, null, 2)}\n`,

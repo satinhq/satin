@@ -29,6 +29,8 @@ export type GlassShapeTrack = Readonly<{
   radii?: readonly number[]
   /** Optional independent bottom corners, sampled at the same instants as frames. */
   bottomRadii?: readonly number[]
+  /** Absolute material opacity at the same instants as frames; content stays independent. */
+  opacities?: readonly number[]
 }>
 
 export type ShapeFrame = Readonly<{ x: number; y: number; width: number; height: number }>
@@ -36,6 +38,18 @@ export type ShapeFrame = Readonly<{ x: number; y: number; width: number; height:
 /** The normalized clock shared by the page and the glass worker. */
 export function shapeTrackClock() {
   return performance.timeOrigin + performance.now()
+}
+
+/** Material and geometry share a clock, including a held pose during interruption. */
+export function shapeTrackOpacity(track: GlassShapeTrack, at: number) {
+  const values = track.opacities
+  if (!values?.length) return 1
+  const progress =
+    track.duration > 0 ? Math.max(0, Math.min(1, (at - track.epoch) / track.duration)) : 1
+  const position = progress * (values.length - 1)
+  const index = Math.floor(position)
+  const from = values[index]!
+  return from + (values[Math.min(index + 1, values.length - 1)]! - from) * (position - index)
 }
 
 /** The glass frame at `at`, interpolated between the track's samples. */
@@ -122,6 +136,7 @@ export function trackedShapeSpec(
         )
   return {
     ...spec,
+    ...(track.opacities ? { opacity: shapeTrackOpacity(track, at) } : {}),
     radius,
     shape: {
       ...spec.shape,

@@ -33,7 +33,9 @@ export function installGlassErrorAlert() {
   if (installed || typeof document === 'undefined' || automaticGlassFallbackAllowed()) return
   installed = true
   const paint = () => {
-    const errors = getGlassErrors().filter(error => !error.transient)
+    const errors = getGlassErrors().filter(
+      error => !error.transient && !automaticGlassFallbackAllowed(error),
+    )
     if (!errors.length) return
     const prelaunch = (
       window as Window & { __SATIN_PRELAUNCH__?: { snapshot(): { state: string } } }

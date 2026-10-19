@@ -79,3 +79,18 @@ it('draws the same single tip path as the default page', () => {
   expect(d).toContain('Q105 53.05')
   expect(d.match(/M/g)).toHaveLength(1)
 })
+
+it('renders installation instructions when CSP blocks inserted style elements', () => {
+  document.getElementById('satin-steps-style')?.remove()
+  const append = document.head.append.bind(document.head)
+  const blocked = vi.spyOn(document.head, 'append').mockImplementation((...nodes) => {
+    if (nodes.some(node => node instanceof HTMLStyleElement))
+      throw Error('style-src blocks unhashed style elements')
+    append(...nodes)
+  })
+  try {
+    expect(render(<InstallSteps />, IPHONE_SAFARI).querySelector('.satin-steps')).not.toBeNull()
+  } finally {
+    blocked.mockRestore()
+  }
+})

@@ -1,3 +1,4 @@
+import { visibleInterval } from '../lifecycle/visibleInterval.ts'
 export type FidelityInvariant =
   | 'document-scroll'
   | 'history-growth'
@@ -273,7 +274,7 @@ export function startDevFidelityAssertions(initialHistoryLength = window.history
   }
 
   const initialScan = window.setTimeout(scan, 0)
-  const periodicScan = window.setInterval(scan, 1_000)
+  const stopPeriodicScan = visibleInterval(scan, 1_000)
   document.addEventListener('focusin', onFocusIn, true)
   document.addEventListener('scroll', onDocumentScroll, true)
   window.addEventListener('scroll', onDocumentScroll, { passive: true })
@@ -281,7 +282,7 @@ export function startDevFidelityAssertions(initialHistoryLength = window.history
 
   return () => {
     window.clearTimeout(initialScan)
-    window.clearInterval(periodicScan)
+    stopPeriodicScan()
     document.removeEventListener('focusin', onFocusIn, true)
     document.removeEventListener('scroll', onDocumentScroll, true)
     window.removeEventListener('scroll', onDocumentScroll)

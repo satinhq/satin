@@ -4,6 +4,7 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { PRESSABLE_RETENTION_OFFSET_PX, ROW_HIGHLIGHT_DELAY_MS } from './tokens.ts'
 import { Pressable } from './Pressable.tsx'
+import { defineResource } from '../data/resource.ts'
 import { resetPointerClickSuppression } from './activation.ts'
 import { cancelPointerPressForOwnedGesture } from './gestureArbitration.ts'
 
@@ -318,4 +319,45 @@ it('keeps a late click from activating the control revealed by unmount', () => {
   compatibility(nextButton, 2)
   expect(onPress).toHaveBeenCalledTimes(1)
   expect(revealed).toHaveBeenCalledTimes(1)
+})
+
+it('starts data on contact, abandons a scroll, and hands a released request to its destination', async () => {
+  const requests: { signal: AbortSignal; resolve: (value: string) => void }[] = []
+  const messages = defineResource(
+    (_id: string, signal) =>
+      new Promise<string>(resolve => {
+        requests.push({ signal, resolve })
+      }),
+  )
+  let destination: Promise<string> | undefined
+  act(() =>
+    root.render(
+      <Pressable
+        feedback="row"
+        prefetch={signal => messages.prefetch('mail', signal)}
+        onPress={() => {
+          destination = messages.load('mail')
+        }}
+      >
+        Read
+      </Pressable>,
+    ),
+  )
+  dispatchPointer('pointerdown', 60)
+  await act(async () => {})
+  expect(requests[0]!.signal.aborted).toBe(false)
+  expect(destination).toBeUndefined()
+  act(() => cancelPointerPressForOwnedGesture(POINTER_ID))
+  expect(requests[0]!.signal.aborted).toBe(true)
+  requests[0]!.resolve('Obsolete mail')
+  await act(async () => {})
+  expect(messages.getSnapshot('mail').hasData).toBe(false)
+  dispatchPointer('pointerdown', 60)
+  await act(async () => {})
+  dispatchPointer('pointerup', 60)
+  act(() => root.render(null))
+  expect(requests[1]!.signal.aborted).toBe(false)
+  requests[1]!.resolve('Full message')
+  expect(await destination).toBe('Full message')
+  expect(requests).toHaveLength(2)
 })

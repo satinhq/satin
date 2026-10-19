@@ -6,7 +6,12 @@ import {
   type ReactNode,
   type RefObject,
 } from 'react'
-import { ActionButton, ActionMenu, type SubmenuAction } from '../actions/ActionMenu.tsx'
+import {
+  ActionButton,
+  ActionMenu,
+  MenuChevron,
+  type SubmenuAction,
+} from '../actions/ActionMenu.tsx'
 import type { Action, ActionItem } from '../actions/types.ts'
 import { focusFromFramework } from '../focus/programmaticFocus.ts'
 import { holdPresentationForGlass } from '../presentation/glassReady.ts'
@@ -482,9 +487,7 @@ function SubmenuPlatter({
             {action.label}
           </span>
         </span>
-        <span role="presentation" data-satin-submenu-chevron="true">
-          <SymbolImage name="chevron.down" />
-        </span>
+        <MenuChevron title />
       </ActionButton>
       <div data-satin-submenu-separator="true" />
     </>

@@ -12,6 +12,7 @@ export type TaskOptions = Readonly<{ id?: unknown }>
 export type TaskRunner = () => Promise<void>
 
 /**
+ * For shared remote data, use defineResource/useResource so revisits retain content.
  * Runs async work while its screen is showing. It cancels the run when the screen is covered,
  * its tab is hidden or the component unmounts, and starts again when it shows. Pass `signal` to
  * `fetch` and publish results through `commit`. An error the task throws reaches the nearest

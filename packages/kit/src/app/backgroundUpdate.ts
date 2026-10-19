@@ -1,3 +1,4 @@
+import { visibleInterval } from '../lifecycle/visibleInterval.ts'
 import { checkAppShellUpdate } from '../sw/updateCheck.ts'
 
 interface EditableBaselines {
@@ -117,16 +118,18 @@ export function watchBackgroundUpdates(scope: string, onInstalled: () => void): 
     }
     if (registration.waiting) onInstalled()
   }
-  const check = async () => {
+  const check = async (suspending = false) => {
     if (disposed || checking || !navigator.serviceWorker) return
     checking = true
     const generation = ++checkGeneration
     clearTimeout(checkTimer)
     // WebKit may leave an update promise unsettled. A later check can retry;
     // the old operation cannot overwrite a newer registration observation.
-    checkTimer = setTimeout(() => {
-      if (generation === checkGeneration) checking = false
-    }, UPDATE_CHECK_BUDGET_MS)
+    if (!document.hidden && !suspending) {
+      checkTimer = setTimeout(() => {
+        if (generation === checkGeneration) checking = false
+      }, UPDATE_CHECK_BUDGET_MS)
+    }
     try {
       const found = await navigator.serviceWorker.getRegistration(scope)
       if (disposed || generation !== checkGeneration || !found) return
@@ -149,21 +152,33 @@ export function watchBackgroundUpdates(scope: string, onInstalled: () => void): 
     }
   }
   const visibilityChanged = () => {
+    clearTimeout(checkTimer)
+    checkTimer = undefined
+    // Suspension is an existing update boundary. Preserve its single check,
+    // without a background polling timer. A stalled hidden check can retry on return.
+    if (!document.hidden) checking = false
     void check()
   }
-  const pageHidden = () => void check()
+  const pageHidden = () => {
+    clearTimeout(checkTimer)
+    checkTimer = undefined
+    void check(true)
+  }
+  const online = () => {
+    if (!document.hidden) void check()
+  }
   document.addEventListener('visibilitychange', visibilityChanged)
   window.addEventListener('pagehide', pageHidden)
-  const foregroundTimer = setInterval(() => {
+  const stopForegroundChecks = visibleInterval(() => {
     if (!document.hidden) void check()
   }, FOREGROUND_UPDATE_CHECK_MS)
-  window.addEventListener('online', pageHidden)
+  window.addEventListener('online', online)
   visibilityChanged()
   return () => {
     disposed = true
     clearTimeout(checkTimer)
-    clearInterval(foregroundTimer)
-    window.removeEventListener('online', pageHidden)
+    stopForegroundChecks()
+    window.removeEventListener('online', online)
     document.removeEventListener('visibilitychange', visibilityChanged)
     window.removeEventListener('pagehide', pageHidden)
     registration?.removeEventListener('updatefound', inspect)

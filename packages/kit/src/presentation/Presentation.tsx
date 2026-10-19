@@ -44,9 +44,23 @@ export type SheetProps = PresentationProps & {
    * detent to drag between, as native does. */
   dragIndicator?: 'automatic' | 'visible' | 'hidden'
 }
+/** The content a presentation showed while it was presented.
+ *
+ * Native keeps a dismissing sheet's content on screen until the sheet has left. Owners commonly
+ * clear the data their content reads in the same update that closes the sheet
+ * (`{selected !== null && <Detail />}`). Without this the content would vanish at the start of the
+ * dismissal, and a sheet whose navigation stack unmounted would draw its own fallback header
+ * while it slides away. */
+function useDismissingContent(isPresented: boolean, children: ReactNode) {
+  const shown = useRef(children)
+  if (isPresented) shown.current = children
+  return shown.current
+}
+
 export function Sheet(props: SheetProps) {
   const isPresented = useColdLaunchPresentation(props.isPresented, props.onPresentedChange)
-  props = { ...props, isPresented }
+  const children = useDismissingContent(isPresented, props.children)
+  props = { ...props, isPresented, children }
   const [retained, setRetained] = useState(props.isPresented)
   if (props.isPresented && !retained) setRetained(true)
   return props.isPresented || retained ? (
@@ -63,8 +77,9 @@ export type FullScreenCoverProps = PresentationProps & { children: ReactNode }
 /** An opaque presentation over the whole screen that slides up from
  * the bottom edge. It has no grabber and no interactive dismissal; close it with its binding or
  * `useDismiss()`. Its title labels the dialog for assistive technology and is not drawn. */
-export function FullScreenCover({ children, ...props }: FullScreenCoverProps) {
+export function FullScreenCover({ children: content, ...props }: FullScreenCoverProps) {
   const isPresented = useColdLaunchPresentation(props.isPresented, props.onPresentedChange)
+  const children = useDismissingContent(isPresented, content)
   props = { ...props, isPresented }
   const [scrollRegistry] = useState(() => createScrollSurfaceRegistry())
   const [retained, setRetained] = useState(props.isPresented)

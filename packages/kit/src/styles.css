@@ -234,7 +234,6 @@
   }
 
   [data-satin-glass-material='true'],
-  [data-satin-glass-rim='true'],
   [data-satin-tab-selection='true'] {
     position: absolute;
     pointer-events: none;
@@ -263,24 +262,8 @@
       var(--satin-glass-active-tint);
   }
 
-  [data-satin-tab-bar='true'] > [data-satin-glass-material='true'],
-  [data-satin-tab-bar='true'] > [data-satin-glass-rim='true'] {
+  [data-satin-tab-bar='true'] > [data-satin-glass-material='true'] {
     border-radius: inherit;
-  }
-
-  [data-satin-glass-rim='true'] {
-    z-index: -1;
-    inset: 0;
-    border: 0 solid transparent;
-    box-shadow:
-      0 0 0 1px rgb(255 255 255 / var(--satin-glass-rim-highlight-alpha)),
-      0 8px 24px rgb(0 0 0 / var(--satin-glass-rim-shadow-alpha));
-  }
-
-  [data-satin-glass-bar='true'] > [data-satin-glass-rim='true'] {
-    box-shadow:
-      inset 0 -1px 0 rgb(255 255 255 / var(--satin-glass-bar-edge-highlight-alpha)),
-      0 8px 24px rgb(14 19 31 / var(--satin-glass-bar-shadow-alpha));
   }
 
   [data-satin-glass-bar-content='true'] {
@@ -433,15 +416,6 @@
   @media (prefers-contrast: more) {
     [data-satin-glass-material='true'] {
       background: rgb(247 247 250 / 88%);
-    }
-
-    [data-satin-glass-rim='true'] {
-      border: 1px solid currentColor;
-      box-shadow: 0 8px 24px rgb(0 0 0 / 28%);
-    }
-
-    [data-satin-glass-bar='true'] > [data-satin-glass-rim='true'] {
-      border-width: 0 0 1px;
     }
 
     [data-satin-tab-label='true'] {
@@ -1137,7 +1111,6 @@
     box-shadow: none;
   }
   [data-satin-tab-placement='top'] > [data-satin-glass-material],
-  [data-satin-tab-placement='top'] > [data-satin-glass-rim],
   [data-satin-tab-placement='top'] > [data-satin-tab-selection],
   [data-satin-tab-placement='top'] [data-satin-tab-icon] {
     display: none;
@@ -3715,9 +3688,16 @@
     min-width: 0;
     width: 100%;
   }
-  /* A fill frame takes the remaining horizontal proposal after bounded siblings. */
+  /* A fill frame, or a stack carrying one, takes the remaining horizontal
+   proposal after bounded siblings. */
   :where([data-satin-content='hstack'])
-    > :where([data-satin-content='frame'][data-satin-content-width='fill']) {
+    > :where(
+      [data-satin-content='frame'][data-satin-content-width='fill'],
+      :is([data-satin-content='hstack'], [data-satin-content='vstack']):has(
+        > [data-satin-content-width='fill']
+      ),
+      [data-satin-content='hstack']:has(> [data-satin-content='spacer'])
+    ) {
     flex: 1 1 0%;
     min-width: 0;
   }
@@ -4271,8 +4251,11 @@
     bottom: auto;
     height: var(--satin-keyboard-layout-height);
   }
-  /* The absolute scene follows the root's focus-pan correction. Top-layer
-   presentations still need their own viewport offset. */
+  /* Fixed scenes and top-layer presentations need their own viewport offset
+   when WebKit pans the layout viewport to reveal a focused field. */
+  [data-satin-root='true'][data-satin-keyboard='visible'] [data-satin-status-band-source='scene'] {
+    top: var(--satin-keyboard-offset-top, 0px);
+  }
   [data-satin-root='true'][data-satin-keyboard='visible']
     .satin-presentation:is([data-satin-presentation='alert'], [data-satin-presentation='sheet']) {
     top: var(--satin-keyboard-offset-top, 0px);
@@ -5959,7 +5942,6 @@
   }
   html:is([data-satin-viewport-fit='auto'], [data-satin-viewport-fit='contain'])
     [data-satin-status-band-source='scene'] {
-    position: absolute;
     background-color: var(--satin-status-band, var(--satin-background));
   }
   html:is([data-satin-viewport-fit='auto'], [data-satin-viewport-fit='contain'])
@@ -6407,6 +6389,33 @@
   }
   [data-satin-row-scrub-range] {
     width: 500%;
+  }
+  /* A dormant row (rowSourceArming.ts) is not a scroller, so WebKit gives it no layers of its own.
+   Like a row without a native source, it pans only vertically and swipes on the touch path. */
+  [data-satin-row-source='dormant'] > [data-satin-row-scrub] {
+    overflow-x: hidden;
+  }
+  [data-satin-row-swipe='true'][data-satin-row-source='dormant'] {
+    touch-action: var(--satin-row-swipe-touch-action, pan-y);
+  }
+  [data-satin-row-swipe='true'][data-satin-row-source='dormant']:is(
+      [data-satin-horizontal-drag='right'],
+      [data-satin-horizontal-drag='both']
+    ) {
+    touch-action: pan-y;
+  }
+  /* Invisible trays in tall rows still cost WebKit touch-region and layer traversal.
+   Their capsule width is fixed, so closed rows need no action render boxes. Active/settling
+   rows retain their boxes; inline captions keep them for intrinsic ink-width measurement.
+   The native source's sticky geometry stays unchanged. */
+  [data-satin-swipe-label-layout='below']:not([data-satin-swipe-active='true']):not(
+      [data-satin-row-swipe-moving='true']
+    )
+    > [data-satin-row-scrub]
+    > [data-satin-row-scrub-range]
+    > [data-satin-row-scrub-sticky]
+    > [data-satin-swipe-tray] {
+    display: none;
   }
   [data-satin-row-scrub-sticky] {
     position: sticky;
@@ -7703,6 +7712,34 @@
   [data-satin-tab-compact-search] {
     display: none;
   }
+  [data-satin-tab-trailing-slot='action'] {
+    display: flex;
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    pointer-events: auto;
+  }
+  [data-satin-tab-trailing-placement='top'] {
+    right: auto;
+    bottom: auto;
+  }
+  [data-satin-tab-trailing-slot='action'] [data-satin-glass-button] {
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+    padding: 0;
+    border-radius: 50%;
+  }
+  [data-satin-tab-trailing-slot='action']
+    :is([data-satin-glass-effect], [data-satin-glass-field-content], [data-satin-menu-label]) {
+    width: 100%;
+    height: 100%;
+  }
+  [data-satin-tab-has-action] > [data-satin-tab-inset] {
+    margin-inline: 0;
+    transform: none !important;
+  }
   [data-satin-tab-compact-search] > button {
     width: 100%;
     height: 100%;
@@ -7746,20 +7783,20 @@
   }
   [data-satin-root]:has(.satin-lens-tab-minimize-restore:not([hidden]))
     [data-satin-tab-bottom-chrome='phone']
-    > [data-satin-tab-compact-search] {
+    > [data-satin-tab-trailing-slot] {
     display: flex;
     position: absolute;
     right: 7px;
     bottom: 7px;
-    width: 48px;
-    height: 48px;
+    width: 48px !important;
+    height: 48px !important;
   }
 
   [data-satin-tab-bottom-chrome]:has(> [data-satin-tab-bottom-accessory]) > [data-satin-tab-inset] {
     transform: none !important;
   }
   [data-satin-root]:has(.satin-lens-tab-minimize-restore:not([hidden]))
-    [data-satin-tab-bottom-chrome='phone']:has(> [data-satin-tab-compact-search])
+    [data-satin-tab-bottom-chrome='phone']:has(> [data-satin-tab-trailing-slot])
     > [data-satin-tab-bottom-accessory] {
     right: 69px;
   }
@@ -8366,13 +8403,6 @@
   [data-satin-entry-toolbar][data-satin-search-presented]
     > [data-satin-navigation-toolbar-slot='bottom']:has(> [data-satin-toolbar-item='search']) {
     padding-inline: 8px;
-    --satin-keyboard-inset: var(--satin-keyboard-height, 0px);
-    transition: --satin-keyboard-inset var(--satin-keyboard-duration, 0ms)
-      var(--satin-keyboard-easing, linear) var(--satin-keyboard-phase, 0ms);
-    bottom: max(
-      var(--satin-bottom-toolbar-gap, calc(var(--satin-inset-bottom) - 6px)),
-      calc(var(--satin-keyboard-inset) + 8px)
-    );
   }
   [data-satin-entry-toolbar][data-satin-search-presented]
     > [data-satin-navigation-toolbar-slot='bottom']
@@ -8474,6 +8504,15 @@
   [data-satin-content='zstack'] {
     width: fit-content;
     max-width: 100%;
+  }
+  /* A flexible child makes its immediate stack flexible. Otherwise fit-content
+   wins over a row's width proposal before the child's fill frame can resolve.
+   Fixed frames still bound their content, and ordinary stacks stay intrinsic. */
+  :is([data-satin-content='hstack'], [data-satin-content='vstack']):has(
+    > [data-satin-content-width='fill']
+  ),
+  [data-satin-content='hstack']:has(> [data-satin-content='spacer']) {
+    width: 100%;
   }
   [data-satin-content='vstack'][data-satin-default-spacing] > :not([hidden]) ~ :not([hidden]) {
     margin-block-start: 8px;
@@ -9322,5 +9361,35 @@
     position: static;
     flex-shrink: 0;
     margin-left: auto;
+  }
+
+  /* Background preparation cannot replace CSS ownership by rewriting inline styles. */
+  canvas[data-satin-fallback-owned] {
+    visibility: hidden !important;
+  }
+  html[data-satin-material-recovery] :is(canvas[data-satin-webgpu], canvas[data-satin-glass-lift]) {
+    visibility: hidden !important;
+  }
+  html[data-satin-material-recovery-show]
+    :is(
+      canvas[data-satin-webgpu],
+      canvas[data-satin-glass-lift],
+      canvas[data-satin-fallback-owned]
+    ) {
+    visibility: visible !important;
+  }
+
+  [data-satin-webview-catcher] {
+    display: none;
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    touch-action: none;
+  }
+  :root[data-satin-menu-shown] [data-satin-webview-catcher] {
+    display: block;
+  }
+  :root[data-satin-menu-shown] [data-satin-menu-top-layer='true'] [data-satin-webview-catcher] {
+    display: none;
   }
 }

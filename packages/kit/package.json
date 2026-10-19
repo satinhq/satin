@@ -1,6 +1,6 @@
 {
   "name": "@satinhq/kit",
-  "version": "0.1.0-beta.5",
+  "version": "0.1.0-beta.6",
   "type": "module",
   "description": "Opinionated single-target framework for agent-generated personal iOS Home Screen apps.",
   "main": "./dist/index.js",
@@ -63,7 +63,7 @@
     "build": "node scripts/build.mjs",
     "prepack": "node scripts/build.mjs",
     "typecheck": "tsc -p tsconfig.json --pretty false",
-    "lint": "oxlint && node ../lint/scripts/check-webgpu-worker.mjs src/glass/webgpu/entry.worker.ts && node ../lint/scripts/check-sidebar-artwork.mjs src/navigation/SidebarSymbol.tsx && node ../lint/scripts/check-modal-lifecycle.mjs src",
+    "lint": "oxlint && node ../lint/scripts/check-webgpu-worker.mjs src/glass/webgpu/entry.worker.ts && node ../lint/scripts/check-sidebar-artwork.mjs src/navigation/SidebarSymbol.tsx && node ../lint/scripts/check-modal-lifecycle.mjs src && node ../lint/scripts/check-interval-lifecycle.mjs src",
     "test": "vitest run && node scripts/check-readme-examples.mjs && node scripts/check-public-exports.mjs && node scripts/api-report.mjs && node --test scripts/api-graph.node-test.mjs scripts/public-types.node-test.mjs scripts/api-reference.node-test.mjs scripts/path-spaces.node-test.mjs",
     "api:write": "node scripts/api-report.mjs --write",
     "api:check": "node scripts/api-report.mjs"

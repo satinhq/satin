@@ -65,6 +65,17 @@ it('changes only the drawn shape, never the canvas or the sampled backdrop', () 
   })
   const end = trackedShapeSpec(spec, track, 2000, radius)
   expect(end.shape.first).toMatchObject(spec.shape.first)
+  // Returning material fades independently of the title, without resizing its canvas.
+  const fading = { ...track, opacities: [1, 0.5, 0] }
+  const halfway = trackedShapeSpec({ ...spec, opacity: 0.6 }, fading, 1025, radius)
+  expect(halfway.opacity).toBeCloseTo(0.75)
+  expect(trackedShapeSpec(halfway, fading, 1025, radius).opacity).toBe(halfway.opacity)
+  expect(halfway.shape).toEqual(trackedShapeSpec(spec, track, 1025, radius).shape)
+  expect(trackedShapeSpec(spec, fading, 2000, radius).opacity).toBe(0)
+  expect(trackedShapeSpec(spec, { ...fading, epoch: Number.MAX_VALUE }, 2000, radius).opacity).toBe(
+    1,
+  )
+  expect(start.opacity).toBeUndefined()
 })
 
 it('samples independent top and bottom contours and preserves untracked bottom corners', () => {

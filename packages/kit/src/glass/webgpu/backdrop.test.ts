@@ -178,9 +178,13 @@ it("discovers a held, travelling sheet's content under its scroll views, in its 
   // The hold clips the presentation to nothing. Its layout and computed visibility stay as they
   // will show, so discovery reads it without any style change (toggling a stylesheet restyles the
   // whole document, about 216 ms per read on an iPad behind a long thread).
-  const sheet = document.querySelector<HTMLStyleElement>('style[data-satin-glass-hold-style]')!
-  expect(sheet.textContent).toContain('clip-path: inset(50%) !important')
-  expect(sheet.textContent).not.toContain('visibility')
+  const holdRules = document.adoptedStyleSheets
+    .flatMap(sheet => [...sheet.cssRules])
+    .map(rule => rule.cssText)
+    .filter(rule => rule.includes('[data-satin-glass-hold]'))
+    .join('\n')
+  expect(holdRules).toContain('clip-path: inset(50%) !important')
+  expect(holdRules).not.toContain('visibility')
   box(scene.querySelector('#page')!, 0, 0, 440, 956)
   box(dialog.querySelector('#surface')!, 0, 990, 440, 894)
   box(dialog.querySelector('#content')!, 0, 1010, 440, 874)

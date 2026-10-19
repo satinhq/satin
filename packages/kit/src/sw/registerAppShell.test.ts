@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   APP_SHELL_APPLY_UPDATE,
   APP_SHELL_BUILD_ID_REQUEST,
@@ -66,6 +66,10 @@ class TestServiceWorkerContainer extends EventTarget {
     this.register.mockResolvedValue(registration)
   }
 }
+
+beforeEach(() => {
+  vi.stubGlobal('document', Object.assign(new EventTarget(), { hidden: false }))
+})
 
 afterEach(() => {
   vi.restoreAllMocks()

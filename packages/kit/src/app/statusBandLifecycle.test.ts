@@ -31,6 +31,7 @@ afterEach(() => {
   document.body.replaceChildren()
   document.body.removeAttribute('style')
   document.getElementById('satin-theme-color')?.remove()
+  document.getElementById('status-band-test-styles')?.remove()
   delete window.__SATIN_STATUS_COLOR__
   delete window.__SATIN_APPEARANCE__
   document.documentElement.removeAttribute('style')
@@ -146,6 +147,55 @@ it('refreshes cached fills when an ancestor of a screen changes class', async ()
     'rgb(255 0 0)',
   )
   style.remove()
+})
+
+it('follows a late primary list and its changing surface background', async () => {
+  const root = setup()
+  root.style.setProperty('--satin-background', 'rgb(242, 242, 247)')
+  const stylesheet = document.createElement('style')
+  stylesheet.id = 'status-band-test-styles'
+  // Keep the fixture colours explicit: the DOM emulator does not resolve the
+  // framework's background shorthand through its List custom properties.
+  stylesheet.textContent = `
+    [data-satin-list='plain'] { background-color: rgb(255, 255, 255); }
+    [data-satin-list='grouped'] { background-color: rgb(242, 242, 247); }
+    [data-satin-list][data-satin-scroll-content-background='hidden'] { background-color: transparent; }
+    [data-satin-appearance='dark'] [data-satin-list] { background-color: rgb(0, 0, 0); }
+  `
+  document.head.append(stylesheet)
+  root.innerHTML =
+    '<div data-satin-screen-container><div data-satin-navigation-motion-layer></div></div>'
+  const motion = root.querySelector<HTMLElement>('[data-satin-navigation-motion-layer]')!
+  const rect = { left: 0, top: 0, right: 440, bottom: 956, width: 440, height: 956 } as DOMRect
+  vi.spyOn(motion, 'getBoundingClientRect').mockReturnValue(rect)
+  restore = installStatusBand(root)
+  await flush()
+  expect(document.body.style.backgroundColor).toBe('rgb(242 242 247)')
+
+  const list = document.createElement('div')
+  list.dataset.satinScroll = 'inbox'
+  list.dataset.satinPrimary = 'false'
+  list.dataset.satinList = 'plain'
+  vi.spyOn(list, 'getBoundingClientRect').mockReturnValue(rect)
+  motion.append(list)
+  await flush()
+  list.dataset.satinPrimary = 'true'
+  await flush()
+  expect(document.body.style.backgroundColor).toBe('rgb(255 255 255)')
+
+  list.dataset.satinList = 'grouped'
+  await flush()
+  expect(document.body.style.backgroundColor).toBe('rgb(242 242 247)')
+  list.dataset.satinList = 'plain'
+  await flush()
+  expect(document.body.style.backgroundColor).toBe('rgb(255 255 255)')
+  list.dataset.satinScrollContentBackground = 'hidden'
+  await flush()
+  expect(document.body.style.backgroundColor).toBe('rgb(242 242 247)')
+  list.dataset.satinScrollContentBackground = 'automatic'
+  document.documentElement.dataset.satinAppearance = 'dark'
+  await flush()
+  expect(document.body.style.backgroundColor).toBe('rgb(0 0 0)')
 })
 
 it('publishes the visible page colour through appearance changes and restores launch ownership', async () => {

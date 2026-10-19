@@ -21,22 +21,34 @@ import { reconcileWindowGeometry } from '../safe-area/useSafeAreaMetrics.ts'
 import type { TabBarProps } from '../glass/TabBar.tsx'
 
 vi.mock('../glass/TabBar.tsx', () => ({
-  TabBar: ({ items, selected, onSelect, onShowSidebar, inert, style, ...props }: TabBarProps) => (
-    <nav inert={inert} style={style} aria-hidden={props['aria-hidden']}>
-      {onShowSidebar && <button aria-label="Show Tab Sidebar" onClick={onShowSidebar} />}
-      {items.map(item => (
-        <button
-          key={item.id}
-          id={item.tabId}
-          aria-controls={item.panelId}
-          disabled={item.disabled}
-          data-selected={item.id === selected}
-          onClick={() => onSelect(item.id)}
-        >
-          {item.id}
-        </button>
-      ))}
-    </nav>
+  TabBar: ({
+    items,
+    selected,
+    onSelect,
+    onShowSidebar,
+    trailingAction,
+    inert,
+    style,
+    ...props
+  }: TabBarProps) => (
+    <>
+      <nav inert={inert} style={style} aria-hidden={props['aria-hidden']}>
+        {onShowSidebar && <button aria-label="Show Tab Sidebar" onClick={onShowSidebar} />}
+        {items.map(item => (
+          <button
+            key={item.id}
+            id={item.tabId}
+            aria-controls={item.panelId}
+            disabled={item.disabled}
+            data-selected={item.id === selected}
+            onClick={() => onSelect(item.id)}
+          >
+            {item.id}
+          </button>
+        ))}
+      </nav>
+      {trailingAction}
+    </>
   ),
 }))
 const layout = vi.hoisted(() => ({ horizontal: 'compact', vertical: 'regular' }))
@@ -83,6 +95,56 @@ const select = (id: string) =>
       .dispatchEvent(new MouseEvent('click', { bubbles: true })),
   )
 const panel = (id: string) => element.querySelector<HTMLElement>(`[data-satin-tab-panel="${id}"]`)
+
+it('runs a trailing action without selecting or remounting a destination', () => {
+  const changed = vi.fn()
+  const mounted = vi.fn()
+  function Content() {
+    useEffect(mounted, [])
+    return 'Home content'
+  }
+  function App() {
+    const [opens, setOpens] = useState(0)
+    return (
+      <TabView
+        onSelectionChange={changed}
+        trailingAction={
+          <button aria-label="Compose" onClick={() => setOpens(value => value + 1)}>
+            {opens}
+          </button>
+        }
+      >
+        <Tab id="home" label="Home">
+          <Content />
+        </Tab>
+        <Tab id="saved" label="Saved">
+          Saved content
+        </Tab>
+      </TabView>
+    )
+  }
+  render(<App />)
+  act(() => element.querySelector<HTMLButtonElement>('[aria-label="Compose"]')!.click())
+  expect(element.querySelector('[aria-label="Compose"]')?.textContent).toBe('1')
+  expect(panel('home')?.dataset.satinTabActive).toBe('true')
+  expect(changed).not.toHaveBeenCalled()
+  expect(mounted).toHaveBeenCalledTimes(1)
+})
+
+it('rejects an action competing with the reserved search destination', () => {
+  expect(() =>
+    render(
+      <TabView trailingAction={<button>Compose</button>}>
+        <Tab id="home" label="Home">
+          Home
+        </Tab>
+        <Tab id="search" label="Search" role="search">
+          Search
+        </Tab>
+      </TabView>,
+    ),
+  ).toThrow('either trailingAction or a Tab with role="search", not both')
+})
 
 describe('TabView ownership', () => {
   it('mounts lazily, keeps DOM and React state, and makes hidden tabs inaccessible', () => {

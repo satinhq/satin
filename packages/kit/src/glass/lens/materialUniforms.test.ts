@@ -37,13 +37,16 @@ describe('search drawer field row', () => {
   }
   for (const appearance of ['light', 'dark'] as const) {
     it(`${appearance}: preserves the measured field transmission independently of the regular control row`, () => {
-      // reference (owner, Oct 12): content scrolled under the pinned field read as a smear. Native's
-      // field keeps more title contrast than regular bar glass. The field recipe stays
-      // independent when the default-setting regular material is remeasured.
-      const bar = materialUniformValues('bar', appearance),
-        field = materialUniformValues('searchField', appearance)
-      expect(detail(bar)).toBeLessThan(detail(field))
-      expect(detail(field)).toBeCloseTo(0.28832, 5)
+      const bar = materialUniformValues('bar', appearance)
+      const field = materialUniformValues('searchField', appearance)
+      if (appearance === 'dark') {
+        // Dark retains its shipped explicit field recipe; toolbar search still uses chrome.
+        expect(detail(bar)).toBeLessThan(detail(field))
+        expect(detail(field)).toBeCloseTo(0.28832, 5)
+      } else {
+        // The fitted light arm replaces sharp detail; a constant mixture restores contrast.
+        expect(detail(field)).toBe(0)
+      }
       // A uniform interior blur, and nothing else differs from bar glass.
       const interior = field.uMaterialBlurDifferences![0]
       expect(interior).toBe(SEARCH_FIELD_RECIPE[appearance].diffusion)

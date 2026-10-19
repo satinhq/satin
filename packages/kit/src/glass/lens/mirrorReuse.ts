@@ -46,7 +46,9 @@ const MOTION = ['transform', 'translate', 'opacity', 'will-change']
 let scratch: HTMLElement | undefined
 function withoutMotion(style: string | null) {
   scratch ??= document.createElement('div')
-  scratch.setAttribute('style', style ?? '')
+  // Parse through CSSOM: setAttribute would violate hash-only style-src even
+  // on this detached scratch element.
+  scratch.style.cssText = style ?? ''
   for (const property of MOTION) scratch.style.removeProperty(property)
   return scratch.style.cssText
 }

@@ -1,6 +1,7 @@
 import { createRouteCodec } from '../navigation/routeCodec.ts'
 import type { ScreenRegistry } from '../navigation/registry.ts'
 import type { NavigatorState, ScreenEntry } from '../navigation/types.ts'
+import type { ScrollSnapshotOffset } from '../scroll/types.ts'
 import type { SceneRestoration } from './scene.ts'
 
 export interface NavigatorRestoration {
@@ -29,7 +30,7 @@ export function readNavigation(
     )
       break
     keys.add(value.key)
-    const scroll = new Map<string, { x: number; y: number }>()
+    const scroll = new Map<string, ScrollSnapshotOffset>()
     if (Array.isArray(value.scroll))
       for (const item of value.scroll.slice(0, 64)) {
         if (
@@ -38,7 +39,12 @@ export function readNavigation(
           Number.isFinite(item[1]?.x) &&
           Number.isFinite(item[1]?.y)
         )
-          scroll.set(item[0], { x: item[1].x, y: item[1].y })
+          scroll.set(
+            item[0],
+            item[1].atEnd === true
+              ? { x: item[1].x, y: item[1].y, atEnd: true }
+              : { x: item[1].x, y: item[1].y },
+          )
       }
     entries.push({
       key: value.key,

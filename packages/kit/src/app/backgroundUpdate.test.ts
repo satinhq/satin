@@ -99,6 +99,7 @@ it('checks pagehide without a visibility event and skips network updates offline
   })
   const installed = vi.fn()
   const stop = watchBackgroundUpdates('/app/', installed)
+  await vi.waitFor(() => expect(installed).toHaveBeenCalled())
   events.dispatchEvent(new Event('pagehide'))
   await vi.waitFor(() => expect(installed).toHaveBeenCalled())
   expect(registration.update).not.toHaveBeenCalled()
@@ -168,4 +169,35 @@ it('retries after a WebKit update check never settles instead of wedging the dow
   await vi.advanceTimersByTimeAsync(FOREGROUND_UPDATE_CHECK_MS)
   expect(registration.update.mock.calls.length).toBeGreaterThan(1)
   stop()
+})
+
+it('does not poll or reconnect repeatedly while suspended and checks on resume', async () => {
+  vi.useFakeTimers()
+  const page = Object.assign(new EventTarget(), { hidden: true })
+  const events = new EventTarget()
+  const registration = Object.assign(new EventTarget(), {
+    waiting: null,
+    installing: null,
+    update: vi.fn(async () => {}),
+  })
+  vi.stubGlobal('document', page)
+  vi.stubGlobal('window', events)
+  vi.stubGlobal('navigator', {
+    onLine: true,
+    serviceWorker: { getRegistration: async () => registration },
+  })
+  const stop = watchBackgroundUpdates('/app/', () => {})
+  try {
+    await vi.advanceTimersByTimeAsync(0)
+    expect(registration.update).toHaveBeenCalledOnce()
+    events.dispatchEvent(new Event('online'))
+    await vi.advanceTimersByTimeAsync(10 * 60_000)
+    expect(registration.update).toHaveBeenCalledOnce()
+    page.hidden = false
+    page.dispatchEvent(new Event('visibilitychange'))
+    await vi.advanceTimersByTimeAsync(0)
+    expect(registration.update).toHaveBeenCalledTimes(2)
+  } finally {
+    stop()
+  }
 })

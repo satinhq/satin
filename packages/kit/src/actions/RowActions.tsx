@@ -5,6 +5,7 @@ import { markRowSwipeRemoval } from '../list-form/rowMotion.ts'
 import { cancelOnNativeScroll } from '../scroll/nativeScroll.ts'
 import { SymbolImage } from '../symbols/Symbol.tsx'
 import {
+  caughtRowRest,
   createRowScrub,
   rowSwipeShouldClose,
   rowSwipeRaw,
@@ -20,6 +21,7 @@ import { createFullSwipeContact, type FullSwipeContact } from './fullSwipeContac
 import { CONTEXT_HOLD_MS, CONTEXT_STILL_MS } from './contextMotion.ts'
 import { contextPreviewSource } from './preview.ts'
 import { listenForRowTouches } from './rowTouchDelegate.ts'
+import { armRowSourceNearViewport } from './rowSourceArming.ts'
 import { useMenuPresenter } from '../glass/menuPresenter.tsx'
 import { advanceCommittedSwipe, settleSwipe } from './motion.ts'
 import { withAnimation } from '../motion/matchedGeometry.tsx'
@@ -68,6 +70,10 @@ const openRows = new WeakMap<Document, () => void>()
  * to its range edge (two row widths), where the next contact cannot scroll. */
 function retireRowSource(source: HTMLElement | null) {
   if (source) retireNativeScrubSource(source, source.clientWidth * 2)
+}
+/** The side a row at `position` shows; `atRest` when it is at its resting position. */
+function sideOf(position: number, atRest: 'leading' | 'trailing') {
+  return position > 0 ? 'leading' : position < 0 ? 'trailing' : atRest
 }
 /** Pill takeover each tray presents when a new contact catches the row. */
 function caughtTakeovers(element: HTMLElement, initial: number) {
@@ -191,8 +197,27 @@ function RowActionsEngine({
     return () => observer.disconnect()
   }, [swipeActions])
   const performing = useRef(false)
+  // While a row moves (a swipe contact, then its settle) glass defers backdrop captures, as it
+  // does while a list scrolls (glass/webgpu/production.ts). A capture reads the layout and pixels
+  // of every captured row; on a long list one takes longer than a frame, so a capture per swiped
+  // frame made the row lag the finger. The flag clears when the row has settled.
+  const moving = useRef(0)
+  const startMoving = useCallback(() => {
+    moving.current++
+    if (host.current) host.current.dataset.satinRowSwipeMoving = 'true'
+  }, [])
+  const settleMoving = useCallback((settling?: Animation | false | null) => {
+    const element = host.current
+    const token = ++moving.current
+    const settled = () => {
+      if (moving.current === token) delete element?.dataset.satinRowSwipeMoving
+    }
+    if (settling) void settling.finished.then(settled, settled)
+    else settled()
+  }, [])
   const close = useCallback(() => {
     if (performing.current) return
+    settleMoving()
     scrub.current?.cancel()
     scrub.current = undefined
     if (host.current?.dataset.satinRowSwipe && scrollSource.current)
@@ -224,7 +249,7 @@ function RowActionsEngine({
         part.style.opacity = ''
       })
     })
-  }, [finishLift])
+  }, [finishLift, settleMoving])
   const dismissSwipe = useCallback(
     (releasedAt = performance.now()) => {
       const element = host.current
@@ -253,10 +278,11 @@ function RowActionsEngine({
         edge.allowsFullSwipe,
         { time: releasedAt, kind: 'tap' },
       )
+      settleMoving(animation)
       if (animation) void animation.finished.then(close, () => {})
       else close()
     },
-    [close],
+    [close, settleMoving],
   )
   const perform = useCallback(
     (
@@ -326,10 +352,11 @@ function RowActionsEngine({
         edge.allowsFullSwipe,
         releasedAt === undefined ? undefined : { time: releasedAt, kind: 'commit' },
       )
+      settleMoving(animation)
       if (animation) void animation.finished.then(close, () => {})
       else close()
     },
-    [close],
+    [close, settleMoving],
   )
   const claim = useCallback(() => {
     const document = host.current!.ownerDocument
@@ -368,7 +395,7 @@ function RowActionsEngine({
         showSwipeFace(element, performance.now())
         live.current.offset = -openWidth
         setOffset(-openWidth)
-        settleSwipe(
+        const opening = settleSwipe(
           content,
           0,
           -openWidth,
@@ -380,6 +407,7 @@ function RowActionsEngine({
           element.getBoundingClientRect().width,
           edge.allowsFullSwipe,
         )
+        settleMoving(opening)
       },
     }
     return () => {
@@ -471,15 +499,44 @@ function RowActionsEngine({
       timer = undefined
       delete element.dataset.satinContextPending
     }
+    /** Show the tray on the side the row is on. A contact that catches an open row and drags
+     * it back keeps that row's tray until the row passes its resting position; only then does
+     * the other side's tray appear, as native does. The drag direction alone picks a side only
+     * for a row at rest. */
+    const presentSide = (side: 'leading' | 'trailing') => {
+      if (element.dataset.satinSwipeSide !== side) element.dataset.satinSwipeSide = side
+      if (side === cachedSide && (scrub.current || cachedActions.length)) return
+      cachedSide = side
+      // The scroll-source path presents both trays itself (rowScrub.ts).
+      if (scrub.current) return
+      const primary = element.querySelector<HTMLElement>(
+        `[data-satin-swipe-tray="${side}"] > :first-child`,
+      )
+      const edge = swipeEdge(props.current.swipeActions, side)
+      cachedActions = primary
+        ? swipeActionTracks(primary, edge.actions.length, rowWidth, edge.allowsFullSwipe)
+        : []
+    }
     /** Present the touch-fallback row and pills from one raw sample. A takeover's
      * jump keeps moving without input, so it presents further frames itself. */
     const paintFallback = (raw: number, now: number, evaluate: boolean) => {
       if (!contact) return current
       fallbackRaw = raw
       const position = contact.present(raw, now, evaluate)
+      presentSide(sideOf(position, cachedSide))
       const takeover = contact.takeover(cachedSide, raw, now)
+      const widths = swipeWidths(element)
+      const rest = caughtRowRest(
+        initial,
+        raw,
+        rowSwipeRaw(initial, rowWidth, props.current.swipeActions, widths),
+        swipeOpenWidth(
+          swipeEdge(props.current.swipeActions, cachedSide).actions.length,
+          widths[cachedSide],
+        ),
+      )
       for (const action of cachedActions)
-        Object.assign(action.element.style, action.frame(position, raw, initial ? 1 : 0, takeover))
+        Object.assign(action.element.style, action.frame(position, raw, rest, takeover))
       if (body.current && contentFrame)
         Object.assign(body.current.style, contentFrame(position, initial ? 1 : 0))
       current = position
@@ -559,18 +616,10 @@ function RowActionsEngine({
             return
           } else {
             element.dataset.satinSwipeActive = 'true'
+            startMoving()
             if (scrub.current) element.dataset.satinRowScrubbing = 'true'
-            element.dataset.satinSwipeSide = sample.x >= session.start.x ? 'leading' : 'trailing'
-            const primary = element.querySelector<HTMLElement>(
-              `[data-satin-swipe-tray="${element.dataset.satinSwipeSide}"] > :first-child`,
-            )
-            const side = element.dataset.satinSwipeSide === 'leading' ? 'leading' : 'trailing'
-            const edge = swipeEdge(props.current.swipeActions, side)
-            cachedSide = side
-            cachedActions =
-              primary && !scrub.current
-                ? swipeActionTracks(primary, edge.actions.length, rowWidth, edge.allowsFullSwipe)
-                : []
+            cachedActions = []
+            presentSide(sideOf(initial, sample.x >= session.start.x ? 'leading' : 'trailing'))
             if (event instanceof PointerEvent && !scrub.current) capture(element, event.pointerId)
           }
         }
@@ -589,6 +638,7 @@ function RowActionsEngine({
               contact?.observe(scrub.current.rawPosition(), performance.now())
             current = scrub.current.position()
             live.current.offset = current
+            presentSide(sideOf(current, cachedSide))
           } else paintFallback(raw, sample.time, sample.phase === 'move')
           // The face fades in from pan recognition (25pt), not from WebKit
           // ownership (about 10pt): a slow stroke crosses them 125ms apart.
@@ -668,6 +718,7 @@ function RowActionsEngine({
                 edge.allowsFullSwipe,
                 { time: sample.time, kind: 'drag' },
               )
+            settleMoving(settling)
             if (anchoredClose) {
               if (settling) void settling.finished.then(close, () => {})
               else close()
@@ -749,6 +800,7 @@ function RowActionsEngine({
       const sourceLive =
         nativeTouch &&
         element.dataset.satinRowCompositor === 'true' &&
+        element.dataset.satinRowSource !== 'dormant' &&
         !rowBlocksNativeBack(target) &&
         nativeScrubSourceLiveAt(scrollSource.current, time)
       if (sourceLive && scrollSource.current) releaseNativeScrubClamp(scrollSource.current)
@@ -928,6 +980,8 @@ function RowActionsEngine({
       typeof CSS !== 'undefined' &&
       CSS.supports('animation-timeline: scroll()')
     if (hasCompositor && element.dataset.satinRowSwipe) element.dataset.satinRowCompositor = 'true'
+    const stopArming =
+      hasCompositor && element.dataset.satinRowSwipe ? armRowSourceNearViewport(element) : undefined
     if (host.current?.dataset.satinRowSwipe && scrollSource.current)
       scrollSource.current.scrollLeft = scrollSource.current.clientWidth * 2
     const nativeScroll = () => {
@@ -960,6 +1014,7 @@ function RowActionsEngine({
         captureOwner.releasePointerCapture(pointerId)
       scrub.current?.cancel()
       cancelFallbackFrame()
+      stopArming?.()
       delete element.dataset.satinRowCompositor
       finishLift()
       clearTimer()
@@ -971,7 +1026,7 @@ function RowActionsEngine({
       stopListeningForTouches()
       if (openRows.get(element.ownerDocument) === close) openRows.delete(element.ownerDocument)
     }
-  }, [claim, close, dismissSwipe, show, perform, finishLift])
+  }, [claim, close, dismissSwipe, show, perform, finishLift, startMoving, settleMoving])
   const select = (action: SwipeActionItem) => perform(action)
   const swipes =
     !!swipeEdge(swipeActions, 'leading').actions.length ||

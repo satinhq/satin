@@ -94,7 +94,7 @@ export function promoteContextSource(source: HTMLElement): PromotedContextSource
       if (popover === null) source.removeAttribute('popover')
       else source.setAttribute('popover', popover)
       if (style === null) source.removeAttribute('style')
-      else source.setAttribute('style', style)
+      else source.style.cssText = style
       delete source.dataset.satinContextLift
       placeholder.remove()
     },

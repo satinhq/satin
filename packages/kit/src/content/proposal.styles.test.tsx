@@ -12,12 +12,37 @@ import {
   LazyHGrid,
   GridItem,
   Text,
+  Spacer,
 } from './content.tsx'
+import { ListRow } from '../list-form/ListForm.tsx'
 
 afterEach(() => {
   document.head.innerHTML = ''
   document.body.innerHTML = ''
 })
+it('passes the row width through an unframed stack to its filling column', () => {
+  const style = document.createElement('style')
+  style.textContent = frameworkStyleDeclarations().replaceAll('\n', ' ')
+  document.head.append(style)
+  document.body.innerHTML = renderToStaticMarkup(
+    <ListRow>
+      <HStack alignment="top" spacing={8}>
+        <Text>Mail</Text>
+        <VStack alignment="leading" frame={{ maxWidth: 'infinity' }}>
+          <HStack frame={{ maxWidth: 'infinity' }}>
+            <Text lineLimit={1}>Sender</Text>
+            <Spacer />
+            <Text>3:47 PM</Text>
+          </HStack>
+          <Text>A preview with a different intrinsic width</Text>
+        </VStack>
+      </HStack>
+    </ListRow>,
+  )
+  const stack = document.querySelector('[data-satin-content="hstack"]')!
+  expect(getComputedStyle(stack).width).toBe('100%')
+})
+
 it('centers vertical scroll content while preserving fill and explicit stack alignment', () => {
   const style = document.createElement('style')
   style.textContent = frameworkStyleDeclarations().replaceAll('\n', ' ')

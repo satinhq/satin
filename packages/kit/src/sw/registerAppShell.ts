@@ -1,3 +1,4 @@
+import { visibleInterval } from '../lifecycle/visibleInterval.ts'
 import {
   initialAppShellActivationState,
   updateAppShellActivationState,
@@ -140,7 +141,7 @@ class AppShellRegistrationController implements SatinAppShellRegistration {
     const checkUpdate = () => {
       if (retry !== undefined) window.clearTimeout(retry)
       retry = undefined
-      if (this.disposed) return
+      if (this.disposed || document.hidden) return
       void checkAppShellUpdate(registration).then(
         () => {
           if (registration.installing) this.retryUpdate()
@@ -149,17 +150,27 @@ class AppShellRegistrationController implements SatinAppShellRegistration {
       )
     }
     this.retryUpdate = () => {
-      if (!this.disposed && retry === undefined) retry = window.setTimeout(checkUpdate, 30_000)
+      if (!this.disposed && !document.hidden && retry === undefined)
+        retry = window.setTimeout(checkUpdate, 30_000)
     }
     this.listenerCleanup.add(() => {
       if (retry !== undefined) window.clearTimeout(retry)
     })
     window.addEventListener('online', checkUpdate)
     this.listenerCleanup.add(() => window.removeEventListener('online', checkUpdate))
+    const visibilityChanged = () => {
+      if (document.hidden) {
+        if (retry !== undefined) window.clearTimeout(retry)
+        retry = undefined
+      } else checkUpdate()
+    }
+    document.addEventListener('visibilitychange', visibilityChanged)
+    this.listenerCleanup.add(() =>
+      document.removeEventListener('visibilitychange', visibilityChanged),
+    )
     checkUpdate()
     if (this.updateProfile !== 'release') {
-      const timer = window.setInterval(checkUpdate, 30_000)
-      this.listenerCleanup.add(() => window.clearInterval(timer))
+      this.listenerCleanup.add(visibleInterval(checkUpdate, 30_000))
     }
   }
 

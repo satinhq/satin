@@ -54,6 +54,12 @@ test('flags safely encode identity and keep appearance files aligned', async () 
       await readFile(resolve(target, 'src/styles.css'), 'utf8'),
       await readFile(resolve(root, 'template/src/styles.css'), 'utf8'),
     )
+    const pkg = JSON.parse(await readFile(resolve(target, 'package.json'), 'utf8'))
+    assert.ok(pkg.devDependencies['@satinhq/lint'])
+    assert.match(pkg.scripts.lint, /satin-lint src index\.html/u)
+    assert.match(pkg.scripts.build, /npm run lint/u)
+    assert.match(await readFile(resolve(target, '.oxlintrc.json'), 'utf8'), /@satinhq\/lint/u)
+    assert.match(await readFile(resolve(target, 'vite.config.ts'), 'utf8'), /src\/app\.ts'/u)
     assert.match(await readFile(resolve(target, '.gitignore'), 'utf8'), /node_modules/u)
     await writeFile(resolve(target, 'sentinel'), 'keep')
     assert.notEqual(cli(target, '--yes').status, 0)

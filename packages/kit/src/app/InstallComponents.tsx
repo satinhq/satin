@@ -48,13 +48,20 @@ const STEPS_CSS = `
 .satin-steps span span{display:block;opacity:.6;font-size:15px;line-height:1.33}
 `
 
+const installSheets = new WeakMap<Document, Map<string, CSSStyleSheet>>()
+
 function useStyle(id: string, css: string) {
   useLayoutEffect(() => {
-    if (document.getElementById(id)) return
-    const style = document.createElement('style')
-    style.id = id
-    style.textContent = css
-    document.head.append(style)
+    let sheets = installSheets.get(document)
+    if (!sheets) {
+      sheets = new Map()
+      installSheets.set(document, sheets)
+    }
+    if (sheets.has(id)) return
+    const sheet = new CSSStyleSheet()
+    sheet.replaceSync(css)
+    document.adoptedStyleSheets = [...document.adoptedStyleSheets, sheet]
+    sheets.set(id, sheet)
   }, [id, css])
 }
 

@@ -1,6 +1,6 @@
 import { frameworkStyleDeclarations } from '../../test/domStyles.ts'
 // @vitest-environment happy-dom
-import { act, type CSSProperties, type HTMLAttributes, type ReactNode } from 'react'
+import { act, useState, type CSSProperties, type HTMLAttributes, type ReactNode } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { MaterialEffectContext } from '../glass/liquidContext.ts'
@@ -18,6 +18,7 @@ import {
   screenNavigation,
 } from '../public/chrome.tsx'
 import { List as PublicList } from '../public/controls.tsx'
+import { useIsSearching, useDismissSearch } from '../search/SearchEnvironment.tsx'
 import { ScrollSurface } from './ScrollSurface.tsx'
 import { observeListLayoutMargins } from './screenGeometry.ts'
 import type { TransitionController } from '../navigation/types.ts'
@@ -696,4 +697,71 @@ it('custom List section spacing changes adjacent gaps and retains the terminal i
   } finally {
     style.remove()
   }
+})
+
+it('bare searchable keeps empty-query browsing mounted and interactive', () => {
+  function Browse() {
+    const [count, setCount] = useState(0)
+    const searching = useIsSearching()
+    return (
+      <button data-browse onClick={() => setCount(count + 1)}>
+        {searching ? 'Searching' : 'Browsing'} {count}
+      </button>
+    )
+  }
+  mount(
+    () => (
+      <Screen title="Inbox" titleDisplay="inline">
+        <PublicList
+          id="search-default"
+          searchable={{ text: '', onTextChange() {}, placement: 'navigationBarDrawer' }}
+        >
+          <Browse />
+        </PublicList>
+      </Screen>
+    ),
+    { display: 'inline' },
+  )
+  const button = element.querySelector<HTMLButtonElement>('[data-browse]')!
+  act(() => button.click())
+  act(() => element.querySelector<HTMLInputElement>('input')!.focus())
+  expect(element.querySelector('[data-browse]')).toBe(button)
+  expect(button.closest('[style*="display: none"]')).toBeNull()
+  expect(button.textContent).toBe('Searching 1')
+  act(() => button.click())
+  expect(button.textContent).toBe('Searching 2')
+})
+
+it('a searchable child chooses its own content and dismisses through the environment', () => {
+  function Content() {
+    const searching = useIsSearching()
+    const dismiss = useDismissSearch()
+    return searching ? (
+      <button data-exit onClick={dismiss}>
+        Recent searches
+      </button>
+    ) : (
+      <p data-inbox>Inbox</p>
+    )
+  }
+  mount(
+    () => (
+      <Screen title="Inbox" titleDisplay="inline">
+        <PublicList
+          id="search-composed"
+          searchable={{ text: '', onTextChange() {}, placement: 'navigationBarDrawer' }}
+        >
+          <Content />
+        </PublicList>
+      </Screen>
+    ),
+    { display: 'inline' },
+  )
+  expect(element.querySelector('[data-inbox]')).not.toBeNull()
+  act(() => element.querySelector<HTMLInputElement>('input')!.focus())
+  expect(element.querySelector('[data-inbox]')).toBeNull()
+  act(() => element.querySelector<HTMLButtonElement>('[data-exit]')!.click())
+  expect(element.querySelector('[data-inbox]')).not.toBeNull()
+  expect(element.querySelector('[data-exit]')).toBeNull()
+  expect(document.activeElement?.tagName).not.toBe('INPUT')
 })

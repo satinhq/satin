@@ -4,6 +4,7 @@ import { Pressable } from '../press/Pressable.tsx'
 import { createRouteCodec } from '../navigation/routeCodec.ts'
 import { resolveRoutes } from '../public/routeRegistry.ts'
 import { webURL } from './urlPolicy.ts'
+import { dispatchWebURL } from './frameDocument.ts'
 
 /** How to open a web page. `prefersInApp` is a preference; the browser decides how the page is
  * presented. */
@@ -83,20 +84,7 @@ export function useOpenURL(): OpenURLAction {
           else return false
           return runtime.sceneRoutes?.openURL(url.href) ?? false
         },
-        dispatch: url => {
-          // Create synchronously in the gesture, then sever the opener before loading untrusted content.
-          // Opening with noopener directly returns null even on success, hiding popup blocking.
-          const page = window.open('about:blank', '_blank')
-          if (!page) return false
-          try {
-            page.opener = null
-            page.location.replace(url)
-            return true
-          } catch {
-            page.close()
-            throw new Error('Web handoff failed')
-          }
-        },
+        dispatch: dispatchWebURL,
       }),
     [runtime],
   )

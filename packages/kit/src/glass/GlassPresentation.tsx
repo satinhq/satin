@@ -1,3 +1,4 @@
+import { visibleInterval } from '../lifecycle/visibleInterval.ts'
 import { TabBadge } from '../tabs/TabBadge.tsx'
 import { strictGlassRequested } from './failurePolicy.ts'
 import { TopTabLabel } from '../tabs/presentation.tsx'
@@ -13,6 +14,7 @@ import { recordMotionEventCost } from '../motionProbe.ts'
 import { glassFailureCode } from './webgpu/errorCode.ts'
 import { reportGlassError } from './errors.ts'
 import { ProductionGlassRuntime } from './webgpu/production.ts'
+import { GlassMaterialRuntime } from './materialRuntime.ts'
 import type { FallbackGlassRuntime } from './fallback/runtime.ts'
 import { fallbackGlassRequested } from './fallback/selection.ts'
 import { isBitmapBackdrop, prepareGlassBitmapBackdrop } from './lens/bitmapBackdrop.ts'
@@ -102,6 +104,11 @@ function createPresentationRuntime(
   options: Parameters<typeof ProductionGlassRuntime.create>[0],
   backend?: 'fallback' | 'webgpu',
 ): Promise<PresentationGlassRuntime> {
+  if (options.consumerMode)
+    return GlassMaterialRuntime.create(
+      options,
+      strictGlassRequested() ? 'webgpu' : (backend ?? 'webgpu'),
+    )
   if (
     strictGlassRequested() ||
     backend === 'webgpu' ||
@@ -451,11 +458,11 @@ export function GlassPresentation({ consumer }: { consumer?: GlassPresentationCo
   useEffect(() => {
     if (!probe) return
     const started = performance.now()
-    const id = window.setInterval(() => {
+    const stopClock = visibleInterval(() => {
       if (clockOutputRef.current)
         clockOutputRef.current.value = `${((performance.now() - started) / 1000).toFixed(1)}s`
     }, 250)
-    return () => window.clearInterval(id)
+    return stopClock
   }, [])
 
   // Probe telemetry and measurement commands. The WebGPU runtime never calls onSnapshot, so none
@@ -836,10 +843,10 @@ export function GlassPresentation({ consumer }: { consumer?: GlassPresentationCo
       runtimeRef.current = undefined
       setBoundRuntime(undefined)
     }
-    // Replace only the material owner on release demotion. Keep the semantic tab
-    // DOM, selected state and renderer-neutral region registrations mounted.
+    // The material owner retains CSS while its replacement prepares a GPU frame.
+    // Backend state never remounts the owner or its semantic DOM.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [consumer?.backend])
+  }, [])
 
   const synchronizeGeometry = useCallback(() => {
     runtimeRef.current?.updateGeometry({
@@ -957,12 +964,12 @@ export function GlassPresentation({ consumer }: { consumer?: GlassPresentationCo
       }
     }
     void check()
-    const interval = window.setInterval(() => {
+    const stopBuildChecks = visibleInterval(() => {
       if (!document.hidden) void check()
     }, 15000)
     return () => {
       disposed = true
-      window.clearInterval(interval)
+      stopBuildChecks()
     }
   }, [loadedBuild])
 

@@ -3,6 +3,10 @@ import type { GlassErrorCode } from '../errors.ts'
 export function glassFailureCode(stage: string, cause: unknown): GlassErrorCode {
   const message = cause instanceof Error ? `${cause.name}: ${cause.message}` : String(cause),
     text = stage + ' ' + message
+  // Capability failures must survive a worker's startup wrapper.
+  if (/GlassCapabilityUnavailable:|navigator\.gpu is unavailable/i.test(text))
+    return 'gpu-unavailable'
+  if (/navigator\.gpu\.requestAdapter returned null/i.test(text)) return 'adapter-unavailable'
   // Preserve the failed transport owner when a worker reports its own device loss.
   if (/worker.*(?:startup|runtime|transport|rejection)/i.test(text)) return 'worker-startup'
   if (/device\.lost|device.?lost/i.test(text)) return 'device-lost'

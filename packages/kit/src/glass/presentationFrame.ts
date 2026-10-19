@@ -22,12 +22,12 @@ const holdSheets = new WeakMap<Document, CSSStyleSheet>()
 function holdSheet(document: Document) {
   let sheet = holdSheets.get(document)
   if (sheet) return sheet
-  const style = document.createElement('style')
-  style.dataset.satinGlassHoldStyle = 'true'
-  style.textContent = HOLD_RULE
-  document.head.append(style)
-  sheet = style.sheet ?? undefined
-  if (!sheet) throw Error('The presentation glass hold has no stylesheet')
+  // Constructed sheets work under hash-only style-src without a nonce or an
+  // unsafe-inline exception. Use the owning realm for embedded documents.
+  const Sheet = document.defaultView?.CSSStyleSheet ?? CSSStyleSheet
+  sheet = new Sheet()
+  sheet.insertRule(HOLD_RULE)
+  document.adoptedStyleSheets = [...(document.adoptedStyleSheets ?? []), sheet]
   holdSheets.set(document, sheet)
   return sheet
 }
