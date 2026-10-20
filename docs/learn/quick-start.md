@@ -10,7 +10,7 @@ You need:
 ## 1. Create the app
 
 ```sh
-npm create satin@beta my-app
+npm create satin@latest my-app
 cd my-app
 npm install
 ```

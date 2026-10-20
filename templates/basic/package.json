@@ -15,7 +15,7 @@
     "lint": "oxlint --deny-warnings && satin-lint src index.html"
   },
   "dependencies": {
-    "@satinhq/kit": "0.1.0-beta.7",
+    "@satinhq/kit": "0.1.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },
@@ -26,7 +26,7 @@
     "@vitejs/plugin-react": "^6.1.0",
     "typescript": "~7.0.2",
     "vite": "^8.2.2",
-    "@satinhq/lint": "0.1.0-beta.7",
+    "@satinhq/lint": "0.1.0",
     "oxlint": "^1.79.0"
   }
 }

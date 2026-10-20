@@ -1,6 +1,6 @@
 {
   "name": "create-satin",
-  "version": "0.1.0-beta.7",
+  "version": "0.1.0",
   "description": "Create a Satin iPhone Home Screen app.",
   "type": "module",
   "license": "MIT",
@@ -22,7 +22,7 @@
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org/",
-    "tag": "beta"
+    "tag": "latest"
   },
   "repository": {
     "type": "git",

@@ -13,7 +13,7 @@ Satin's APIs follow the declarative style people already use to build iPhone and
 You need Node 22.12 or later (or Node 24) and an iPhone or iPad on iOS 27, or the iOS Simulator.
 
 ```sh
-npm create satin@beta my-app
+npm create satin@latest my-app
 cd my-app
 npm install
 npm run dev

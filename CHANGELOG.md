@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0
+
+The first release without a beta suffix. The framework is unchanged from the last beta (beta.7). Install commands now use `@latest`, for example `npm create satin@latest my-app`, and the packages publish to the `latest` tag.
+
 ## 0.1.0-beta.7
 
 - Generated install and unsupported pages use hashable stylesheet rules for their illustrations. Strict CSP deployments no longer need to allow inline style attributes on those pages.

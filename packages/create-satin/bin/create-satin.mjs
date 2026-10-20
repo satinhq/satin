@@ -7,8 +7,8 @@ import { upgradeApp } from './upgrade.mjs'
 
 const help = `Create a Satin app
 
-  npm create satin@beta -- my-app --yes
-  pnpm create satin@beta my-app --yes
+  npm create satin@latest -- my-app --yes
+  pnpm create satin@latest my-app --yes
   npx create-satin@latest upgrade [--dry-run]
 
 Options:

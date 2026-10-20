@@ -5,9 +5,9 @@ Create a Vite + React app for the iPhone Home Screen runtime.
 After the beta is published:
 
 ```sh
-npm create satin@beta -- my-app --yes --name "My App" --id my-app
+npm create satin@latest -- my-app --yes --name "My App" --id my-app
 # or
-pnpm create satin@beta my-app --yes --name "My App" --id my-app
+pnpm create satin@latest my-app --yes --name "My App" --id my-app
 ```
 
 Run `create-satin --help` for all flags, including launch colours and a local
