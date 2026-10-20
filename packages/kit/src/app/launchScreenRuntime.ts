@@ -438,7 +438,12 @@ export function setLaunchScreen(visible: boolean) {
     prelaunchController().restore()
     return
   }
-  prelaunchController().reveal()
+  // The completed app-readiness gate owns this explicit recovery. A watchdog
+  // failure may have retired the cover while that gate was still preparing.
+  // Reset its retirement before revealing, even if no more bytes arrive.
+  const controller = prelaunchController()
+  controller.recover()
+  controller.reveal()
 }
 
 export function setLaunchProgress(progress: DownloadProgress | null) {

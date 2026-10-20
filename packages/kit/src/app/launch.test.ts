@@ -361,13 +361,13 @@ it.each(['network', 'http', 'missing'])(
   },
 )
 
-it('bounds a hung registration lookup and preserves the reset-specific error', async () => {
+it('identifies a hung registration lookup separately from a failed reset', async () => {
   vi.useFakeTimers()
   vi.stubGlobal('navigator', {
     serviceWorker: { getRegistration: () => new Promise(() => {}) },
   })
   const rejected = expect(prepareOfflineBundle('/')).rejects.toThrow(
-    'Service worker reset did not finish. Please retry.',
+    'Service worker lookup did not finish. Please retry.',
   )
   await vi.advanceTimersByTimeAsync(3001)
   await rejected

@@ -1,4 +1,5 @@
 import {
+  useContext,
   useEffect,
   useMemo,
   useRef,
@@ -6,6 +7,12 @@ import {
   useSyncExternalStore,
   type CSSProperties,
 } from 'react'
+import {
+  NavigatorContext,
+  ScreenContext,
+  NavigationPaneContext,
+} from '../navigation/navigationContext.tsx'
+import { ROW_BACK_EDGE_WIDTH } from '../navigation/horizontalDrag.ts'
 import { webURL } from './urlPolicy.ts'
 import { bindFrameDocument, dispatchWebURL, type WebViewLink } from './frameDocument.ts'
 export type { WebViewLink } from './frameDocument.ts'
@@ -98,6 +105,9 @@ export interface WebViewProps {
   /** Explicitly allow scripts. Same-origin scripted content must be trusted. */
   allowsJavaScript?: boolean
   allowsForms?: boolean
+  /** Open safe same-origin document links outside the frame. Default: true.
+   * Set false to remove link destinations and withhold sandbox popup permissions. */
+  allowsLinkOpening?: boolean
   /** Same-origin document height, or fill the height supplied by the parent. Foreign frames fill. */
   sizing?: 'fill' | 'content'
   /** Scale wide same-origin documents down to the available width. Default: true. */
@@ -111,6 +121,26 @@ export interface WebViewProps {
   onStateChange?: (state: WebFrameState) => void
 }
 
+const subscribeWithoutNavigator = () => () => {}
+
+function useFrameBackEdge() {
+  const navigator = useContext(NavigatorContext)
+  const screen = useContext(ScreenContext)
+  const pane = useContext(NavigationPaneContext)
+  const canGoBack = () => {
+    if (!navigator || !screen || screen.lifecycle.isCovered || pane === 'sidebar') return false
+    const entries = navigator.getState().entries
+    const index = entries.findIndex(entry => entry.key === screen.key)
+    // Keep the original touch target mounted until the exiting screen itself unmounts.
+    return index > (pane === 'detail' ? 1 : 0)
+  }
+  return useSyncExternalStore(
+    navigator?.subscribe ?? subscribeWithoutNavigator,
+    canGoBack,
+    canGoBack,
+  )
+}
+
 /** Embeds a web page in a sandboxed frame. The browser decides whether the page may be framed, and
  * the frame's storage is partitioned from the app's. */
 export function WebView({
@@ -122,10 +152,12 @@ export function WebView({
   onStateChange,
   allowsJavaScript = false,
   allowsForms = false,
+  allowsLinkOpening = true,
   sizing = 'fill',
   fitsWidth = true,
   onOpenURL,
 }: WebViewProps) {
+  const backEdge = useFrameBackEdge()
   const local = useWebFrame()
   const store = stores.get(controller ?? local)
   if (!store) throw new Error('Use useWebFrame to create a WebFrameController')
@@ -142,6 +174,10 @@ export function WebView({
     typeof location === 'undefined' ? 'https://invalid.invalid/' : location.href,
   )
   const href = url?.href
+  const nativeLinks = !allowsJavaScript
+  const allowsNativePopups =
+    nativeLinks && allowsLinkOpening && url?.origin === globalThis.location?.origin
+  const documentKey = `${href}:${allowsJavaScript}:${allowsForms}:${allowsLinkOpening}`
   useEffect(() => {
     const frame = ref.current
     if (frame) store.attach(frame)
@@ -152,7 +188,7 @@ export function WebView({
       cleanupDocument.current?.()
       cleanupDocument.current = undefined
     }
-  }, [href, store])
+  }, [href, store, allowsJavaScript, allowsForms, allowsLinkOpening])
   useEffect(() => {
     setContentHeight(undefined)
     const frame = ref.current
@@ -163,6 +199,8 @@ export function WebView({
         {
           sizing,
           fitsWidth,
+          nativeLinks,
+          allowsLinkOpening,
           onOpenURL: (url, link) => {
             if (openLink.current) openLink.current(url, link)
             else dispatchWebURL(url)
@@ -171,7 +209,7 @@ export function WebView({
         setContentHeight,
       )
     }
-  }, [sizing, fitsWidth])
+  }, [sizing, fitsWidth, nativeLinks, allowsLinkOpening])
   const publish = (state: WebFrameState) => {
     store.setState(state)
     observer.current?.(state)
@@ -190,6 +228,7 @@ export function WebView({
       }}
     >
       <iframe
+        key={documentKey}
         ref={ref}
         src={href}
         title={title}
@@ -198,12 +237,14 @@ export function WebView({
           border: 0,
           width: '100%',
           height: '100%',
-          visibility: loadedHref === href ? 'visible' : 'hidden',
+          visibility: loadedHref === documentKey ? 'visible' : 'hidden',
         }}
         sandbox={[
           'allow-same-origin',
           allowsJavaScript && 'allow-scripts',
           allowsForms && 'allow-forms',
+          allowsNativePopups && 'allow-popups',
+          allowsNativePopups && 'allow-popups-to-escape-sandbox',
         ]
           .filter(Boolean)
           .join(' ')}
@@ -213,6 +254,7 @@ export function WebView({
           cleanupDocument.current?.()
           cleanupDocument.current = undefined
           setContentHeight(undefined)
+          let prepared = !allowsNativePopups
           try {
             const frame = ref.current
             const document = frame?.contentDocument
@@ -230,6 +272,8 @@ export function WebView({
                 {
                   sizing,
                   fitsWidth,
+                  nativeLinks,
+                  allowsLinkOpening,
                   onOpenURL: (url, link) => {
                     if (openLink.current) openLink.current(url, link)
                     else dispatchWebURL(url)
@@ -237,14 +281,37 @@ export function WebView({
                 },
                 setContentHeight,
               )
+              prepared = true
               publish({ status: 'loaded', url: current.href, title: document.title })
             }
           } catch {
             publish({ status: 'unverified', reason: 'cross-origin-or-denied' })
           }
-          setLoadedHref(href)
+          // A redirected/denied document cannot receive our native anchor policy.
+          if (prepared) setLoadedHref(documentKey)
         }}
       />
+      {backEdge && (
+        <div
+          ref={edge => {
+            if (!edge) return
+            const host = edge.closest('[data-satin-navigator-host]')
+            const presentation = edge.closest('dialog')
+            // A nested stack inside a sheet owns its own back gesture; the presenting stack does not.
+            edge.style.display = presentation && host?.contains(presentation) ? 'none' : ''
+          }}
+          data-satin-webview-back-edge=""
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            left: 0,
+            top: 0,
+            bottom: 0,
+            width: ROW_BACK_EDGE_WIDTH,
+            zIndex: 1,
+          }}
+        />
+      )}
       <div data-satin-webview-catcher="" aria-hidden="true" />
     </div>
   )

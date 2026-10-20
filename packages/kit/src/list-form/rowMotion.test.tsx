@@ -283,7 +283,9 @@ it('clips full-swipe removal paint with the neighbour spring without fading it',
                   actions: [
                     {
                       id: 'remove',
-                      label: 'Remove',
+                      label: 'Delete',
+                      role: 'destructive',
+                      symbol: 'trash',
                       onPress: () => setItems(current => current.filter(value => value !== item)),
                     },
                   ],
@@ -310,17 +312,24 @@ it('clips full-swipe removal paint with the neighbour spring without fading it',
       width: 400,
       height: 52,
     }) as DOMRect
+  let sampleTime = performance.now()
   for (const [type, x] of [
     ['touchstart', 390],
+    ['touchmove', 300],
     ['touchmove', 10],
     ['touchend', 10],
   ] as const) {
+    sampleTime += 50
     await act(() =>
       actions.dispatchEvent(
-        Object.assign(new Event(type, { bubbles: true, cancelable: true }), {
-          changedTouches: [{ identifier: 9, clientX: x, clientY: 26 }],
-          touches: type === 'touchend' ? [] : [{}],
-        }),
+        Object.defineProperty(
+          Object.assign(new Event(type, { bubbles: true, cancelable: true }), {
+            changedTouches: [{ identifier: 9, clientX: x, clientY: 26 }],
+            touches: type === 'touchend' ? [] : [{}],
+          }),
+          'timeStamp',
+          { value: sampleTime },
+        ),
       ),
     )
   }
@@ -328,6 +337,12 @@ it('clips full-swipe removal paint with the neighbour spring without fading it',
   const exit = active(first)!
   const neighbour = active(second)!
   expect(first.closest('[data-satin-row-exit]')).not.toBeNull()
+  const performed = first.querySelector<HTMLElement>('[data-satin-swipe-action]')!
+  expect(performed.textContent).toBe('Delete')
+  expect(performed.style.getPropertyValue('--satin-swipe-tint')).toBe(
+    'var(--satin-action-destructive)',
+  )
+  expect(performed.querySelector('svg')).not.toBeNull()
   expect(exit.frames.every(frame => frame.opacity === 1)).toBe(true)
   expect(exit.frames[0].clipPath).toBe('inset(0 0 0% 0)')
   expect(exit.frames.at(-1)!.clipPath).toBe('inset(0 0 100% 0)')

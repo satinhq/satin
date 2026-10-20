@@ -4,6 +4,36 @@ Build a personal React app for the installed iPhone or iPad Home Screen runtime.
 
 Satin provides React components for iPhone and iPad apps, with framework-owned navigation, controls and installation.
 
+## Upgrade an existing app
+
+Run the target release's generator in your app directory:
+
+```sh
+npx create-satin@latest upgrade --dry-run
+npx create-satin@latest upgrade
+```
+
+Replace `@latest` with the exact target version to choose a specific release.
+The running generator's version is the target. Every existing `@satinhq/*` dependency
+in dependencies, devDependencies, optionalDependencies and peerDependencies receives
+that exact version. Keep `@satinhq/kit` pinned to your current exact version so the
+command can identify the previous starter. Downgrades are rejected.
+
+The command downloads the current version's `create-satin` archive without running
+its scripts. It compares generated guidance and tooling files byte for byte, including `AGENTS.md`,
+`GETTING-STARTED.md`, `IOS-DESIGN.md`, `.oxlintrc.json`, README and configuration files.
+Only untouched copies are refreshed. Customized files, missing files, linked files
+and files without an old template are preserved and reported. Application source,
+assets and entry HTML stay yours, even if they still match the old starter. A new
+starter entry point may depend on companion files absent from your app, so upgrading
+packages does not migrate application structure. Added files are never overwritten. Read the
+reported release notes and merge relevant starter changes into preserved files.
+
+`--dry-run` prints the same plan and release notes without changing app files.
+The command needs registry access for the previous generator archive. If that lookup
+fails, it changes nothing. After upgrading, run your package manager's install to
+refresh the lockfile, then typecheck, lint and build. Review changes before deployment.
+
 ## Create an app from this checkout
 
 Use Node 22.12 or later in the 22.x series, or Node 24 or later, and pnpm 10. The following commands pack the preview and its scaffolder locally. Other app dependencies still need registry access. Run the first block at the repository root:
@@ -372,7 +402,9 @@ Apply its script and style hashes to your existing CSP and allow same-origin
 external assets. When a deep link serves `index.html` through SPA fallback, use
 the policy for that `index.html`, regardless of the requested path. Runtime
 appearance and presentation rules use constructed stylesheets and require no
-`unsafe-inline` allowance for style elements.
+`unsafe-inline` allowance for style elements or attributes. Install and unsupported
+pages use stylesheet classes too; their illustration rules are included in the
+page's hashes. No generated page needs `unsafe-hashes` or an inline-style exception.
 
 Satin sets Vite's default chunk warning budget to 2,000 kB of minified,
 uncompressed JavaScript per chunk. The renderer and its shader compiler account

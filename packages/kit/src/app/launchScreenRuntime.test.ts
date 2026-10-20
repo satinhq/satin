@@ -245,6 +245,45 @@ it.each([false, true])(
   },
 )
 
+it.each(['ordinary', 'applied-update'])(
+  'retires a material %s launch when readiness arrives before more worker progress',
+  async path => {
+    const { prelaunchController, setLaunchProgress, setLaunchScreen, showAppliedUpdate } =
+      await import('./launchScreenRuntime.ts')
+    vi.spyOn(Element.prototype, 'animate').mockReturnValue({
+      finished: Promise.resolve(),
+      cancel: vi.fn(),
+      pause: vi.fn(),
+      play: vi.fn(),
+    } as unknown as Animation)
+    installLaunchWatchdog(10_000)
+    if (path === 'applied-update') expect(await showAppliedUpdate()).toBe(true)
+    // A watchdog failure can retire the cover while React is still preparing.
+    window.dispatchEvent(
+      new CustomEvent('satin-worker-lookup-error', { detail: 'Temporary worker stall' }),
+    )
+    await vi.advanceTimersByTimeAsync(3000)
+    expect(prelaunchController().snapshot().error).toContain('Temporary worker stall')
+    expect(prelaunchController().snapshot().coverVisible).toBe(false)
+
+    // This is the framework's completed readiness gate, not download progress.
+    setLaunchScreen(false)
+    await vi.advanceTimersByTimeAsync(3000)
+    expect(prelaunchController().snapshot().error).toBe('')
+    expect(prelaunchController().snapshot().coverVisible).toBe(false)
+    expect(document.querySelector('satin-prelaunch')).toBeNull()
+
+    // Late worker activity used to clear the error and rearm a watchdog that
+    // never received the skipped reveal. It must not cover the ready app again.
+    setLaunchProgress({ loaded: 100, total: 100 })
+    await vi.advanceTimersByTimeAsync(15_000)
+    expect(prelaunchController().snapshot().state).toBe('ready')
+    expect(prelaunchController().snapshot().error).toBe('')
+    expect(prelaunchController().snapshot().coverVisible).toBe(false)
+    expect(document.querySelector('satin-prelaunch')).toBeNull()
+  },
+)
+
 it('restores a stalled launch only after genuine progress and can detect a second stall', () => {
   installLaunchWatchdog(1000)
   vi.advanceTimersByTime(1000)

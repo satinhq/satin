@@ -418,3 +418,11 @@ export {
 export { readAppearanceDiagnostics } from './app/appearance.ts'
 
 export { type AppearanceEvent } from './app/appearanceStore.ts'
+// EXPERIMENTAL: private gesture ownership, sidebar drawer and three-pane container.
+// Not part of the public API; the names and behaviour will change.
+export { ExperimentalDrawer, type ExperimentalDrawerProps } from './drawer/ExperimentalDrawer.tsx'
+export { useExperimentalDrawer, type ExperimentalDrawerHandle } from './drawer/drawerHandle.ts'
+export {
+  ExperimentalThreePane,
+  type ExperimentalThreePaneProps,
+} from './drawer/ExperimentalThreePane.tsx'

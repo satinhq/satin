@@ -440,7 +440,8 @@ all trigger props so disabled state, menu accessibility and activation work.
 
 Use a same-origin sanitized document with `<WebView sizing="content" url={bodyURL}
  title="Message body" />` inside `ScrollView`. Width fitting defaults on; scripts and
-forms default off. WebKit makes `onOpenURL` unavailable with scripts disabled; use
-application-owned `Link` controls outside the frame when link policy is required. See
+forms default off. Safe HTTP(S) links open a new browser context without scripts;
+unsafe destinations are removed. `onOpenURL` requires trusted scripted documents.
+Use `allowsLinkOpening={false}` to disable destinations and popup permissions. See
 [the complete recipe and origin limits](web-handoff.md#showing-email-or-article-html).
 Live page retention and press-time prefetch are not available in this implementation yet.

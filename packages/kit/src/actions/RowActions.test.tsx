@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest'
-import { act } from 'react'
+import { act, useState } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { Row, NavigationRow, ButtonRow, ValueRow } from '../list-form/ListForm.tsx'
 import { setFocusVisibleOptionSupportForTesting } from '../focus/programmaticFocus.ts'
@@ -201,6 +201,129 @@ it('fires a full swipe on release and springs a surviving row back to rest', () 
   expect(frames.length).toBeGreaterThan(2)
   expect(frames[0].transform).not.toBe(frames.at(-1)!.transform)
   expect(frames.at(-1)!.transform).toContain('translate3d(0px')
+})
+
+function controlledSwipeAnimations() {
+  vi.stubGlobal('KeyframeEffect', class {})
+  const animate = stubAnimations()
+  const runs: { element: HTMLElement; finish(): void; cancel(): void; finished: Promise<void> }[] =
+    []
+  animate.mockImplementation(function (this: HTMLElement) {
+    let finish!: () => void
+    let cancel!: () => void
+    const finished = new Promise<void>((resolve, reject) => {
+      finish = resolve
+      cancel = () => reject(new Error('Animation cancelled'))
+    })
+    const run = { element: this, finish, cancel, finished }
+    runs.push(run)
+    return run
+  })
+  return runs
+}
+
+function ImportantRow() {
+  const [important, setImportant] = useState(true)
+  return (
+    <>
+      <output>{important ? 'Important message' : 'Ordinary message'}</output>
+      <Row
+        label="Message"
+        swipeActions={{
+          edge: 'leading',
+          actions: [
+            {
+              id: 'important',
+              label: important ? 'Not Important' : 'Important',
+              tint: important ? 'blue' : 'orange',
+              symbol: important ? 'flag.slash' : 'flag',
+              onPress: () => setImportant(value => !value),
+            },
+            {
+              id: 'read',
+              label: important ? 'Read' : 'Unread',
+              role: important ? 'destructive' : undefined,
+            },
+          ],
+        }}
+      />
+    </>
+  )
+}
+
+it.each(['full swipe', 'tap'] as const)(
+  'holds the performed edge until close after %s, then uses the latest actions on reveal',
+  async method => {
+    vi.stubGlobal('PointerEvent', class extends Event {})
+    onTestFinished(() => {
+      vi.unstubAllGlobals()
+    })
+    const runs = controlledSwipeAnimations()
+    render(<ImportantRow />)
+    const host = node.querySelector<HTMLElement>('[data-satin-row-actions]')!
+    const content = host.querySelector<HTMLElement>('[data-satin-row-action-content]')!
+    const contact = phoneRow(host, 50)
+    const buttons = () => [...host.querySelectorAll<HTMLElement>('[data-satin-swipe-action]')]
+    const originalSymbol = buttons()[0]!.querySelector('svg')!.innerHTML
+    contact(method === 'tap' ? [20, 130] : [20, 390])
+    if (method === 'tap') {
+      resetPointerClickSuppression()
+      act(() => buttons()[0]!.click())
+    }
+    expect(node.querySelector('output')!.textContent).toBe('Ordinary message')
+    expect(buttons().map(button => button.textContent)).toEqual(['Not Important', 'Read'])
+    expect(buttons()[0]!.style.getPropertyValue('--satin-swipe-tint')).toBe('blue')
+    expect(buttons()[0]!.querySelector('svg')!.innerHTML).toBe(originalSymbol)
+    expect(buttons()[1]!.dataset.satinSwipeRole).toBe('destructive')
+    await act(async () =>
+      runs
+        .filter(run => run.element === content)
+        .at(-1)!
+        .finish(),
+    )
+    contact([20, 130])
+    expect(buttons().map(button => button.textContent)).toEqual(['Important', 'Unread'])
+    expect(buttons()[0]!.style.getPropertyValue('--satin-swipe-tint')).toBe('orange')
+    expect(buttons()[0]!.querySelector('svg')!.innerHTML).not.toBe(originalSymbol)
+    expect(buttons()[1]!.dataset.satinSwipeRole).toBeUndefined()
+  },
+)
+
+it('keeps the performed edge when a new contact cancels its close, until the next rest', async () => {
+  vi.stubGlobal('PointerEvent', class extends Event {})
+  onTestFinished(() => {
+    vi.unstubAllGlobals()
+  })
+  const runs = controlledSwipeAnimations()
+  render(<ImportantRow />)
+  const host = node.querySelector<HTMLElement>('[data-satin-row-actions]')!
+  const content = host.querySelector<HTMLElement>('[data-satin-row-action-content]')!
+  const contact = phoneRow(host, 50)
+  contact([20, 390])
+  const closing = runs.filter(run => run.element === content).at(-1)!
+  content.getAnimations = () => [closing as unknown as Animation]
+  vi.spyOn(content, 'getBoundingClientRect').mockReturnValue({
+    left: 80,
+    top: 0,
+    width: 400,
+    height: 52,
+    right: 480,
+    bottom: 52,
+  } as DOMRect)
+  contact([200, 190])
+  await act(async () => {})
+  expect(host.querySelector('[data-satin-swipe-caption]')!.textContent).toBe('Not Important')
+  expect(node.querySelector('output')!.textContent).toBe('Ordinary message')
+  content.getAnimations = () => []
+  contact([200, 100])
+  await act(async () =>
+    runs
+      .filter(run => run.element === content)
+      .at(-1)!
+      .finish(),
+  )
+  contact([20, 130])
+  expect(host.querySelector('[data-satin-swipe-caption]')!.textContent).toBe('Important')
 })
 
 it.each([205, 210])('uses the native tall-row leading commit boundary at %ipt', distance => {
@@ -657,7 +780,7 @@ it('keeps a recognized context hold selecting when WebKit cancels its pointer st
   }
 })
 
-function phoneRow(host: HTMLElement) {
+function phoneRow(host: HTMLElement, sampleInterval = 0) {
   host.querySelector<HTMLElement>('[data-satin-row-action-content]')!.getAnimations = () => []
   vi.spyOn(host, 'getBoundingClientRect').mockReturnValue({
     left: 0,
@@ -667,28 +790,40 @@ function phoneRow(host: HTMLElement) {
     width: 400,
     height: 52,
   } as DOMRect)
+  let time = performance.now()
+  const timestamp = (event: Event) => {
+    if (sampleInterval) {
+      time += sampleInterval
+      Object.defineProperty(event, 'timeStamp', { value: time })
+    }
+    return event
+  }
   let identifier = 0
   return (path: number[]) => {
     identifier++
     path.forEach((x, index) =>
       act(() =>
         host.dispatchEvent(
-          Object.assign(
-            new Event(index === 0 ? 'touchstart' : 'touchmove', {
-              bubbles: true,
-              cancelable: true,
-            }),
-            { changedTouches: [{ identifier, clientX: x, clientY: 26 }], touches: [{}] },
+          timestamp(
+            Object.assign(
+              new Event(index === 0 ? 'touchstart' : 'touchmove', {
+                bubbles: true,
+                cancelable: true,
+              }),
+              { changedTouches: [{ identifier, clientX: x, clientY: 26 }], touches: [{}] },
+            ),
           ),
         ),
       ),
     )
     act(() =>
       host.dispatchEvent(
-        Object.assign(new Event('touchend', { bubbles: true, cancelable: true }), {
-          changedTouches: [{ identifier, clientX: path.at(-1), clientY: 26 }],
-          touches: [],
-        }),
+        timestamp(
+          Object.assign(new Event('touchend', { bubbles: true, cancelable: true }), {
+            changedTouches: [{ identifier, clientX: path.at(-1), clientY: 26 }],
+            touches: [],
+          }),
+        ),
       ),
     )
   }

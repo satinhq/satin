@@ -184,6 +184,14 @@ describe('platform scripts through Vite', () => {
       expect(install).not.toContain('satin-platform-gate')
       expect(install).toContain('satin-install-check')
       const refusal = await readFile(join(root, 'dist/unsupported.html'), 'utf8')
+      // Inspect every emitted HTML file, including nested install and admission pages.
+      const emitted = await readdir(join(root, 'dist'), { recursive: true })
+      for (const path of emitted.filter(path => path.endsWith('.html'))) {
+        const page = await readFile(join(root, 'dist', path), 'utf8')
+        const parsed = new JSDOM(page)
+        expect(parsed.window.document.querySelectorAll('[style]'), path).toHaveLength(0)
+        parsed.window.close()
+      }
       expect(refusal).not.toContain('satin-platform-gate')
       expect(await readFile(join(root, 'dist/icon.png'))).toEqual(
         await readFile(join(root, 'public/icon.png')),

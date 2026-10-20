@@ -1,6 +1,6 @@
 {
   "name": "create-satin",
-  "version": "0.1.0-beta.6",
+  "version": "0.1.0-beta.7",
   "description": "Create a Satin iPhone Home Screen app.",
   "type": "module",
   "license": "MIT",
@@ -14,6 +14,7 @@
     "bin",
     "template",
     "README.md",
+    "CHANGELOG.md",
     "LICENSE",
     "NOTICE",
     "THIRD_PARTY_NOTICES.md"
@@ -31,7 +32,7 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "prepack": "node scripts/build.mjs",
-    "typecheck": "node --check bin/create-satin.mjs && node --check scripts/build.mjs",
+    "typecheck": "node --check bin/create-satin.mjs && node --check scripts/build.mjs && node --check bin/upgrade.mjs",
     "lint": "oxlint bin scripts test",
     "test": "node --test test/*.test.mjs"
   },

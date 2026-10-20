@@ -26,3 +26,5 @@ await checkShippedDocs(resolve(root, 'template'))
 for (const path of ['README.md', '../kit/README.md']) {
   assertPublicDoc(await readFile(resolve(root, path), 'utf8'), path)
 }
+
+await cp(resolve(root, '../../CHANGELOG.md'), resolve(root, 'CHANGELOG.md'))

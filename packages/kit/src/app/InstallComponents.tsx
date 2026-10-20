@@ -2,7 +2,7 @@ import { installSteps } from './installPolicy.ts'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { GLYPHS, INSTALL_STRINGS, springEasing } from './installStrings.ts'
 import { deviceTokens } from './installExperienceDevice.ts'
-import { TIP_GLASS } from './installExperienceHome.ts'
+import { ILLUSTRATION_CSS, TIP_GLASS } from './installExperienceHome.ts'
 import { readInstallContext, type InstallContext } from './installContext.ts'
 import { classifySafariBar, tipPath, type SafariBar } from './installTipPath.ts'
 
@@ -95,6 +95,7 @@ export function InstallSteps() {
 }
 
 const TIP_CSS = `
+${ILLUSTRATION_CSS}
 .satin-tip{position:fixed;z-index:2;left:9px;bottom:13px;display:flex;align-items:center;min-height:42px;box-sizing:border-box;padding:0 15px;font:600 15px/20px system-ui,-apple-system,sans-serif;white-space:nowrap;--tint:var(--satin-install-tint,var(--satin-app-tint));--zero:0;--one:1;--label:#000;transform-origin:105px calc(100% + 11px);animation:satin-tip .45s .3s ${springEasing()} both;color:var(--label);${deviceTokens(false)}}
 @media(prefers-color-scheme:dark){.satin-tip{--label:#fff;${deviceTokens(true)}}}
 @keyframes satin-tip{from{transform:scale(.2);opacity:0;filter:blur(4px)}}

@@ -4,7 +4,7 @@ Search by Satin export name. Each entry describes its behavior and limits and li
 
 Generated from package declarations and reviewed behavior metadata. Run `pnpm --filter @satinhq/kit api:write` after building. Signature, export and source changes invalidate this reference; changes to behavior descriptions require review.
 
-Coverage: 936 named exports across 9 declaration entry points. 155 exports have reviewed behavior metadata. 781 type and integration declarations are identified separately in the behavior review inventory. CSS is a stylesheet, not a named export.
+Coverage: 942 named exports across 9 declaration entry points. 155 exports have reviewed behavior metadata. 787 type and integration declarations are identified separately in the behavior review inventory. CSS is a stylesheet, not a named export.
 
 An API description establishes the supported contract. It does not certify pixels, motion, touch or installed-app lifecycle behavior. Experimental entry points remain experimental. An empty Limits cell means there are no limits beyond what the declaration states.
 
@@ -529,6 +529,11 @@ Framework internals for Satin tooling and tests. App code must not import them; 
 | [`EntryTransition`](../navigation/types.d.ts) |  |  |  |
 | [`estimateStorage`](../data/database.d.ts) | The app's storage usage and quota in bytes, when WebKit reports them. |  |  |
 | [`evaluateTemporalSpline`](../glass/lens/liquidMotion.d.ts) |  |  |  |
+| [`ExperimentalDrawer`](../drawer/ExperimentalDrawer.d.ts) |  |  |  |
+| [`ExperimentalDrawerHandle`](../drawer/drawerHandle.d.ts) |  |  |  |
+| [`ExperimentalDrawerProps`](../drawer/ExperimentalDrawer.d.ts) | Props for `ExperimentalDrawer`. |  |  |
+| [`ExperimentalThreePane`](../drawer/ExperimentalThreePane.d.ts) |  |  |  |
+| [`ExperimentalThreePaneProps`](../drawer/ExperimentalThreePane.d.ts) | Props for `ExperimentalThreePane`. |  |  |
 | [`ExportDocument`](../data/database.d.ts) | The JSON document `exportJSON` writes and `importJSON` reads. |  |  |
 | [`finishStackTransition`](../navigation/stack.d.ts) |  |  |  |
 | [`getGlassErrors`](../glass/errors.d.ts) |  |  |  |
@@ -909,6 +914,7 @@ Framework internals for Satin tooling and tests. App code must not import them; 
 | [`TransitionOperation`](../navigation/types.d.ts) |  |  |  |
 | [`TransitionPhase`](../navigation/types.d.ts) | Where a screen is in a navigation transition: `entering`, `exiting` or `settled`. |  |  |
 | [`TypedRoute`](../navigation/routeCodec.d.ts) |  |  |  |
+| [`useExperimentalDrawer`](../drawer/drawerHandle.d.ts) | The nearest experimental drawer, for a toolbar control. |  |  |
 | [`useFocusChain`](../text-input/focusChain.d.ts) | Moves focus through a form's fields in `order`. The return key goes to the next field and the last one dismisses the keyboard. Disabled and unmounted fields are skipped. Spread `field(key)` onto each field. |  | next field; return key |
 | [`useGlassMaterialDiagnostics`](../glass/context.d.ts) |  |  |  |
 | [`useKeyboardMetrics`](../keyboard/adapter.d.ts) | The software keyboard's live geometry. Most apps never need it: Satin keeps focused fields, bottom insets and bars above the keyboard. |  | keyboard height |
@@ -1402,6 +1408,11 @@ The declarations below have no dedicated reviewed behavior metadata. Type-only d
 - `@satinhq/kit/internal:EntryTransition` (Type)
 - `@satinhq/kit/internal:estimateStorage` (Value)
 - `@satinhq/kit/internal:evaluateTemporalSpline` (Value)
+- `@satinhq/kit/internal:ExperimentalDrawer` (Value)
+- `@satinhq/kit/internal:ExperimentalDrawerHandle` (Type)
+- `@satinhq/kit/internal:ExperimentalDrawerProps` (Type)
+- `@satinhq/kit/internal:ExperimentalThreePane` (Value)
+- `@satinhq/kit/internal:ExperimentalThreePaneProps` (Type)
 - `@satinhq/kit/internal:ExportDocument` (Type)
 - `@satinhq/kit/internal:finishStackTransition` (Value)
 - `@satinhq/kit/internal:getGlassErrors` (Value)
@@ -1782,6 +1793,7 @@ The declarations below have no dedicated reviewed behavior metadata. Type-only d
 - `@satinhq/kit/internal:TransitionOperation` (Type)
 - `@satinhq/kit/internal:TransitionPhase` (Type)
 - `@satinhq/kit/internal:TypedRoute` (Type)
+- `@satinhq/kit/internal:useExperimentalDrawer` (Value)
 - `@satinhq/kit/internal:useFocusChain` (Value)
 - `@satinhq/kit/internal:useGlassMaterialDiagnostics` (Value)
 - `@satinhq/kit/internal:useKeyboardMetrics` (Value)
@@ -1855,10 +1867,10 @@ The declarations below have no dedicated reviewed behavior metadata. Type-only d
 
 ## Declaration graph fingerprints
 
-- `@satinhq/kit:c8467816e2546662b2f534a74b7bb634df513439defe80f3f339aa0ba0d4d92e`
+- `@satinhq/kit:5566a824a0961de2c85058cf287f1f066ff0874ff909cb5c366fdf94b6476102`
 - `@satinhq/kit/vite:2a5c37d7a4a86a6f4e93516451716df9b5c73b3c81ac98509061536453d43207`
 - `@satinhq/kit/install:e080a0874c9490077cf9cbb117e03d5d58252226e9424d84101be7ee4454a422`
-- `@satinhq/kit/internal:7cb35329e6619637d4fa028b65663162ac7b666aaffa325f6c36094b8fdbf261`
+- `@satinhq/kit/internal:db3014211632761557f2b42c73a14562c1a5567a5405a2b48f91637231397e28`
 - `@satinhq/kit/unstable:d429053ae5a14e1d724e3feb09226a36847eee07597cbb52aa76611e753e5ff6`
 - `@satinhq/kit/server:7d2b996d9541bd82fd0936e0482554f3182ffe004be56928e590ad4c4c8c79bd`
 - `@satinhq/kit/testing:04a86ddf0741e53228777bd599cbd00ff503b9e216a1f86a9791fdbee1bd5e12`
@@ -1867,4 +1879,4 @@ The declarations below have no dedicated reviewed behavior metadata. Type-only d
 
 ## Framework source fingerprint
 
-SHA-256 of sorted TS/TSX/CSS source paths and bytes, excluding tests: 72df7d6ac24747f6ac74cf8262fd39776d104702113ed949b9525f6697494d87
+SHA-256 of sorted TS/TSX/CSS source paths and bytes, excluding tests: cc5465beda20367868f72fff1f3da389b573cb0ea11d8728da432f3841309977

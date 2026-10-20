@@ -38,6 +38,7 @@ export type InteractivePopDiagnostic = Readonly<{
     | 'early-horizontal-claim'
     | 'early-leftward-release'
     | 'early-vertical-release'
+    | 'lost-arbitration'
     | 'no-pop-target'
     | 'release-cancel'
     | 'release-complete'

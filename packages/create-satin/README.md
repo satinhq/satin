@@ -52,3 +52,14 @@ fragments and non-HTTP schemes. External service links and page anchors keep
 their original targets. This is a packaging option; app creators do not need to
 set it. Packaging checks every shipped template Markdown file, the generated
 guide and both package READMEs for private project-status language.
+
+## Upgrade an app
+
+In the existing app directory, run `npx create-satin@latest upgrade --dry-run`,
+then `npx create-satin@latest upgrade`. Use an explicit generator version to choose
+a target release. The command pins existing Satin dependencies, refreshes only
+byte-identical generated guidance and tooling files, and reports modified files for
+manual review. App source, assets and entry HTML remain intact. It prints
+the release notes between the app's exact current kit pin and the target version.
+Run your package manager install afterwards to update the lockfile, then validate
+your app. No installer runs automatically.

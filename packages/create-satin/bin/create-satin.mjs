@@ -3,11 +3,13 @@ import { cp, mkdir, readFile, readdir, rename, writeFile } from 'node:fs/promise
 import { basename, resolve } from 'node:path'
 import { createInterface } from 'node:readline/promises'
 import { parseArgs } from 'node:util'
+import { upgradeApp } from './upgrade.mjs'
 
 const help = `Create a Satin app
 
   npm create satin@beta -- my-app --yes
   pnpm create satin@beta my-app --yes
+  npx create-satin@latest upgrade [--dry-run]
 
 Options:
   --name "My App"           Display name, default My Satin App
@@ -18,6 +20,7 @@ Options:
   --accent '#007aff'         App tint colour (appearance.tint); omit for the system blue
   --satin-package <spec>    Override dependency, e.g. /absolute/satin.tgz
   --yes                     Use defaults for omitted answers
+  --dry-run                 Preview an upgrade without changing app files
   --help                    Show this help
 
 The destination must be absent or empty. No packages are installed automatically.
@@ -65,12 +68,20 @@ async function main() {
       'satin-package': { type: 'string' },
       yes: { type: 'boolean', short: 'y' },
       help: { type: 'boolean', short: 'h' },
+      'dry-run': { type: 'boolean' },
     },
   })
   if (values.help) {
     console.log(help)
     return
   }
+  if (positionals[0] === 'upgrade') {
+    if (positionals.length !== 1)
+      throw new Error('Run upgrade in the app directory, with no destination.')
+    await upgradeApp({ dryRun: values['dry-run'] })
+    return
+  }
+  if (values['dry-run']) throw new Error('--dry-run is available with upgrade.')
   if (positionals.length > 1) throw new Error('Provide one destination directory.')
   let destination = positionals[0]
   let name = values.name

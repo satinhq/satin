@@ -37,11 +37,18 @@ function EmbeddedHelp() {
 }
 ```
 
-`WebView` embeds an iframe. Its parent supplies a height. Scripts and form submission are disabled unless `allowsJavaScript` or `allowsForms` is true. Popups, downloads and top navigation remain sandboxed. Same-origin scripted content must be trusted: `allow-scripts` with `allow-same-origin` is not a security boundary against your own origin.
+`WebView` embeds an iframe. Its parent supplies a height. Scripts and form submission are disabled unless `allowsJavaScript` or `allowsForms` is true. Downloads and top navigation remain sandboxed. Same-origin scripted content must be trusted: `allow-scripts` with `allow-same-origin` is not a security boundary against your own origin.
 
 `loaded` means a same-origin document is inspectable after its load event. It does not assert an HTTP success status or application readiness. Foreign or denied frames report `unverified` with `cross-origin-or-denied`. A browser does not reliably reveal which happened. Offer an ordinary Link when embedding is unavailable; never proxy around a page's framing restrictions.
 
 `useWebFrame` returns a controller with `state`, `reload()` and `stop()`. Both commands return `unavailable` for foreign, denied or unmounted frames. There is no invented cross-origin title, progress, script evaluation or browser-history API. Embedded navigation can participate in browser session history; qualify your content's edge-back, keyboard and scrolling behavior. Embedded storage can be partitioned. Use the authentication helper for sign in.
+
+Scripts-off same-origin links use native anchors with `_blank` and `noopener noreferrer`.
+Only this path enables the sandbox popup tokens, and it removes unsafe schemes before
+showing the frame. `allowsLinkOpening={false}` disables destinations and popup permissions.
+`onOpenURL` applies to trusted scripted documents, because scripts-off WebKit blocks
+parent-installed click listeners. See [the email recipe](#showing-email-or-article-html)
+for the full link and cross-origin contract.
 
 ## Authorization-code sign in
 
@@ -132,9 +139,10 @@ default and requires a height from the parent.
 
 `onOpenURL` is unavailable for scripts-off sandboxed documents on WebKit, which blocks
 even parent-installed frame event listeners ([WebKit 218086](https://bugs.webkit.org/show_bug.cgi?id=218086)).
-Neither callback delivery nor prevention of frame navigation is promised in that mode.
-Keep untrusted email scripts disabled; expose application-owned `Link` controls outside
-the frame when link policy is required. Do not enable scripts as a workaround.
+Satin therefore rewrites safe same-origin anchors before revealing the document and
+lets WebKit open them natively in a new browser context. Unsafe schemes lose their
+destinations. Set `allowsLinkOpening={false}` to remove all destinations and withhold
+popup permissions. Keep untrusted email scripts disabled.
 
 For trusted same-origin documents that already allow scripts, `onOpenURL(url, { target })`
 handles document links synchronously. The target

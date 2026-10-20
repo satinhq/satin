@@ -83,7 +83,8 @@ Apply its script and style hashes to your existing CSP and allow same-origin
 external assets. When a deep link serves `index.html` through SPA fallback, use
 the policy for that `index.html`, regardless of the requested path. Runtime
 appearance and presentation rules use constructed stylesheets and require no
-`unsafe-inline` allowance for style elements.
+`unsafe-inline` allowance for style elements or attributes. Install and unsupported
+illustrations use stylesheet classes covered by each page's style hashes.
 
 Satin sets Vite's default chunk warning budget to 2,000 kB of minified,
 uncompressed JavaScript per chunk. The renderer and its shader compiler account

@@ -19,7 +19,7 @@ function Example() {
 }
 ```
 
-`WebView` embeds an iframe. Its parent supplies a height. Scripts and form submission are disabled unless `allowsJavaScript` or `allowsForms` is true. Popups, downloads and top navigation remain sandboxed. Same-origin scripted content must be trusted: `allow-scripts` with `allow-same-origin` is not a security boundary against your own origin.
+`WebView` embeds an iframe. Its parent supplies a height. Scripts and form submission are disabled unless `allowsJavaScript` or `allowsForms` is true. Downloads and top navigation remain sandboxed. Safe same-origin scripts-off links can open a new browser context; `allowsLinkOpening={false}` disables this behavior. Same-origin scripted content must be trusted: `allow-scripts` with `allow-same-origin` is not a security boundary against your own origin.
 
 `loaded` means a same-origin document is inspectable after its load event. It does not assert an HTTP success status or application readiness. Foreign or denied frames report `unverified` with `cross-origin-or-denied`. A browser does not reliably reveal which happened. Offer an ordinary Link when embedding is unavailable; never proxy around a page's framing restrictions.
 

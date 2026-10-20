@@ -35,8 +35,7 @@ export function homeStep(symbol: string, action: string, where = '') {
  * - a soft, low shadow.
  */
 const everywhere = 'maskUnits="userSpaceOnUse" x="-50%" y="-100%" width="200%" height="300%"'
-const stop = (offset: number, alpha: string) =>
-  `<stop offset="${offset}" style="stop-color:#fff;stop-opacity:var(${alpha})"/>`
+const stop = (offset: number, alpha: string) => `<stop offset="${offset}" class="ix-stop${alpha}"/>`
 const shape = '<use href="#ix-shape"/>'
 /*
  * Round eight: panel and tail are one path, `#ix-shape`, which the runtime draws for the tip's
@@ -56,15 +55,15 @@ export const TIP_GLASS = [
   `${stop(0, '--one')}${stop(0.25, '--q1')}${stop(0.5, '--q2')}${stop(0.75, '--q3')}${stop(1, '--zero')}</linearGradient>`,
   '<linearGradient id="ix-lb" gradientUnits="userSpaceOnUse" x2="0" y2="-17">',
   `${stop(0, '--hl-bottom')}${stop(0.25, '--qb1')}${stop(0.5, '--qb2')}${stop(0.75, '--qb3')}${stop(1, '--zero')}</linearGradient>`,
-  `<mask id="ix-lm" ${everywhere} style="mask-type:alpha">`,
+  `<mask id="ix-lm" ${everywhere} class="ix-alpha-mask">`,
   '<rect x="-50%" y="-100%" width="200%" height="100%" fill="#fff"/><rect x="-50%" width="200%" height="17" fill="url(#ix-lt)"/>',
   '<svg y="100%" width="100%" height="1" overflow="visible"><rect x="-50%" y="-17" width="200%" height="17" fill="url(#ix-lb)"/>',
-  '<rect x="-50%" width="200%" height="40" style="fill:#fff;fill-opacity:var(--hl-bottom)"/></svg></mask>',
+  '<rect x="-50%" width="200%" height="40" class="ix-bottom-fill"/></svg></mask>',
   '<filter id="ix-hblur" x="-20%" y="-60%" width="140%" height="220%"><feGaussianBlur stdDeviation="2"/></filter>',
   // The outer dark line: its strength at the top, the sides and the bottom.
   '<linearGradient id="ix-hg" gradientUnits="userSpaceOnUse" x2="0" y2="100%">',
   `${stop(0, '--ht')}${stop(0.4, '--hs')}${stop(0.6, '--hs')}${stop(1, '--hb')}</linearGradient>`,
-  `<mask id="ix-hm" ${everywhere} style="mask-type:alpha"><rect x="-50%" y="-100%" width="200%" height="300%" fill="url(#ix-hg)"/></mask>`,
+  `<mask id="ix-hm" ${everywhere} class="ix-alpha-mask"><rect x="-50%" y="-100%" width="200%" height="300%" fill="url(#ix-hg)"/></mask>`,
   `<mask id="ix-out" ${everywhere}><rect x="-50%" y="-100%" width="200%" height="300%" fill="#fff"/><g fill="#000">${shape}</g></mask>`,
   '<filter id="ix-blur" x="-20%" y="-60%" width="140%" height="220%"><feGaussianBlur stdDeviation="5"/></filter>',
   // The shadow is the shape's own and fades out before the bottom of Safari's page area.
@@ -80,7 +79,32 @@ export const TIP_GLASS = [
   '</svg>',
 ].join('')
 
+export const ILLUSTRATION_CSS = `
+.ix-stop--one { stop-color: #fff; stop-opacity: var(--one); }
+.ix-stop--q1 { stop-color: #fff; stop-opacity: var(--q1); }
+.ix-stop--q2 { stop-color: #fff; stop-opacity: var(--q2); }
+.ix-stop--q3 { stop-color: #fff; stop-opacity: var(--q3); }
+.ix-stop--zero { stop-color: #fff; stop-opacity: var(--zero); }
+.ix-stop--hl-bottom { stop-color: #fff; stop-opacity: var(--hl-bottom); }
+.ix-stop--qb1 { stop-color: #fff; stop-opacity: var(--qb1); }
+.ix-stop--qb2 { stop-color: #fff; stop-opacity: var(--qb2); }
+.ix-stop--qb3 { stop-color: #fff; stop-opacity: var(--qb3); }
+.ix-stop--ht { stop-color: #fff; stop-opacity: var(--ht); }
+.ix-stop--hs { stop-color: #fff; stop-opacity: var(--hs); }
+.ix-stop--hb { stop-color: #fff; stop-opacity: var(--hb); }
+.ix-alpha-mask { mask-type: alpha; }
+.ix-bottom-fill { fill: #fff; fill-opacity: var(--hl-bottom); }
+.ix-wall-start { stop-color:var(--w1); }
+.ix-wall-end { stop-color:var(--w2); }
+.ix-wall-glow { stop-color:var(--w3); }
+.ix-wall-clear { stop-color:var(--w3);stop-opacity:0; }
+.ix-metal-edge { stop-color:var(--metal-a); }
+.ix-metal-middle { stop-color:var(--metal-b); }
+
+`
+
 export const CSS_D = `
+${ILLUSTRATION_CSS}
 .ix { text-align: center; padding-inline: max(20px, env(safe-area-inset-left)) max(20px, env(safe-area-inset-right)); }
 .ix-hero { padding-top: clamp(14px, 3svh, 32px); }
 

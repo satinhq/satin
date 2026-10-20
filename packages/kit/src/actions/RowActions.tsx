@@ -131,6 +131,20 @@ function RowActionsEngine({
         : { offset: next, paintedSide }
     })
   }, [])
+  // App state changes in the committing input event. Keep the performed edge's
+  // presentation until its return motion ends, including a contact that catches it.
+  const [performedEdge, setPerformedEdge] = useState<SwipeActionsConfiguration>()
+  const drawnSwipeActions = useMemo(
+    () =>
+      performedEdge
+        ? (['leading', 'trailing'] as const).map(side =>
+            side === performedEdge.edge
+              ? performedEdge
+              : { edge: side, ...swipeEdge(swipeActions, side) },
+          )
+        : swipeActions,
+    [performedEdge, swipeActions],
+  )
   const definition = contextMenu ? contextDefinition(contextMenu) : undefined
   const presenter = useMenuPresenter({
     label: 'Actions',
@@ -145,18 +159,18 @@ function RowActionsEngine({
     if (!open) finishLift()
   }, [open, finishLift])
   const live = useRef({ offset: 0, open: false }),
-    props = useRef({ swipeActions, contextMenu, disabled })
+    props = useRef({ swipeActions, drawnSwipeActions, contextMenu, disabled })
   useLayoutEffect(() => {
-    props.current = { swipeActions, contextMenu, disabled }
+    props.current = { swipeActions, drawnSwipeActions, contextMenu, disabled }
     live.current.open = open
-  }, [swipeActions, contextMenu, disabled, open])
+  }, [swipeActions, drawnSwipeActions, contextMenu, disabled, open])
   useLayoutEffect(() => {
     // Context-only rows have no swipe labels or scroll source to size. Reading
     // every message here interleaves layout flushes with the preceding row's
     // writes, and observing each bubble repeats that work as its text grows.
     if (
-      !swipeEdge(swipeActions, 'leading').actions.length &&
-      !swipeEdge(swipeActions, 'trailing').actions.length
+      !swipeEdge(drawnSwipeActions, 'leading').actions.length &&
+      !swipeEdge(drawnSwipeActions, 'trailing').actions.length
     )
       return
     const element = host.current
@@ -164,7 +178,7 @@ function RowActionsEngine({
     if (!element || !content) return
     const layout = () => {
       const bounds = content.getBoundingClientRect()
-      updateRowCorners(content, bounds.width, bounds.height, swipeActions)
+      updateRowCorners(content, bounds.width, bounds.height, drawnSwipeActions)
       // Single-line native List rows put the label inside the capsule. Taller
       // rows retain the measured icon capsule with its caption below.
       const { inline, capsuleHeight, minimumButtonWidth } = swipeRowLayout(bounds.height)
@@ -195,7 +209,7 @@ function RowActionsEngine({
     observer.observe(content)
     element.querySelectorAll('[data-satin-swipe-label] > *').forEach(part => observer.observe(part))
     return () => observer.disconnect()
-  }, [swipeActions])
+  }, [drawnSwipeActions])
   const performing = useRef(false)
   // While a row moves (a swipe contact, then its settle) glass defers backdrop captures, as it
   // does while a list scrolls (glass/webgpu/production.ts). A capture reads the layout and pixels
@@ -212,11 +226,19 @@ function RowActionsEngine({
     const settled = () => {
       if (moving.current === token) delete element?.dataset.satinRowSwipeMoving
     }
-    if (settling) void settling.finished.then(settled, settled)
-    else settled()
+    if (settling)
+      void settling.finished.then(() => {
+        settled()
+        if (moving.current === token && live.current.offset === 0) setPerformedEdge(undefined)
+      }, settled)
+    else {
+      settled()
+      if (live.current.offset === 0) setPerformedEdge(undefined)
+    }
   }, [])
   const close = useCallback(() => {
     if (performing.current) return
+    setPerformedEdge(undefined)
     settleMoving()
     scrub.current?.cancel()
     scrub.current = undefined
@@ -264,7 +286,7 @@ function RowActionsEngine({
       live.current.offset = 0
       setOffset(0)
       const side = from >= 0 ? 'leading' : 'trailing'
-      const edge = swipeEdge(props.current.swipeActions, side)
+      const edge = swipeEdge(props.current.drawnSwipeActions, side)
       const animation = settleSwipe(
         content,
         from,
@@ -286,12 +308,21 @@ function RowActionsEngine({
   )
   const perform = useCallback(
     (
-      action: SwipeActionItem,
+      requestedAction: SwipeActionItem,
       direction = live.current.offset,
       fullSwipe = false,
       releasedAt?: number,
     ) => {
-      if (performing.current || props.current.disabled || action.disabled) return
+      const side = direction >= 0 ? 'leading' : 'trailing'
+      const currentEdge = swipeEdge(props.current.swipeActions, side)
+      const action = direction
+        ? currentEdge.actions.find(item => item.id === requestedAction.id)
+        : requestedAction
+      if (performing.current || props.current.disabled || action?.disabled) return
+      if (!action) {
+        close()
+        return
+      }
       if (!direction && !fullSwipe) {
         // Accessible/menu actions can open another presentation. Dismiss the old
         // one before calling out, so cleanup cannot close the newly opened menu.
@@ -304,8 +335,7 @@ function RowActionsEngine({
       if (!element || !content) return
       performing.current = true
       const width = element.getBoundingClientRect().width
-      const side = direction >= 0 ? 'leading' : 'trailing'
-      const edge = swipeEdge(props.current.swipeActions, side)
+      const edge = swipeEdge(props.current.drawnSwipeActions, side)
       const primary =
         element.querySelector<HTMLElement>(`[data-satin-swipe-tray="${side}"] > :first-child`) ??
         undefined
@@ -316,7 +346,14 @@ function RowActionsEngine({
       // whether List retains this cell as a departing paint layer.
       const clearRemoval = fullSwipe ? markRowSwipeRemoval(element) : undefined
       try {
-        withAnimation(() => action.onPress?.())
+        withAnimation(() => {
+          setPerformedEdge({
+            edge: side,
+            ...currentEdge,
+            actions: currentEdge.actions.map(item => ({ ...item })),
+          })
+          action.onPress?.()
+        })
       } catch (error) {
         performing.current = false
         close()
@@ -386,7 +423,7 @@ function RowActionsEngine({
         const element = host.current
         const content = body.current
         if (!element || !content || performing.current) return
-        const edge = swipeEdge(props.current.swipeActions, 'trailing')
+        const edge = swipeEdge(props.current.drawnSwipeActions, 'trailing')
         if (!edge.actions.length) return
         claim()
         const openWidth = swipeOpenWidth(edge.actions.length, swipeWidths(element).trailing)
@@ -512,7 +549,7 @@ function RowActionsEngine({
       const primary = element.querySelector<HTMLElement>(
         `[data-satin-swipe-tray="${side}"] > :first-child`,
       )
-      const edge = swipeEdge(props.current.swipeActions, side)
+      const edge = swipeEdge(props.current.drawnSwipeActions, side)
       cachedActions = primary
         ? swipeActionTracks(primary, edge.actions.length, rowWidth, edge.allowsFullSwipe)
         : []
@@ -529,9 +566,9 @@ function RowActionsEngine({
       const rest = caughtRowRest(
         initial,
         raw,
-        rowSwipeRaw(initial, rowWidth, props.current.swipeActions, widths),
+        rowSwipeRaw(initial, rowWidth, props.current.drawnSwipeActions, widths),
         swipeOpenWidth(
-          swipeEdge(props.current.swipeActions, cachedSide).actions.length,
+          swipeEdge(props.current.drawnSwipeActions, cachedSide).actions.length,
           widths[cachedSide],
         ),
       )
@@ -628,7 +665,7 @@ function RowActionsEngine({
         if (sample.phase === 'move') event?.stopPropagation()
         if (swipe) {
           const raw =
-            rowSwipeRaw(initial, rowWidth, props.current.swipeActions, swipeWidths(element)) +
+            rowSwipeRaw(initial, rowWidth, props.current.drawnSwipeActions, swipeWidths(element)) +
             sample.x -
             session.start.x
           // A lift-off sample is presented but never evaluated: release reads the
@@ -658,7 +695,7 @@ function RowActionsEngine({
           const released = scrub.current?.flush(performance.now(), false)
           const releaseRaw =
             released?.raw ??
-            rowSwipeRaw(initial, rowWidth, props.current.swipeActions, swipeWidths(element)) +
+            rowSwipeRaw(initial, rowWidth, props.current.drawnSwipeActions, swipeWidths(element)) +
               sample.x -
               session.start.x
           if (scrub.current) {
@@ -670,7 +707,10 @@ function RowActionsEngine({
           }
           delete element.dataset.satinRowScrubbing
           element.dataset.satinSwipeSide = current >= 0 ? 'leading' : 'trailing'
-          const edge = swipeEdge(props.current.swipeActions, current >= 0 ? 'leading' : 'trailing')
+          const edge = swipeEdge(
+            props.current.drawnSwipeActions,
+            current >= 0 ? 'leading' : 'trailing',
+          )
           const actions = edge.actions
           const first = actions[0]
           // The same rule that drives the takeover while held: a distance threshold,
@@ -785,7 +825,7 @@ function RowActionsEngine({
       if (initial === 0) resetSwipeFace(element)
       contact = createFullSwipeContact({
         width: rowWidth,
-        configuration: props.current.swipeActions,
+        configuration: props.current.drawnSwipeActions,
         widths: swipeWidths(element),
         inline: element.dataset.satinSwipeLabelLayout === 'inline',
         caught: initial ? caughtTakeovers(element, initial) : undefined,
@@ -812,7 +852,7 @@ function RowActionsEngine({
               body.current,
               initial,
               rowWidth,
-              props.current.swipeActions,
+              props.current.drawnSwipeActions,
               contact,
             )
           : undefined
@@ -821,8 +861,10 @@ function RowActionsEngine({
       owned = false
       arena = createRowArena(rect, {
         canPop: rowCanPop(target, x),
-        leading: !!swipeEdge(props.current.swipeActions, 'leading').actions.length || initial < 0,
-        trailing: !!swipeEdge(props.current.swipeActions, 'trailing').actions.length || initial > 0,
+        leading:
+          !!swipeEdge(props.current.drawnSwipeActions, 'leading').actions.length || initial < 0,
+        trailing:
+          !!swipeEdge(props.current.drawnSwipeActions, 'trailing').actions.length || initial > 0,
         context: !!props.current.contextMenu && !startedOnAction,
         calibration,
       })
@@ -1029,10 +1071,10 @@ function RowActionsEngine({
   }, [claim, close, dismissSwipe, show, perform, finishLift, startMoving, settleMoving])
   const select = (action: SwipeActionItem) => perform(action)
   const swipes =
-    !!swipeEdge(swipeActions, 'leading').actions.length ||
-    !!swipeEdge(swipeActions, 'trailing').actions.length
-  const leadingDrag = !!swipeEdge(swipeActions, 'leading').actions.length || offset < 0
-  const trailingDrag = !!swipeEdge(swipeActions, 'trailing').actions.length || offset > 0
+    !!swipeEdge(drawnSwipeActions, 'leading').actions.length ||
+    !!swipeEdge(drawnSwipeActions, 'trailing').actions.length
+  const leadingDrag = !!swipeEdge(drawnSwipeActions, 'leading').actions.length || offset < 0
+  const trailingDrag = !!swipeEdge(drawnSwipeActions, 'trailing').actions.length || offset > 0
   return (
     <div
       ref={host}
@@ -1079,7 +1121,7 @@ function RowActionsEngine({
                   disabled || !offset || (offset > 0 ? side !== 'leading' : side !== 'trailing')
                 }
               >
-                {swipeEdge(swipeActions, side).actions.map(action => (
+                {swipeEdge(drawnSwipeActions, side).actions.map(action => (
                   <Pressable
                     key={action.id}
                     disabled={disabled || action.disabled}

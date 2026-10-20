@@ -52,9 +52,9 @@ function ghosts(size: number, y: number, xs: number[], labels: boolean) {
 function wallpaper(id: string, width: number, height: number, top: number) {
   return [
     `<linearGradient id="${id}-w" x2="0" y1="${top}" y2="${height}" gradientUnits="userSpaceOnUse">`,
-    '<stop style="stop-color:var(--w1)"/><stop offset="1" style="stop-color:var(--w2)"/></linearGradient>',
-    `<radialGradient id="${id}-g"><stop style="stop-color:var(--w3)"/>`,
-    '<stop offset="1" style="stop-color:var(--w3);stop-opacity:0"/></radialGradient>',
+    '<stop class="ix-wall-start"/><stop offset="1" class="ix-wall-end"/></linearGradient>',
+    `<radialGradient id="${id}-g"><stop class="ix-wall-glow"/>`,
+    '<stop offset="1" class="ix-wall-clear"/></radialGradient>',
     `<rect width="${width}" height="${height}" fill="url(#${id}-w)"/>`,
     `<ellipse cx="${width * 0.2}" cy="${top + 20}" rx="${width * 0.8}" ry="${(height - top) * 0.7}" fill="url(#${id}-g)"/>`,
   ].join('')
@@ -77,8 +77,8 @@ export function phoneDrawing(icon: string) {
   ].join('')
   return [
     '<svg class="ix-device ix-phone" viewBox="-12 584 458 346" aria-hidden="true">',
-    '<linearGradient id="ix-pm" x2="1"><stop style="stop-color:var(--metal-a)"/>',
-    '<stop offset=".5" style="stop-color:var(--metal-b)"/><stop offset="1" style="stop-color:var(--metal-a)"/></linearGradient>',
+    '<linearGradient id="ix-pm" x2="1"><stop class="ix-metal-edge"/>',
+    '<stop offset=".5" class="ix-metal-middle"/><stop offset="1" class="ix-metal-edge"/></linearGradient>',
     '<rect class="ix-frame" width="434" height="906" rx="78" fill="url(#ix-pm)"/>',
     '<rect class="ix-border" x="4" y="4" width="426" height="898" rx="74"/>',
     '<clipPath id="ix-ps"><rect width="402" height="874" rx="62"/></clipPath>',
@@ -106,8 +106,8 @@ export function padDrawing(icon: string) {
   ].join('')
   return [
     '<svg class="ix-device ix-tablet" viewBox="-14 880 950 442" aria-hidden="true">',
-    '<linearGradient id="ix-tm" x2="1"><stop style="stop-color:var(--metal-a)"/>',
-    '<stop offset=".5" style="stop-color:var(--metal-b)"/><stop offset="1" style="stop-color:var(--metal-a)"/></linearGradient>',
+    '<linearGradient id="ix-tm" x2="1"><stop class="ix-metal-edge"/>',
+    '<stop offset=".5" class="ix-metal-middle"/><stop offset="1" class="ix-metal-edge"/></linearGradient>',
     '<rect class="ix-frame" width="922" height="1298" rx="64" fill="url(#ix-tm)"/>',
     '<rect class="ix-border" x="4" y="4" width="914" height="1290" rx="60"/>',
     '<clipPath id="ix-ts"><rect width="834" height="1210" rx="20"/></clipPath>',

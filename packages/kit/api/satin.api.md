@@ -5948,8 +5948,8 @@ Value
 ```ts
 /** Embeds a web page in a sandboxed frame. The browser decides whether the page may be framed, and
  * the frame's storage is partitioned from the app's. */
-export declare function WebView({ url: input, title, controller, className, style, onStateChange, allowsJavaScript, allowsForms, sizing, fitsWidth, onOpenURL, }: WebViewProps): import("react").JSX.Element | null;
-// Resolved: ({ url: input, title, controller, className, style, onStateChange, allowsJavaScript, allowsForms, sizing, fitsWidth, onOpenURL, }: WebViewProps) => Element | null
+export declare function WebView({ url: input, title, controller, className, style, onStateChange, allowsJavaScript, allowsForms, allowsLinkOpening, sizing, fitsWidth, onOpenURL, }: WebViewProps): import("react").JSX.Element | null;
+// Resolved: ({ url: input, title, controller, className, style, onStateChange, allowsJavaScript, allowsForms, allowsLinkOpening, sizing, fitsWidth, onOpenURL, }: WebViewProps) => Element | null
 ```
 
 ## WebViewLink
@@ -5979,6 +5979,9 @@ export interface WebViewProps {
     /** Explicitly allow scripts. Same-origin scripted content must be trusted. */
     allowsJavaScript?: boolean;
     allowsForms?: boolean;
+    /** Open safe same-origin document links outside the frame. Default: true.
+     * Set false to remove link destinations and withhold sandbox popup permissions. */
+    allowsLinkOpening?: boolean;
     /** Same-origin document height, or fill the height supplied by the parent. Foreign frames fill. */
     sizing?: 'fill' | 'content';
     /** Scale wide same-origin documents down to the available width. Default: true. */
@@ -14869,6 +14872,14 @@ allowsJavaScript?: boolean;
 // web/WebView.d.ts :: allowsJavaScript
 allowsJavaScript
 
+// web/WebView.d.ts :: allowsLinkOpening
+/** Open safe same-origin document links outside the frame. Default: true.
+ * Set false to remove link destinations and withhold sandbox popup permissions. */
+allowsLinkOpening?: boolean;
+
+// web/WebView.d.ts :: allowsLinkOpening
+allowsLinkOpening
+
 // web/WebView.d.ts :: className
 className
 
@@ -15022,7 +15033,7 @@ export type WebFrameState = {
 // web/WebView.d.ts :: WebView
 /** Embeds a web page in a sandboxed frame. The browser decides whether the page may be framed, and
  * the frame's storage is partitioned from the app's. */
-export declare function WebView({ url: input, title, controller, className, style, onStateChange, allowsJavaScript, allowsForms, sizing, fitsWidth, onOpenURL, }: WebViewProps): import("react").JSX.Element | null;
+export declare function WebView({ url: input, title, controller, className, style, onStateChange, allowsJavaScript, allowsForms, allowsLinkOpening, sizing, fitsWidth, onOpenURL, }: WebViewProps): import("react").JSX.Element | null;
 
 // web/WebView.d.ts :: WebViewProps
 /** The page URL, its accessible title, an optional controller, and what the page may run. Scripts
@@ -15035,6 +15046,9 @@ export interface WebViewProps {
     /** Explicitly allow scripts. Same-origin scripted content must be trusted. */
     allowsJavaScript?: boolean;
     allowsForms?: boolean;
+    /** Open safe same-origin document links outside the frame. Default: true.
+     * Set false to remove link destinations and withhold sandbox popup permissions. */
+    allowsLinkOpening?: boolean;
     /** Same-origin document height, or fill the height supplied by the parent. Foreign frames fill. */
     sizing?: 'fill' | 'content';
     /** Scale wide same-origin documents down to the available width. Default: true. */

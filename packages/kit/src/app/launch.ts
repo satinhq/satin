@@ -81,7 +81,7 @@ async function findOwnRegistration(scope: string) {
       navigator.serviceWorker.getRegistration(scope),
       new Promise<never>((_resolve, reject) => {
         lookupTimer = setTimeout(
-          () => reject(new Error('Service worker reset did not finish. Please retry.')),
+          () => reject(new Error('Service worker lookup did not finish. Please retry.')),
           3000,
         )
       }),

@@ -106,6 +106,31 @@ it('follows appended and streamed content only while pinned, then resumes after 
   run.grow(50)
   expect(run.surface.scrollTop).toBe(0)
 })
+it('follows an overflowing append after the transcript fits the viewport', () => {
+  const run = fixture()
+  run.read(0)
+  run.resize(400)
+  expect(run.surface.scrollTop).toBe(0)
+
+  run.add('sent', 300)
+  run.controller.targetsChanged()
+  run.grow(150)
+
+  expect(run.surface.scrollTop).toBe(50)
+  expect(run.controller.followsEnd()).toBe(true)
+})
+
+it('retains a scrolled-up reader when an incoming message extends a long thread', () => {
+  const run = fixture()
+  run.read(60)
+  run.add('incoming', 300)
+  run.controller.targetsChanged()
+  run.grow(50)
+
+  expect(run.surface.scrollTop).toBe(60)
+  expect(run.controller.followsEnd()).toBe(false)
+})
+
 it('keeps following its bottom when the page was resized while hidden', () => {
   const run = fixture()
   let visibility: DocumentVisibilityState = 'visible'
@@ -133,6 +158,16 @@ it('keeps following its bottom when the page was resized while hidden', () => {
   // A reader's own scroll after returning still leaves the bottom.
   run.read(50)
   expect(run.controller.followsEnd()).toBe(false)
+
+  // A fitting app-switcher snapshot must not turn a reader into a bottom follower.
+  setVisibility('hidden')
+  run.resize(400)
+  run.resize(100)
+  setVisibility('visible')
+  expect(run.controller.followsEnd()).toBe(false)
+  const restored = run.surface.scrollTop
+  run.grow(50)
+  expect(run.surface.scrollTop).toBe(restored)
 })
 it('preserves the visible message through prepends and viewport changes while keeping a pinned bottom', () => {
   const run = fixture()

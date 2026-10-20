@@ -69,6 +69,8 @@ import {
   type ScrubDiagnosticState,
 } from './interactivePopTypes.ts'
 import { bindTouchArbitration } from './touchArbitration.ts'
+import { bindScopedBackSwipe } from './scopedBackSwipe.ts'
+import { PaneGestureScopeContext, gestureScopeFlagEnabled } from '../gestures/scopeContext.ts'
 import { createPointerPopHandlers } from './pointerPop.ts'
 import { DetailScrubSource, StackScrubSource, stackScrubHostStyle } from './ScrubSourceFrames.tsx'
 import {
@@ -144,6 +146,11 @@ export function NavigatorHost<Registry extends ScreenRegistry>({
   const [nativeNavigation] = useState(
     () => typeof window !== 'undefined' && 'ScrollTimeline' in window,
   )
+  // Experimental: inside a shared pane scope (the experimental drawer), or with the development
+  // flag, the back swipe is a participant of the private gesture scope. Fixed for this host's
+  // lifetime, like the native driver.
+  const paneScope = useContext(PaneGestureScopeContext)
+  const [scopedGestures] = useState(() => paneScope !== undefined || gestureScopeFlagEnabled())
   const hostRef = useRef<HTMLDivElement>(null)
   const screenElements = useRef(new Map<string, TransitionScreenElements>())
   const navigationTitleElements = useMemo(() => new Map<string, HTMLElement>(), [])
@@ -347,13 +354,29 @@ export function NavigatorHost<Registry extends ScreenRegistry>({
     if (!nativeNavigation || !source || transitionActive) return
     const clamp = () => {
       if (earlyTouchArbitrationRef.current || gestureRef.current) return
+      if (paneScope?.contentSourceBorrowed()) return
       const origin = source.clientWidth * 2
       if (source.scrollLeft !== origin) source.scrollLeft = origin
     }
     source.addEventListener('scroll', clamp, { passive: true })
     clamp()
     return () => source.removeEventListener('scroll', clamp)
-  }, [nativeNavigation, nativeSourceRef, split, state.entries.length, transitionActive])
+  }, [nativeNavigation, nativeSourceRef, split, state.entries.length, transitionActive, paneScope])
+
+  // A shared pane scope's drawer opens from the same private stack scroller (one native source
+  // per pane, assigned per contact by the scope).
+  useLayoutEffect(() => {
+    if (!paneScope) return
+    const native = nativeNavigation && !split
+    paneScope.publishContent({
+      source: native ? stackSourceRef.current : null,
+      movable: native ? hostRef.current : null,
+      atRoot: () =>
+        navigator.getState().entries.length === 1 &&
+        navigator[navigatorTransitionRuntime].descriptors().length === 0,
+    })
+    return () => paneScope.publishContent(null)
+  }, [paneScope, nativeNavigation, split, navigator])
 
   useLayoutEffect(() => {
     if (nativeNavigation && !transitionActive && nativeSourceRef.current)
@@ -575,7 +598,11 @@ export function NavigatorHost<Registry extends ScreenRegistry>({
   useLayoutEffect(() => {
     const host = hostRef.current
     if (!host || !tabActive) return
-    const arbitration = bindTouchArbitration(host, {
+    const bind = scopedGestures
+      ? (target: HTMLDivElement, context: Parameters<typeof bindTouchArbitration>[1]) =>
+          bindScopedBackSwipe(target, context, paneScope?.scope)
+      : bindTouchArbitration
+    const arbitration = bind(host, {
       navigator,
       nativeNavigation,
       automaticPushActive,
@@ -609,6 +636,8 @@ export function NavigatorHost<Registry extends ScreenRegistry>({
     automaticPushActive,
     tabActive,
     nativeSourceRef,
+    scopedGestures,
+    paneScope,
   ])
 
   // The handlers read these refs only when pointer events arrive, never during render.

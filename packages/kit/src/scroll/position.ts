@@ -89,6 +89,13 @@ export function createScrollPositionController(
       containerHeight: surface.clientHeight,
       distanceToBottom: Math.max(0, maximum() - surface.scrollTop),
     }
+    // A visible, fitting transcript has no older reading position to retain.
+    // Hidden app-switcher snapshots must not change the reader's follow intent.
+    if (
+      surface.ownerDocument.visibilityState === 'visible' &&
+      geometry.contentHeight <= geometry.containerHeight
+    )
+      pinned = true
     const signature = `${geometry.contentOffset}/${geometry.contentHeight}/${geometry.containerHeight}`
     const target = visible()
     anchor = target ? { id: target[0], top: top(target[1]) } : undefined

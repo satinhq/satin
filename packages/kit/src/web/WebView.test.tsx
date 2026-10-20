@@ -1,10 +1,16 @@
 // @vitest-environment happy-dom
-import { act } from 'react'
+import { act, useSyncExternalStore } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, expect, it, vi } from 'vitest'
 import { bindFrameDocument } from './frameDocument.ts'
 import { bindMenuOutside, holdEmbeddedFrameInput } from '../menu/menuOutside.ts'
 import { WebView, useWebFrame, type WebFrameController } from './WebView.tsx'
+
+import { NavigatorContext, ScreenContext } from '../navigation/navigationContext.tsx'
+import { createNavigator } from '../navigation/store.ts'
+import { createScreenRegistry, defineScreen } from '../navigation/registry.ts'
+import { createScrollSurfaceRegistry } from '../scroll/registry.ts'
+import type { TransitionController } from '../navigation/types.ts'
 
 const roots: ReturnType<typeof createRoot>[] = []
 afterEach(() => {
@@ -122,7 +128,7 @@ it('blocks executable links and resolves authored targets through the document b
   for (const anchor of content.querySelectorAll('a')) {
     const tap = new MouseEvent('click', { bubbles: true, cancelable: true })
     anchor.dispatchEvent(tap)
-    expect(tap.defaultPrevented).toBe(true)
+    expect(tap.defaultPrevented).toBe(anchor.hasAttribute('href'))
   }
   content
     .querySelector('a')!
@@ -225,4 +231,178 @@ it('dismisses a catcher drag and wheel, consumes closing contacts, and refcounts
   releaseAgain()
   expect(document.documentElement.hasAttribute('data-satin-menu-shown')).toBe(false)
   dispose()
+})
+
+it('prepares native scripts-off links before display, strips unsafe schemes, and keeps frame history untouched', () => {
+  const frame = document.createElement('iframe')
+  document.body.append(frame)
+  const content = document.implementation.createHTMLDocument('Email')
+  content.head.innerHTML = '<base href="https://example.test/mail/" target="_blank">'
+  content.body.innerHTML =
+    '<a href="story" target="_self" ping="/track" download>Read</a>' +
+    '<a href="javascript:alert(1)">JS</a><a href="data:text/html,bad">Data</a>' +
+    '<a href="https://user:password@localhost/">Credentials</a><a href="mailto:a@localhost">Mail</a>' +
+    '<area href="https://example.test/map" target="_parent">' +
+    '<form action="/submit" target="_blank"><button formtarget="_blank">Submit</button></form>' +
+    '<svg xmlns:xlink="http://www.w3.org/1999/xlink"><a xlink:href="data:text/html,bad" target="_blank">SVG unsafe</a></svg>'
+  Object.defineProperty(frame, 'contentDocument', { value: content })
+  const opened = vi.fn()
+  const dispose = bindFrameDocument(
+    frame,
+    {
+      sizing: 'fill',
+      fitsWidth: false,
+      nativeLinks: true,
+      onOpenURL: opened,
+    },
+    () => {},
+  )
+  const anchor = content.querySelector('a')!
+  expect(anchor.getAttribute('href')).toBe('https://example.test/mail/story')
+  expect(anchor.getAttribute('target')).toBe('_blank')
+  expect(anchor.getAttribute('rel')).toBe('noopener noreferrer')
+  expect(content.querySelector('form')?.getAttribute('target')).toBe('_self')
+  expect(content.querySelector('button')?.getAttribute('formtarget')).toBe('_self')
+  expect(anchor.hasAttribute('ping')).toBe(false)
+  expect(anchor.hasAttribute('download')).toBe(false)
+  expect(content.querySelectorAll('a[href]')).toHaveLength(1)
+  expect(
+    content.querySelector('svg a')?.getAttributeNS('http://www.w3.org/1999/xlink', 'href'),
+  ).toBeNull()
+  expect(content.querySelector('area')?.getAttribute('target')).toBe('_blank')
+  const tap = new MouseEvent('click', { bubbles: true, cancelable: true })
+  anchor.dispatchEvent(tap)
+  expect(tap.defaultPrevented).toBe(false)
+  expect(opened).not.toHaveBeenCalled()
+  dispose()
+})
+
+it('grants native popup permissions only for enabled same-origin scripts-off links', () => {
+  const container = document.createElement('div')
+  document.body.append(container)
+  const root = createRoot(container)
+  roots.push(root)
+  const render = (props: Partial<Parameters<typeof WebView>[0]>) => {
+    act(() => root.render(<WebView url="/email.html" title="Email" {...props} />))
+    return container.querySelector('iframe')!.getAttribute('sandbox')!
+  }
+  expect(render({})).toContain('allow-popups-to-escape-sandbox')
+  expect(render({})).not.toContain('allow-scripts')
+  expect(render({ allowsLinkOpening: false })).not.toContain('allow-popups')
+  expect(render({ allowsJavaScript: true })).not.toContain('allow-popups')
+  expect(render({ url: 'https://foreign.test/mail' })).not.toContain('allow-popups')
+})
+
+it('disabling link opening removes safe destinations too, without relying on a click listener', () => {
+  const frame = document.createElement('iframe')
+  document.body.append(frame)
+  const content = document.implementation.createHTMLDocument('Email')
+  content.body.innerHTML = '<a href="https://example.test/">Read</a>'
+  Object.defineProperty(frame, 'contentDocument', { value: content })
+  const dispose = bindFrameDocument(
+    frame,
+    {
+      sizing: 'fill',
+      fitsWidth: false,
+      nativeLinks: true,
+      allowsLinkOpening: false,
+    },
+    () => {},
+  )
+  expect(content.querySelector('a')?.hasAttribute('href')).toBe(false)
+  dispose()
+})
+
+it('sanitizes native links in a standalone SVG document before skipping HTML layout', () => {
+  const frame = document.createElement('iframe')
+  document.body.append(frame)
+  const content = new DOMParser().parseFromString(
+    '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">' +
+      '<a xlink:href="data:text/html,bad" target="_blank">Unsafe</a>' +
+      '<a href="https://example.test/">Safe</a></svg>',
+    'image/svg+xml',
+  )
+  Object.defineProperty(frame, 'contentDocument', { value: content })
+  const dispose = bindFrameDocument(
+    frame,
+    { sizing: 'fill', fitsWidth: false, nativeLinks: true },
+    () => {},
+  )
+  const anchors = content.querySelectorAll('a')
+  expect(anchors[0]?.getAttributeNS('http://www.w3.org/1999/xlink', 'href')).toBeNull()
+  expect(anchors[0]?.hasAttribute('href')).toBe(false)
+  expect(anchors[1]?.getAttribute('target')).toBe('_blank')
+  expect(anchors[1]?.getAttribute('rel')).toBe('noopener noreferrer')
+  dispose()
+})
+
+it('reserves an email back edge only while its navigation screen has a back destination', () => {
+  const controllers: TransitionController[] = []
+  const navigator = createNavigator({
+    registry: createScreenRegistry(defineScreen('email', { component: () => null })),
+    initial: { id: 'email' },
+    transitionControllerFactory: completion => {
+      const controller = { progress: 0, finish: completion.finish, cancel: completion.cancel }
+      controllers.push(controller)
+      return controller
+    },
+  })
+  const scrollRegistry = createScrollSurfaceRegistry()
+  function CurrentEmail() {
+    const state = useSyncExternalStore(navigator.subscribe, navigator.getState)
+    const entry = state.entries.at(-1)!
+    return (
+      <NavigatorContext value={navigator}>
+        <ScreenContext
+          value={{
+            key: entry.key,
+            params: undefined,
+            scrollRegistry,
+            lifecycle: { isCovered: false, phase: entry.transition.phase },
+          }}
+        >
+          <WebView url="https://example.test/email" title="Email" />
+        </ScreenContext>
+      </NavigatorContext>
+    )
+  }
+  const container = document.createElement('div')
+  container.setAttribute('data-satin-navigator-host', '')
+  document.body.append(container)
+  const root = createRoot(container)
+  roots.push(root)
+  act(() => root.render(<CurrentEmail />))
+  expect(container.querySelector('[data-satin-webview-back-edge]')).toBeNull()
+  act(() => {
+    navigator.push('email')
+    controllers.at(-1)!.finish()
+  })
+  let edge = container.querySelector<HTMLElement>('[data-satin-webview-back-edge]')!
+  expect(edge.style.width).toBe('20px')
+  expect(edge.parentElement).toBe(container.querySelector('iframe')!.parentElement)
+  act(() =>
+    root.render(
+      <dialog open>
+        <CurrentEmail />
+      </dialog>,
+    ),
+  )
+  expect(
+    container.querySelector<HTMLElement>('[data-satin-webview-back-edge]')!.style.display,
+  ).toBe('none')
+  act(() =>
+    root.render(
+      <dialog open>
+        <div data-satin-navigator-host="">
+          <CurrentEmail />
+        </div>
+      </dialog>,
+    ),
+  )
+  edge = container.querySelector<HTMLElement>('[data-satin-webview-back-edge]')!
+  expect(edge.style.display).toBe('')
+  act(() => navigator.pop())
+  expect(container.querySelector('[data-satin-webview-back-edge]')).toBe(edge)
+  act(() => controllers.at(-1)!.finish())
+  expect(container.querySelector('[data-satin-webview-back-edge]')).toBeNull()
 })

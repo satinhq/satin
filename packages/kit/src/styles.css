@@ -9392,4 +9392,138 @@
   :root[data-satin-menu-shown] [data-satin-menu-top-layer='true'] [data-satin-webview-catcher] {
     display: none;
   }
+
+  /* EXPERIMENTAL sidebar drawer and three-pane container (private).
+ * Geometry and hit testing only: the app owns the panel's shape, material and colour.
+ * Motion tracks write transform/opacity inline (gestures/axisPresenter.ts); nothing here animates. */
+  [data-satin-drawer='root'] {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    isolation: isolate;
+  }
+
+  [data-satin-drawer-content] {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+  }
+
+  [data-satin-drawer-underlay] {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+  }
+
+  [data-satin-drawer-motion='push'] [data-satin-drawer-underlay] {
+    z-index: 3;
+    pointer-events: none;
+  }
+
+  /* The overlay's private native scroller: close contacts on the scrim or panel chrome pan it.
+ * It never takes touches itself; only its presented children do. */
+  [data-satin-drawer-overlay-source] {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    direction: ltr;
+    overflow-x: scroll;
+    overflow-y: hidden;
+    overscroll-behavior-x: none;
+    scrollbar-width: none;
+    pointer-events: none;
+  }
+
+  [data-satin-drawer-overlay-source]::-webkit-scrollbar {
+    display: none;
+  }
+
+  [data-satin-drawer-track] {
+    width: 500%;
+    height: 100%;
+  }
+
+  [data-satin-drawer-layer] {
+    position: sticky;
+    left: 0;
+    top: 0;
+    width: 20%;
+    height: 100%;
+    transform: translateZ(0);
+  }
+
+  /* Provisional scrim: the semantic presentation dimmer, faded by the drawer's opacity track. */
+  [data-satin-drawer-scrim] {
+    position: absolute;
+    inset: 0;
+    background: rgb(0 0 0 / var(--satin-presentation-dim-alpha, 20%));
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  [data-satin-drawer-presented] [data-satin-drawer-scrim] {
+    pointer-events: auto;
+  }
+
+  /* WebKit binds a contact to a scroller only when the scroller itself takes touches. While an
+ * overlay is presented, its private scroller covers the pane (the content is inert). */
+  [data-satin-drawer-motion='overlay'][data-satin-drawer-presented]
+    [data-satin-drawer-overlay-source] {
+    pointer-events: auto;
+  }
+
+  [data-satin-drawer-panel] {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: var(--satin-drawer-width);
+    overflow: hidden;
+    outline: none;
+    pointer-events: auto;
+    background: var(--satin-background, Canvas);
+    transform: translate3d(calc(-1 * var(--satin-drawer-width) - 1px), 0, 0);
+  }
+
+  [data-satin-drawer-side='right'] [data-satin-drawer-panel] {
+    left: auto;
+    right: 0;
+    transform: translate3d(calc(var(--satin-drawer-width) + 1px), 0, 0);
+  }
+
+  [data-satin-drawer-motion='reveal'] [data-satin-drawer-panel] {
+    transform: none;
+  }
+
+  [data-satin-three-pane] {
+    position: relative;
+    width: 100%;
+    height: 100%;
+  }
+
+  [data-satin-three-pane-columns] {
+    display: flex;
+    height: 100%;
+  }
+
+  [data-satin-three-pane-pane] {
+    position: relative;
+    height: 100%;
+    min-width: 0;
+  }
+
+  [data-satin-three-pane-pane='sidebar'],
+  [data-satin-three-pane-pane='content'] {
+    flex: 0 0 var(--satin-three-pane-sidebar);
+    border-inline-end: 0.5px solid var(--satin-separator, rgb(60 60 67 / 29%));
+  }
+
+  [data-satin-three-pane-pane='content'] {
+    flex-basis: var(--satin-three-pane-content);
+  }
+
+  [data-satin-three-pane-pane='detail'] {
+    flex: 1 1 auto;
+  }
 }

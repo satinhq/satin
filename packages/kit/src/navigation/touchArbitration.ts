@@ -72,11 +72,24 @@ function runArmedNativeBlockExperiment() {
   }, 350)
 }
 
-/** Touch arbitration for the interactive pop: a contact is tracked from touch-down, claimed on a
- * horizontal direction lock, recognized past the intent distance (acquiring the pop), scrubbed by
- * the private ScrollTimeline source or a frame loop, and released on touchend/touchcancel.
- * Returns the listeners' cleanup. */
-export function bindTouchArbitration(host: HTMLDivElement, context: TouchArbitrationContext) {
+/** How a contact's direction lock resolved, as the back swipe reports it. */
+export type BackSwipeRejection = 'leftward' | 'lost' | 'vertical'
+
+/**
+ * The back swipe's contact core: touch-down gate, bookkeeping, claim, recognition (acquiring the
+ * pop), scrub source choice and release. It owns the back swipe's response. Two drivers decide
+ * ownership and call it in the same order: `bindTouchArbitration` (host listeners and the
+ * direction lock, the shipping path) and the experimental gesture scope
+ * (`scopedBackSwipe.ts`, behind a development flag).
+ *
+ * `setRowFallback(true)` asks the driver for cancelable moves for this contact (a row whose touch
+ * policy blocks the native source); `false` releases that request.
+ */
+export function createBackSwipeContact(
+  host: HTMLDivElement,
+  context: TouchArbitrationContext,
+  setRowFallback: (active: boolean) => void,
+) {
   const {
     navigator,
     nativeNavigation,
@@ -155,15 +168,7 @@ export function bindTouchArbitration(host: HTMLDivElement, context: TouchArbitra
     retainedGlassContact?.abort()
     retainedGlassContact = undefined
   }
-  let rowFallbackListener = false
-  const releaseRowFallback = () => {
-    host.removeEventListener('touchmove', handleRowFallbackMove)
-    rowFallbackListener = false
-  }
-  const handleRowFallbackMove = (event: TouchEvent) => handleTouchMove(event)
-  const handleCommonMove = (event: TouchEvent) => {
-    if (!rowFallbackListener) handleTouchMove(event)
-  }
+  const releaseRowFallback = () => setRowFallback(false)
   /** Some entry above the root is not already leaving. */
   const hasPopTarget = () =>
     navigator
@@ -199,7 +204,8 @@ export function bindTouchArbitration(host: HTMLDivElement, context: TouchArbitra
     if (!hostGeometryRef.current?.width) return 'geometry-unavailable'
     return undefined
   }
-  const handleTouchStart = (event: TouchEvent) => {
+  /** Touch-down gate. Records it and returns the refusal reason, or undefined to track. */
+  const admit = (event: TouchEvent) => {
     const target = event.target instanceof Element ? event.target : undefined
     const pendingPush = nativeNavigation && automaticPushActive
     const gateReason = contactGateReason(event, target, pendingPush)
@@ -220,7 +226,12 @@ export function bindTouchArbitration(host: HTMLDivElement, context: TouchArbitra
         phase: descriptor.controller.interactionPhase,
       })),
     }))
-    if (reason) return
+    return reason
+  }
+  /** Starts tracking an admitted contact. */
+  const begin = (event: TouchEvent) => {
+    const target = event.target instanceof Element ? event.target : undefined
+    const pendingPush = nativeNavigation && automaticPushActive
     for (const transition of navigator[navigatorTransitionRuntime].descriptors())
       transition.controller.prepareForNextGesture?.()
     if (nativeNavigation) runArmedNativeBlockExperiment()
@@ -260,10 +271,7 @@ export function bindTouchArbitration(host: HTMLDivElement, context: TouchArbitra
         screenKey: pendingPushKey,
         identifier: touch.identifier,
       }))
-    if (nativeNavigation && rowBlocksNativeSource) {
-      rowFallbackListener = true
-      host.addEventListener('touchmove', handleRowFallbackMove, { passive: false })
-    }
+    if (nativeNavigation && rowBlocksNativeSource) setRowFallback(true)
     earlyTouchArbitrationRef.current = {
       previousX: x,
       pendingPushKey,
@@ -468,65 +476,100 @@ export function bindTouchArbitration(host: HTMLDivElement, context: TouchArbitra
         velocityPointsPerSecond: arbitration.velocityPointsPerSecond,
       })
   }
-  const handleTouchMove = (event: TouchEvent) => {
+  /** Records a primary move. Returns 'cancelled' when WebKit has already committed browser
+   * panning for a row-fallback contact; the driver then finishes it as cancelled. */
+  const observe = (event: TouchEvent): 'cancelled' | undefined => {
     const arbitration = earlyTouchArbitrationRef.current
-    if (!arbitration) return
+    if (!arbitration) return undefined
     const touch = changedTouch(event, arbitration.identifier)
-    if (!touch) return
+    if (!touch) return undefined
     // A noncancelable move means WebKit has already committed browser panning.
     // Never acquire (or continue) a competing frame-driven navigation gesture.
     if (arbitration.rowBlocksNativeSource && !event.cancelable) {
       releaseRowFallback()
-      finishTouch(event, true)
-      return
+      return 'cancelled'
     }
     const geometry = hostGeometryRef.current
-    if (!geometry) return
+    if (!geometry) return undefined
     updateArbitration(
       arbitration,
       touch.clientX - geometry.left,
       touch.clientY - geometry.top,
       event.timeStamp,
     )
+    return undefined
+  }
+  /** The direction lock claimed the contact for the back swipe. */
+  const claim = (event: TouchEvent) => {
+    const arbitration = earlyTouchArbitrationRef.current
+    if (arbitration?.state !== 'tracking') return
+    arbitration.claimDeltaX = arbitration.currentX - arbitration.startX
+    arbitration.claimDeltaY = arbitration.currentY - arbitration.startY
+    arbitration.state = 'claimed'
+    if (!nativeNavigation || arbitration.rowBlocksNativeSource) event.preventDefault()
+    reportEarlyTouch('touchclaim', arbitration, 'early-horizontal-claim')
+  }
+  /** The direction lock (or a competing owner) refused the contact. */
+  const reject = (rejection: BackSwipeRejection) => {
+    const arbitration = earlyTouchArbitrationRef.current
+    if (arbitration?.state !== 'tracking') return
+    arbitration.state = 'rejected'
+    releaseRowFallback()
+    reportEarlyTouch(
+      'touchreject',
+      arbitration,
+      rejection === 'vertical'
+        ? 'early-vertical-release'
+        : rejection === 'leftward'
+          ? 'early-leftward-release'
+          : 'lost-arbitration',
+    )
+  }
+  /** A claimed or recognized contact moved: acquire the pop past the intent distance and feed
+   * the frame loop. One delivered sample may cross both lock and recognition thresholds;
+   * acquire on that sample, since waiting for another would consume its whole displacement as
+   * hysteresis on coarse or delayed input delivery. */
+  const advance = (event: TouchEvent) => {
+    const arbitration = earlyTouchArbitrationRef.current
+    if (!arbitration) return
+    if (arbitration.state !== 'claimed' && arbitration.state !== 'recognized') return
+    if (!changedTouch(event, arbitration.identifier) || !hostGeometryRef.current) return
+    if (!nativeNavigation || arbitration.rowBlocksNativeSource) event.preventDefault()
+    let controller = earlyTouchControllerRef.current
+    if (
+      !controller &&
+      arbitration.currentX - arbitration.startX >= NAVIGATION_HORIZONTAL_INTENT_PX
+    ) {
+      controller = recognizeBackSwipe(arbitration, event)
+      if (!controller) return
+    }
+    updateScrubDiagnostic(scrubDiagnosticStateRef.current, 'touch', arbitration)
+    if (controller) {
+      scrubFrameLoopRef.current?.record(arbitration.progress, event.timeStamp)
+    }
+  }
+  /** The shipping driver's move: bookkeeping, the direction lock, then the claimed block. */
+  const handleTouchMove = (event: TouchEvent) => {
+    if (observe(event) === 'cancelled') {
+      finishTouch(event, true)
+      return
+    }
+    const arbitration = earlyTouchArbitrationRef.current
+    if (!arbitration || !changedTouch(event, arbitration.identifier)) return
+    if (!hostGeometryRef.current) return
     if (arbitration.state === 'tracking') {
-      const deltaX = arbitration.currentX - arbitration.startX
-      const deltaY = arbitration.currentY - arbitration.startY
-      const resolution = resolveInteractivePopDirectionLock(deltaX, deltaY)
+      const resolution = resolveInteractivePopDirectionLock(
+        arbitration.currentX - arbitration.startX,
+        arbitration.currentY - arbitration.startY,
+      )
       if (resolution === 'tracking') return
       if (resolution !== 'claim-horizontal') {
-        arbitration.state = 'rejected'
-        releaseRowFallback()
-        reportEarlyTouch(
-          'touchreject',
-          arbitration,
-          resolution === 'reject-vertical' ? 'early-vertical-release' : 'early-leftward-release',
-        )
+        reject(resolution === 'reject-vertical' ? 'vertical' : 'leftward')
         return
       }
-      arbitration.claimDeltaX = deltaX
-      arbitration.claimDeltaY = deltaY
-      arbitration.state = 'claimed'
-      if (!nativeNavigation || arbitration.rowBlocksNativeSource) event.preventDefault()
-      reportEarlyTouch('touchclaim', arbitration, 'early-horizontal-claim')
-      // One delivered sample may cross both lock and recognition thresholds.
-      // Acquire on that sample; waiting for another would consume its entire
-      // displacement as hysteresis on coarse or delayed input delivery.
+      claim(event)
     }
-    if (arbitration.state === 'claimed' || arbitration.state === 'recognized') {
-      if (!nativeNavigation || arbitration.rowBlocksNativeSource) event.preventDefault()
-      let controller = earlyTouchControllerRef.current
-      if (
-        !controller &&
-        arbitration.currentX - arbitration.startX >= NAVIGATION_HORIZONTAL_INTENT_PX
-      ) {
-        controller = recognizeBackSwipe(arbitration, event)
-        if (!controller) return
-      }
-      updateScrubDiagnostic(scrubDiagnosticStateRef.current, 'touch', arbitration)
-      if (controller) {
-        scrubFrameLoopRef.current?.record(arbitration.progress, event.timeStamp)
-      }
-    }
+    advance(event)
   }
   const finishTouch = (event: TouchEvent, cancelled: boolean) => {
     const arbitration = earlyTouchArbitrationRef.current
@@ -646,28 +689,70 @@ export function bindTouchArbitration(host: HTMLDivElement, context: TouchArbitra
     gestureRef.current = undefined
     interactiveControllerRef.current = undefined
   }
+  const releaseClaim = () => {
+    retireGlassContact()
+    releaseRowFallback()
+  }
+  return {
+    admit,
+    begin,
+    observe,
+    claim,
+    reject,
+    advance,
+    finish: finishTouch,
+    handleTouchMove,
+    releaseClaim,
+    /** Moves must be cancelable for the current contact. */
+    needsCancelableMoves: () =>
+      !nativeNavigation || Boolean(earlyTouchArbitrationRef.current?.rowBlocksNativeSource),
+  }
+}
+
+export type BackSwipeContact = ReturnType<typeof createBackSwipeContact>
+
+/** Touch arbitration for the interactive pop: a contact is tracked from touch-down, claimed on a
+ * horizontal direction lock, recognized past the intent distance (acquiring the pop), scrubbed by
+ * the private ScrollTimeline source or a frame loop, and released on touchend/touchcancel.
+ * Returns the listeners' cleanup. */
+export function bindTouchArbitration(host: HTMLDivElement, context: TouchArbitrationContext) {
+  const { nativeNavigation } = context
   // finishTouch releases the fallback listener only when the owning contact is
   // over; another finger lifting keeps the owner's moves on the cancelable path.
-  const handleTouchEnd = (event: TouchEvent) => finishTouch(event, false)
-  const handleTouchCancel = (event: TouchEvent) => finishTouch(event, true)
+  let rowFallbackListener = false
+  const handleRowFallbackMove = (event: TouchEvent) => contact.handleTouchMove(event)
+  const handleCommonMove = (event: TouchEvent) => {
+    if (!rowFallbackListener) contact.handleTouchMove(event)
+  }
+  const contact = createBackSwipeContact(host, context, active => {
+    if (active) {
+      rowFallbackListener = true
+      host.addEventListener('touchmove', handleRowFallbackMove, { passive: false })
+      return
+    }
+    host.removeEventListener('touchmove', handleRowFallbackMove)
+    rowFallbackListener = false
+  })
+  const handleTouchStart = (event: TouchEvent) => {
+    if (contact.admit(event)) return
+    contact.begin(event)
+  }
+  const handleTouchEnd = (event: TouchEvent) => contact.finish(event, false)
+  const handleTouchCancel = (event: TouchEvent) => contact.finish(event, true)
 
   host.addEventListener('touchstart', handleTouchStart, { passive: true })
   host.addEventListener('touchmove', handleCommonMove, { passive: nativeNavigation })
   host.addEventListener('touchend', handleTouchEnd, { passive: nativeNavigation })
   host.addEventListener('touchcancel', handleTouchCancel, { passive: nativeNavigation })
   const dispose = () => {
-    retireGlassContact()
+    contact.releaseClaim()
     host.removeEventListener('touchstart', handleTouchStart)
-    releaseRowFallback()
     host.removeEventListener('touchmove', handleCommonMove)
     host.removeEventListener('touchend', handleTouchEnd)
     host.removeEventListener('touchcancel', handleTouchCancel)
   }
   return {
     dispose,
-    releaseClaim: () => {
-      retireGlassContact()
-      releaseRowFallback()
-    },
+    releaseClaim: contact.releaseClaim,
   }
 }

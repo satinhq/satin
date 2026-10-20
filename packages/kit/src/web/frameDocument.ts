@@ -8,6 +8,9 @@ export interface WebViewLink {
 export interface FrameDocumentOptions {
   sizing: 'fill' | 'content'
   fitsWidth: boolean
+  /** Native anchors work without frame scripts or parent-installed click listeners. */
+  nativeLinks?: boolean
+  allowsLinkOpening?: boolean
   onOpenURL?: (url: string, link: WebViewLink) => void
 }
 
@@ -25,6 +28,41 @@ export function dispatchWebURL(url: string) {
   }
 }
 
+/** Apply before revealing the frame. Never turn an executable or credentialed URL into a popup. */
+export function prepareFrameLinks(
+  document: Document,
+  nativeLinks: boolean,
+  allowsLinkOpening = true,
+) {
+  if (nativeLinks && allowsLinkOpening) {
+    // Popup permissions belong to links, not to authored form targets or base[target].
+    for (const form of document.querySelectorAll('form')) form.setAttribute('target', '_self')
+    for (const control of document.querySelectorAll('[formtarget]'))
+      control.setAttribute('formtarget', '_self')
+  }
+  for (const anchor of document.querySelectorAll('a,area')) {
+    const href =
+      anchor.getAttribute('href') ?? anchor.getAttributeNS('http://www.w3.org/1999/xlink', 'href')
+    if (href === null) continue
+    const url = webURL(href, document.baseURI)
+    anchor.removeAttributeNS('http://www.w3.org/1999/xlink', 'href')
+    if (!url || !allowsLinkOpening) {
+      anchor.removeAttribute('href')
+      anchor.removeAttribute('target')
+      anchor.removeAttribute('ping')
+      continue
+    }
+    // Resolve now, so a later base element change cannot change the allowed destination.
+    anchor.setAttribute('href', url.href)
+    if (nativeLinks) {
+      anchor.setAttribute('target', '_blank')
+      anchor.setAttribute('rel', 'noopener noreferrer')
+      anchor.removeAttribute('ping')
+      anchor.removeAttribute('download')
+    }
+  }
+}
+
 /** Parent-owned observers work even when the embedded document cannot run scripts. */
 export function bindFrameDocument(
   frame: HTMLIFrameElement,
@@ -32,9 +70,14 @@ export function bindFrameDocument(
   setHeight: (height: number | undefined) => void,
 ) {
   const document = frame.contentDocument
-  const body = document?.body
-  const root = document?.documentElement
-  if (!document || !body || !root) return () => {}
+  if (!document) return () => {}
+  const nativeLinks = options.nativeLinks ?? false
+  const prepareLinks = () => prepareFrameLinks(document, nativeLinks, options.allowsLinkOpening)
+  // A standalone SVG document has no HTML body, but its anchors still need the policy.
+  prepareLinks()
+  const body = document.body
+  const root = document.documentElement
+  if (!body || !root) return () => {}
   const view = frame.ownerDocument.defaultView!
   const ownedProperties = ['zoom', 'width', 'height', 'min-height']
   const originalBodyStyle = ownedProperties.map(name => [
@@ -55,7 +98,12 @@ export function bindFrameDocument(
   let disposed = false
   let scheduled = 0
   let measuredWidth = 0
-  const mutation = new MutationObserver(() => schedule())
+  const mutation = new MutationObserver(() => {
+    mutation.disconnect()
+    prepareLinks()
+    observeMutations()
+    schedule()
+  })
   const observeMutations = () =>
     mutation.observe(body, {
       subtree: true,
@@ -115,7 +163,7 @@ export function bindFrameDocument(
     // This prevents frame history even for executable or unsupported links.
     event.preventDefault()
     const url = webURL(anchor.getAttribute('href') ?? '', document.baseURI)
-    if (!url) return
+    if (!url || options.allowsLinkOpening === false) return
     const target =
       anchor.getAttribute('target') ??
       document.querySelector('base[target]')?.getAttribute('target') ??
@@ -123,8 +171,10 @@ export function bindFrameDocument(
     if (options.onOpenURL) options.onOpenURL(url.href, { target })
     else dispatchWebURL(url.href)
   }
-  document.addEventListener('click', click, true)
-  document.addEventListener('auxclick', click, true)
+  if (!nativeLinks) {
+    document.addEventListener('click', click, true)
+    document.addEventListener('auxclick', click, true)
+  }
   document.addEventListener('load', schedule, true)
   document.fonts?.addEventListener('loadingdone', schedule)
   void document.fonts?.ready.then(schedule)
