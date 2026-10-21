@@ -568,67 +568,77 @@ it('does not full-swipe execute a leaf inherited from a disabled submenu', () =>
   }
 })
 
-it('hands mouse capture from the row Button to its swipe owner without canceling the swipe', () => {
-  class TestPointer extends Event {
-    pointerId = 9
-    pointerType = 'mouse'
-    isPrimary = true
-    button = 0
-    clientX: number
-    clientY: number
-    constructor(type: string, clientX: number, clientY = 26) {
-      super(type, { bubbles: true, cancelable: true })
-      this.clientX = clientX
-      this.clientY = clientY
+it.each([
+  { cadence: 'slow', moveAt: 40, nextMoveAt: 80, endAt: 100 },
+  { cadence: 'fast', moveAt: 8, nextMoveAt: 50, endAt: 60 },
+])(
+  'hands mouse capture from the row Button to its swipe owner without canceling the swipe ($cadence)',
+  ({ moveAt, nextMoveAt, endAt }) => {
+    // Capture ownership is independent of host scheduling. Keep the input gesture
+    // fixed across the measured 25 ms pan restart, for both recognition paths.
+    const origin = performance.now()
+    class TestPointer extends Event {
+      pointerId = 9
+      pointerType = 'mouse'
+      isPrimary = true
+      button = 0
+      clientX: number
+      clientY: number
+      constructor(type: string, clientX: number, elapsed: number, clientY = 26) {
+        super(type, { bubbles: true, cancelable: true })
+        this.clientX = clientX
+        this.clientY = clientY
+        Object.defineProperty(this, 'timeStamp', { value: origin + elapsed })
+      }
     }
-  }
-  vi.stubGlobal('PointerEvent', TestPointer)
-  vi.stubGlobal('matchMedia', () => ({ matches: true }))
-  const original = HTMLElement.prototype.setPointerCapture,
-    originalHas = HTMLElement.prototype.hasPointerCapture
-  HTMLElement.prototype.hasPointerCapture = () => false
-  HTMLElement.prototype.setPointerCapture = vi.fn()
-  try {
-    render(
-      <ButtonRow
-        onPress={() => {}}
-        swipeActions={{
-          edge: 'trailing' as const,
-          actions: [{ id: 'delete', label: 'Delete', onPress() {} }],
-        }}
-      >
-        Set
-      </ButtonRow>,
-    )
-    const host = node.querySelector<HTMLElement>('[data-satin-row-actions]')!
-    host.querySelector<HTMLElement>('[data-satin-row-action-content]')!.getAnimations = () => []
-    const button = host.querySelector<HTMLButtonElement>(
-      '[data-satin-row-action-content] [data-satin-pressable]',
-    )!
-    vi.spyOn(host, 'getBoundingClientRect').mockReturnValue({
-      left: 0,
-      top: 0,
-      right: 400,
-      bottom: 52,
-      width: 400,
-      height: 52,
-    } as DOMRect)
-    act(() => button.dispatchEvent(new TestPointer('pointerdown', 300)))
-    expect(HTMLElement.prototype.setPointerCapture).toHaveBeenCalledWith(9)
-    act(() => button.dispatchEvent(new TestPointer('pointermove', 240)))
-    act(() => button.dispatchEvent(new TestPointer('lostpointercapture', 240)))
-    act(() => host.dispatchEvent(new TestPointer('pointermove', 160)))
-    act(() => host.dispatchEvent(new TestPointer('pointerup', 160)))
-    expect(host.dataset.satinSwipeActive).toBe('true')
-    expect(
-      host.querySelector<HTMLElement>('[data-satin-row-action-content]')!.style.transform,
-    ).toContain('-80px')
-  } finally {
-    HTMLElement.prototype.setPointerCapture = original
-    HTMLElement.prototype.hasPointerCapture = originalHas
-    vi.unstubAllGlobals()
-  }
-})
+    vi.stubGlobal('PointerEvent', TestPointer)
+    vi.stubGlobal('matchMedia', () => ({ matches: true }))
+    const original = HTMLElement.prototype.setPointerCapture,
+      originalHas = HTMLElement.prototype.hasPointerCapture
+    HTMLElement.prototype.hasPointerCapture = () => false
+    HTMLElement.prototype.setPointerCapture = vi.fn()
+    try {
+      render(
+        <ButtonRow
+          onPress={() => {}}
+          swipeActions={{
+            edge: 'trailing' as const,
+            actions: [{ id: 'delete', label: 'Delete', onPress() {} }],
+          }}
+        >
+          Set
+        </ButtonRow>,
+      )
+      const host = node.querySelector<HTMLElement>('[data-satin-row-actions]')!
+      host.querySelector<HTMLElement>('[data-satin-row-action-content]')!.getAnimations = () => []
+      const button = host.querySelector<HTMLButtonElement>(
+        '[data-satin-row-action-content] [data-satin-pressable]',
+      )!
+      vi.spyOn(host, 'getBoundingClientRect').mockReturnValue({
+        left: 0,
+        top: 0,
+        right: 400,
+        bottom: 52,
+        width: 400,
+        height: 52,
+      } as DOMRect)
+      act(() => button.dispatchEvent(new TestPointer('pointerdown', 300, 0)))
+      expect(HTMLElement.prototype.setPointerCapture).toHaveBeenCalledWith(9)
+      act(() => button.dispatchEvent(new TestPointer('pointermove', 240, moveAt)))
+      act(() => button.dispatchEvent(new TestPointer('lostpointercapture', 240, moveAt)))
+      act(() => host.dispatchEvent(new TestPointer('pointermove', 160, nextMoveAt)))
+      act(() => host.dispatchEvent(new TestPointer('pointerup', 160, endAt)))
+      expect(host.dataset.satinSwipeActive).toBe('true')
+      expect(
+        host.querySelector<HTMLElement>('[data-satin-row-action-content]')!.style.transform,
+      ).toContain('-80px')
+    } finally {
+      HTMLElement.prototype.setPointerCapture = original
+      HTMLElement.prototype.hasPointerCapture = originalHas
+      vi.unstubAllGlobals()
+    }
+  },
+)
 
 it('keeps a horizontal drag from mounting an unused context menu', () => {
   vi.useFakeTimers()
