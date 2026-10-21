@@ -199,69 +199,79 @@ describe('definition build integration', () => {
       documentElement: { dataset: {}, style: { backgroundColor: '', setProperty() {} } },
       getElementById: () => ({}),
     }
-    runInNewContext(
-      headScripts(generateAppHead([{ app, query: {} }], '/', production as boolean)),
-      {
-        screen: { width: 440, height: 956 },
-        innerWidth: 440,
-        innerHeight: 894,
-        performance: { mark() {}, now: () => 0 },
-        window: { addEventListener() {}, __SATIN_PRELAUNCH__: { version: 1, appearance() {} } },
-        setTimeout,
-        clearTimeout,
-        setInterval: () => 1,
-        clearInterval() {},
-        document,
-        addEventListener() {},
-        URLSearchParams,
-        sessionStorage: {
-          getItem() {
-            return null
+    const timers = new Set<ReturnType<typeof setTimeout>>()
+    try {
+      runInNewContext(
+        headScripts(generateAppHead([{ app, query: {} }], '/', production as boolean)),
+        {
+          screen: { width: 440, height: 956 },
+          innerWidth: 440,
+          innerHeight: 894,
+          performance: { mark() {}, now: () => 0 },
+          window: { addEventListener() {}, __SATIN_PRELAUNCH__: { version: 1, appearance() {} } },
+          setTimeout: (callback: () => void, delay: number) => {
+            const timer = setTimeout(callback, delay)
+            timers.add(timer)
+            return timer
           },
-          setItem() {},
-          removeItem() {},
-        },
-        URL,
-        location: { search: '', href: 'https://satin.test/' },
-        matchMedia: () => ({ matches: false, addEventListener() {} }),
-        getComputedStyle: () => ({ getPropertyValue: () => 'light' }),
-        navigator: {
-          serviceWorker: {
-            addEventListener() {},
-            getRegistration: async () => {
-              lookups++
-              return existing
-                ? {
-                    ...existing,
-                    scope: 'https://satin.test/',
-                    ...Object.fromEntries(
-                      Object.entries(existing).map(([key, value]) => [
-                        key,
-                        {
-                          ...(value as object),
-                          scriptURL: 'https://satin.test/sw.js',
-                          postMessage() {},
-                        },
-                      ]),
-                    ),
-                  }
-                : undefined
+          clearTimeout,
+          setInterval: () => 1,
+          clearInterval() {},
+          document,
+          addEventListener() {},
+          URLSearchParams,
+          sessionStorage: {
+            getItem() {
+              return null
             },
-            register: async (...args: unknown[]) => {
-              calls.push(args)
-              return {}
+            setItem() {},
+            removeItem() {},
+          },
+          URL,
+          location: { search: '', href: 'https://satin.test/' },
+          matchMedia: () => ({ matches: false, addEventListener() {} }),
+          getComputedStyle: () => ({ getPropertyValue: () => 'light' }),
+          navigator: {
+            serviceWorker: {
+              addEventListener() {},
+              getRegistration: async () => {
+                lookups++
+                return existing
+                  ? {
+                      ...existing,
+                      scope: 'https://satin.test/',
+                      ...Object.fromEntries(
+                        Object.entries(existing).map(([key, value]) => [
+                          key,
+                          {
+                            ...(value as object),
+                            scriptURL: 'https://satin.test/sw.js',
+                            postMessage() {},
+                          },
+                        ]),
+                      ),
+                    }
+                  : undefined
+              },
+              register: async (...args: unknown[]) => {
+                calls.push(args)
+                return {}
+              },
             },
           },
         },
-      },
-    )
-    await new Promise<void>(resolve => setImmediate(resolve))
-    expect(lookups).toBe(production ? 1 : 0)
-    expect(calls).toEqual(
-      existing || !production
-        ? []
-        : [['https://satin.test/sw.js', { scope: app.scope, updateViaCache: 'none' }]],
-    )
+      )
+      await new Promise<void>(resolve => setImmediate(resolve))
+      expect(lookups).toBe(production ? 1 : 0)
+      expect(calls).toEqual(
+        existing || !production
+          ? []
+          : [['https://satin.test/sw.js', { scope: app.scope, updateViaCache: 'none' }]],
+      )
+    } finally {
+      // The VM owns these deadlines; they must not outlive this browser fixture.
+      for (const timer of timers) clearTimeout(timer)
+    }
   })
 
   it('applies generated appearance before React, including matching dark manifest and escaped names', () => {
