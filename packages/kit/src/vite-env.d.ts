@@ -5,7 +5,6 @@ interface ImportMetaEnv {
   readonly SATIN_BUILD_INFO?: import('./app/buildInfo.ts').BuildInfo
   readonly MODE: string
   readonly SATIN_STRICT_GLASS?: boolean | '1'
-  readonly SATIN_DIAGNOSTIC_GLASS_OFF?: boolean
   readonly SATIN_DEV_MENU?: boolean
   readonly SATIN_DEV_MENU_CONFIG?: import('./dev-menu/types.ts').DevMenuBuild
 }

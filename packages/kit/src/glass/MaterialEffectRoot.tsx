@@ -202,24 +202,12 @@ export function MaterialEffectRoot({
   const hasRegions = regionCount > 0
   // A WebGPU source failure keeps the owner mounted for its bounded rebuild.
   // Error visibility and launch readiness remain separate from ownership.
-  const diagnosticGlassOff = import.meta.env.SATIN_DIAGNOSTIC_GLASS_OFF === true
-  const active =
-    stylesApplied &&
-    !diagnosticGlassOff &&
-    enabled &&
-    supported &&
-    scroller &&
-    chrome &&
-    (tabs || hasRegions)
+  const active = stylesApplied && enabled && supported && scroller && chrome && (tabs || hasRegions)
   // Navigation waits for glass sources only while they can still arrive: never after a
   // failure with no rebuild in flight (a failed startup, or a failed rebuild). The error
   // stays reported; navigation proceeds without glass sources.
   const preparingSources = Boolean(
-    !diagnosticGlassOff &&
-    (enabled || !capabilitySettled) &&
-    supported &&
-    (tabs || hasRegions) &&
-    (!failed || rebuilding),
+    (enabled || !capabilitySettled) && supported && (tabs || hasRegions) && (!failed || rebuilding),
   )
   // Capability alone is not paint readiness. The renderer reports only after
   // it has submitted the retained source, material and rim to their presenters.
@@ -228,7 +216,7 @@ export function MaterialEffectRoot({
     Boolean(chrome) &&
     !failed &&
     supported &&
-    (diagnosticGlassOff || !(tabs || hasRegions) || (enabled && ready))
+    (!(tabs || hasRegions) || (enabled && ready))
   useEffect(() => {
     onLaunchReady?.(launchReady)
   }, [launchReady, onLaunchReady])

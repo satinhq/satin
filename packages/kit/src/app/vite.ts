@@ -187,11 +187,6 @@ export function satinAppFixtures(
           build: { assetsDir, chunkSizeWarningLimit: config.build?.chunkSizeWarningLimit ?? 2000 },
           define: {
             'import.meta.env.SATIN_BUILD_INFO': JSON.stringify(buildInfo),
-            // Explicit simulator diagnostic. Vite replaces this literal at build time;
-            // GPU availability and URL/runtime state never select it.
-            'import.meta.env.SATIN_DIAGNOSTIC_GLASS_OFF': JSON.stringify(
-              process.env.SATIN_DIAGNOSTIC_GLASS_OFF === '1',
-            ),
             'import.meta.env.SATIN_STRICT_GLASS': JSON.stringify(
               (environment.command === 'build' && Boolean(devMenu)) ||
                 options.strictGlass === true ||

@@ -1,3 +1,4 @@
+import { popoverArrow } from '../popoverArrow.ts'
 import type { GlassRegionRegistry } from '../regionRegistry.ts'
 import type { GlassRegion } from '../regions.ts'
 import { regionSpec, emergeRegionSpec, emergeProfile } from '../webgpu/regionScene.ts'
@@ -102,6 +103,8 @@ export class FallbackRegions {
       const box = descriptor.emerge ? element.getBoundingClientRect() : { x: 0, y: 0 }
       const region: GlassRegion = {
         ...descriptor,
+        // CSS already inherits the owner transform; its outline stays in layout points.
+        popoverArrow: popoverArrow(element, { width }),
         shapeTrack: glassShapeTrack(element),
         frame: { x: box.x, y: box.y, width, height },
         layer: { id: 'fallback', depth: 0, attachment: { kind: 'fixed' } },

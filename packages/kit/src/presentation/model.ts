@@ -1,6 +1,6 @@
 import { concentricRadius, type DisplayCornerMetrics } from '../safe-area/displayCorners.ts'
 import { createLayoutClassState } from '../layout/layoutClass.ts'
-import { POPOVER_ARROW_HEIGHT } from '../glass/regions.ts'
+import { POPOVER_ARROW_HEIGHT, POPOVER_ARROW_HALF_BASE } from '../glass/regions.ts'
 
 /** Native iOS 27 iPad sheet width (form sheet and detent sheet alike), 580 pt in both orientations. */
 export const SHEET_MAX_WIDTH = 580
@@ -199,7 +199,6 @@ export const CONFIRMATION_POPOVER_WIDTH = 240
 export const CONFIRMATION_ARROW_HEIGHT = POPOVER_ARROW_HEIGHT
 const POPOVER_SCREEN_MARGIN = 10
 const POPOVER_ARROW_OVERLAP = 16.5
-const POPOVER_ARROW_HALF_BASE = 16
 const POPOVER_ARROW_CORNER_CLEARANCE = 20
 
 export type PopoverAnchor = { left: number; top: number; right: number; bottom: number }

@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { act, createRef, useContext, useLayoutEffect } from 'react'
+import { act, createRef, useContext, useLayoutEffect, useRef } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 
@@ -69,7 +69,32 @@ async function mount() {
         }),
       [context.registerTabs],
     )
-    return <output data-backend={context.backend} data-ready={context.ready} />
+    const region = useRef<HTMLDivElement>(null)
+    useLayoutEffect(() => {
+      const element = region.current!
+      Object.defineProperties(element, {
+        offsetWidth: { value: 160 },
+        offsetHeight: { value: 48 },
+      })
+      return context.regions!.register({
+        id: 'field',
+        element,
+        canvas: element.querySelector('canvas')!,
+        descriptor: {
+          id: 'field',
+          shape: 'capsule',
+          material: { variant: 'regular', interactive: false },
+        },
+      })
+    }, [context.regions])
+    return (
+      <>
+        <output data-backend={context.backend} data-ready={context.ready} />
+        <div ref={region} data-test-region>
+          <canvas />
+        </div>
+      </>
+    )
   }
   const host = document.createElement('div')
   const chrome = document.createElement('div')
@@ -95,6 +120,19 @@ async function mount() {
   }
   return { host, chrome, diagnostic, ...errors }
 }
+
+it('cannot bypass material through the removed glass-off diagnostic configuration', async () => {
+  window.history.replaceState(null, '', '/?glass=off')
+  const view = await mount()
+  await act(async () => {
+    await vi.dynamicImportSettled()
+  })
+  expect(gpu.create).toHaveBeenCalled()
+  await act(async () => {
+    view.reportGlassError('gpu-unavailable', 'No WebGPU adapter', 'capability')
+  })
+  await waitForFallback(view)
+})
 
 it.each([
   'gpu-unavailable',
@@ -157,6 +195,11 @@ it.each(['release', 'development'])(
     const view = await mount()
     await waitForFallback(view)
     expect(view.host.querySelector('output')?.dataset.ready).toBe('true')
+    const material = view.host.querySelector<HTMLElement>(
+      '[data-test-region] [data-satin-fallback-material] > div',
+    )
+    expect(material?.style.background).toMatch(/rgba?\(/)
+    expect(material?.style.width).toBe('160px')
     expect(document.querySelector('[data-satin-glass-error]')).toBeNull()
   },
 )
@@ -235,6 +278,11 @@ async function waitForFallback(view: Awaited<ReturnType<typeof mount>>) {
   })
   expect(view.chrome.querySelector('[data-satin-fallback-material]')).not.toBeNull()
   expect(view.host.querySelector('output')?.dataset.ready).toBe('true')
+  const material = view.host.querySelector<HTMLElement>(
+    '[data-test-region] [data-satin-fallback-material] > div',
+  )
+  expect(material?.style.background).toMatch(/rgba?\(/)
+  expect(material?.style.width).toBe('160px')
 }
 
 it('preserves the bounded source rebuild before demoting on its terminal failure', async () => {
