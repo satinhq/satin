@@ -18,7 +18,7 @@ jobs:
           mkdir -p "$RUNNER_TEMP/satin-ci" "$RUNNER_TEMP/satin-consumer"
           echo "SATIN_SCRATCH_ROOT=$RUNNER_TEMP/satin-ci" >> "$GITHUB_ENV"
           echo "SATIN_CONSUMER_EVIDENCE=$RUNNER_TEMP/satin-consumer" >> "$GITHUB_ENV"
-          echo "VITEST_MAX_WORKERS=2" >> "$GITHUB_ENV"
+          echo "VITEST_MAX_WORKERS=4" >> "$GITHUB_ENV"
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           persist-credentials: false

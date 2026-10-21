@@ -116,6 +116,26 @@ function outline(members: readonly GlassFieldMember[], blendRadius: number) {
   return { ...bounds, width: bounds.right - bounds.left, height: bounds.bottom - bounds.top }
 }
 
+/** Same half-point grid as outline(), but only the occupied columns determine width. */
+function outlineWidth(members: readonly GlassFieldMember[], blendRadius: number) {
+  const axis = (side: 'halfWidth' | 'halfHeight', center: 'centerX' | 'centerY') => {
+    const minimum = Math.min(...members.map(member => member[center] - member[side])) - blendRadius
+    const maximum = Math.max(...members.map(member => member[center] + member[side])) + blendRadius
+    const values: number[] = []
+    for (let value = minimum; value <= maximum; value += 0.5) values.push(value)
+    return values
+  }
+  const columns = axis('halfWidth', 'centerX')
+  const rows = axis('halfHeight', 'centerY')
+  const occupiedColumn = (x: number) =>
+    rows.some(y => glassFieldDistance(x, y, members, blendRadius) <= 0)
+  // The first occupied column is exactly the exhaustive grid's minimum. Reverse
+  // the same coordinates for its maximum; this also covers disconnected fields.
+  const left = columns.find(occupiedColumn) ?? Infinity
+  const right = [...columns].reverse().find(occupiedColumn) ?? -Infinity
+  return right - left
+}
+
 describe('the round part of a trigger', () => {
   it('measures how far a trigger is from round', () => {
     expect(triggerElongation(TRIGGERS.circle.home)).toBe(0)
@@ -310,43 +330,31 @@ it('carries a long trigger’s label at the scale of its round part; a circle’
   expect(circle.glyph!.x + 22).toBeCloseTo(circle.button.centerX)
 })
 
-it('follows native’s outline for a full-width trigger within two frames', () => {
-  // Native outline widths (points) at ms after the touch that starts the transition, mapped to
-  // the model's clock (open: +4 ms; close: the dismissing touch-up - 44 ms).
-  const open = [
-    [85, 375],
-    [98, 287],
-    [118, 188],
-    [136, 126],
-    [162, 154],
-    [205, 199],
-    [293, 255],
-  ]
-  for (const [ms, native] of open) {
-    const widths = [-34, -17, 0, 17, 34].map(shift => {
-      const { members, blendRadius } = frameAt(TRIGGERS.wide, 'open', ms + shift)
-      return outline(members, blendRadius).width
-    })
-    expect(Math.min(...widths), `open ${ms}`).toBeLessThanOrEqual(native + 6)
-    expect(Math.max(...widths), `open ${ms}`).toBeGreaterThanOrEqual(native - 6)
-  }
-  const close = [
-    [95, 192],
-    [145, 160],
-    [180, 237],
-    [209, 298],
-    [260, 360],
-    [305, 392],
-    [394, 408],
-  ]
-  for (const [ms, native] of close) {
-    const widths = [-34, -17, 0, 17, 34].map(shift => {
-      const { members, blendRadius } = frameAt(TRIGGERS.wide, 'close', ms + shift)
-      return outline(members, blendRadius).width
-    })
-    expect(Math.min(...widths), `close ${ms}`).toBeLessThanOrEqual(native + 6)
-    expect(Math.max(...widths), `close ${ms}`).toBeGreaterThanOrEqual(native - 6)
-  }
+// Native outline widths (points) at ms after the touch that starts the transition,
+// mapped to the model's clock (open: +4 ms; close: the dismissing touch-up - 44 ms).
+// Keep every measured frame and every +/- two-frame sample, with separate failure locations.
+it.each([
+  ['open', 85, 375],
+  ['open', 98, 287],
+  ['open', 118, 188],
+  ['open', 136, 126],
+  ['open', 162, 154],
+  ['open', 205, 199],
+  ['open', 293, 255],
+  ['close', 95, 192],
+  ['close', 145, 160],
+  ['close', 180, 237],
+  ['close', 209, 298],
+  ['close', 260, 360],
+  ['close', 305, 392],
+  ['close', 394, 408],
+] as const)('follows the native full-width outline on %s at %i ms', (direction, ms, native) => {
+  const widths = [-34, -17, 0, 17, 34].map(shift => {
+    const { members, blendRadius } = frameAt(TRIGGERS.wide, direction, ms + shift)
+    return outlineWidth(members, blendRadius)
+  })
+  expect(Math.min(...widths), `${direction} ${ms}`).toBeLessThanOrEqual(native + 6)
+  expect(Math.max(...widths), `${direction} ${ms}`).toBeGreaterThanOrEqual(native - 6)
 })
 
 it('pours a toolbar group’s menu back into the group’s centre, not into one member', () => {
