@@ -1,0 +1,106 @@
+name: Release
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: read
+concurrency:
+  group: npm-release
+  cancel-in-progress: false
+jobs:
+  prepare:
+    if: github.repository == 'satinhq/satin' && vars.NPM_RELEASE_ENABLED == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    outputs:
+      manifest-sha256: ${{ steps.prepare.outputs.manifest-sha256 }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Require a landed release commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor HEAD origin/main
+          test "$(git show -s --format=%ae HEAD)" = '51364479+obinnanwachukwu1@users.noreply.github.com'
+          test "$(git show -s --format=%ce HEAD)" = '51364479+obinnanwachukwu1@users.noreply.github.com'
+          ! git show -s --format=%B HEAD | grep -qi '^Co-authored-by:'
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
+        with:
+          version: 10.22.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22.22.2
+      - name: Prepare and test all four packages
+        id: prepare
+        env:
+          SATIN_SCRATCH_ROOT: ${{ runner.temp }}/satin-release
+          SATIN_CONSUMER_EVIDENCE: ${{ runner.temp }}/satin-consumer
+        run: node scripts/release/prepare.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: npm-release-${{ github.run_id }}-${{ github.run_attempt }}
+          path: release-artifacts/
+          if-no-files-found: error
+          retention-days: 14
+  publish:
+    needs: prepare
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment: npm-publish
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      # No checkout, dependency install, repository scripts, or shared cache in this job.
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24.22.0
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: npm-release-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts
+      - name: Validate approved artifacts and publish without lifecycle hooks
+        env:
+          EXPECTED_MANIFEST: ${{ needs.prepare.outputs.manifest-sha256 }}
+          NPM_CONFIG_IGNORE_SCRIPTS: 'true'
+          NPM_CONFIG_USERCONFIG: /dev/null
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict'
+          import { readFileSync } from 'node:fs'
+          import { createHash } from 'node:crypto'
+          import { execFileSync } from 'node:child_process'
+          const npmVersion = execFileSync('npm', ['--version'], { encoding: 'utf8' }).trim().split('.').map(Number)
+          assert(npmVersion[0] > 11 || npmVersion[0] === 11 && (npmVersion[1] > 5 || npmVersion[1] === 5 && npmVersion[2] >= 1))
+          const raw = readFileSync('artifacts/manifest.json')
+          assert.equal(createHash('sha256').update(raw).digest('hex'), process.env.EXPECTED_MANIFEST)
+          const manifest = JSON.parse(raw)
+          assert.equal(manifest.schema, 1)
+          assert.equal(manifest.commit, process.env.GITHUB_SHA)
+          assert.deepEqual(manifest.packages.map(pkg => pkg.name).sort(), ['@satinhq/kit', '@satinhq/lint', '@satinhq/push', 'create-satin'])
+          const version = process.env.GITHUB_REF_NAME.slice(1)
+          assert(/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(version))
+          const tag = version.includes('-') ? 'beta' : 'latest'
+          for (const pkg of manifest.packages) {
+            assert.equal(pkg.version, version)
+            assert.equal(pkg.file, `${pkg.name.replace(/^@/, '').replace('/', '-')}-${version}.tgz`)
+            const bytes = readFileSync(`artifacts/${pkg.file}`)
+            assert.equal(createHash('sha256').update(bytes).digest('hex'), pkg.sha256)
+            assert.equal(`sha512-${createHash('sha512').update(bytes).digest('base64')}`, pkg.integrity)
+            const packed = JSON.parse(execFileSync('tar', ['-xOf', `artifacts/${pkg.file}`, 'package/package.json'], { encoding: 'utf8' }))
+            assert.equal(packed.name, pkg.name)
+            assert.equal(packed.version, version)
+            assert.equal(packed.repository.url, 'git+https://github.com/satinhq/satin.git')
+            assert(!packed.publishConfig?.registry || packed.publishConfig.registry === 'https://registry.npmjs.org')
+          }
+          for (const pkg of manifest.packages) {
+            execFileSync('npm', ['publish', `artifacts/${pkg.file}`, '--ignore-scripts', '--access', 'public', '--provenance', '--registry=https://registry.npmjs.org', '--tag', tag], { stdio: 'inherit' })
+            const integrity = execFileSync('npm', ['view', `${pkg.name}@${version}`, 'dist.integrity', '--json'], { encoding: 'utf8' })
+            assert.equal(JSON.parse(integrity), pkg.integrity)
+          }
+          JS
