@@ -64,6 +64,44 @@ it('paints registered sheet corners without a GPU and removes material with its 
   fallback.dispose()
 })
 
+it('paints a popover pointer in the same material aperture above or below its body', () => {
+  const host = document.createElement('div')
+  document.body.append(host)
+  Object.defineProperties(host, { offsetWidth: { value: 240 }, offsetHeight: { value: 100 } })
+  host.style.setProperty('--satin-popover-arrow', 'top 120')
+  const canvas = document.createElement('canvas')
+  host.append(canvas)
+  const registry = new GlassRegionRegistry()
+  registry.register({
+    id: 'popover',
+    element: host,
+    canvas,
+    descriptor: {
+      id: 'popover',
+      shape: { kind: 'roundedRectangle', cornerRadius: 30 },
+      material: { variant: 'regular', interactive: false, treatment: 'confirmation' },
+    },
+  })
+  const fallback = new FallbackRegions(registry, 'light')
+  const material = host.querySelector<HTMLElement>('[data-satin-fallback-material] > div')!
+  expect(material.style.height).toBe('114px')
+  expect(material.style.transform).toBe('translate3d(0px,-14px,0)')
+  expect(material.style.clipPath).toContain('L 120 0')
+  expect(material.style.background).toMatch(/rgba?\(/)
+  expect(material.querySelector('path')?.getAttribute('d')).toContain('L 120 0')
+  host.style.setProperty('--satin-popover-arrow', 'bottom 80')
+  fallback.refresh()
+  expect(material.style.transform).toBe('translate3d(0px,0px,0)')
+  expect(material.style.clipPath).toContain('L 80 114')
+  expect(host.querySelectorAll('[data-satin-fallback-material] > div')).toHaveLength(1)
+  host.style.removeProperty('--satin-popover-arrow')
+  fallback.refresh()
+  expect(material.style.height).toBe('100px')
+  expect(material.style.clipPath).toBe('none')
+  expect(material.querySelector('svg')).toBeNull()
+  fallback.dispose()
+})
+
 it('releases a held presentation only after CSS material commits for that show', async () => {
   const panel = document.createElement('div')
   panel.dataset.satinGlassRegionId = 'menu'
@@ -236,9 +274,16 @@ it.each([0, -30_000, 30_000])(
     } as import('../renderSpecs.ts').SurfaceRenderSpec
     const compact = {
       ...spec,
-      shape: { ...spec.shape, first: {
-        centerX: 31, centerY: 31, halfWidth: 24, halfHeight: 24, radius: 24,
-      } },
+      shape: {
+        ...spec.shape,
+        first: {
+          centerX: 31,
+          centerY: 31,
+          halfWidth: 24,
+          halfHeight: 24,
+          radius: 24,
+        },
+      },
     }
     void material.play([spec, compact], 894, 39_900, 'dark')
     expect(animations[0]!.startTime).toBe(39_900 + drift)
@@ -252,23 +297,34 @@ it.each([0, -30_000, 30_000])(
 )
 
 it('takes chrome canvas ownership and reprojects a running collapse when geometry changes', async () => {
-  Object.defineProperty(document, 'fonts', { configurable: true, value: { ready: Promise.resolve() } })
+  Object.defineProperty(document, 'fonts', {
+    configurable: true,
+    value: { ready: Promise.resolve() },
+  })
   class Effect {
     frames: Keyframe[]
-    constructor(frames: Keyframe[]) { this.frames = frames }
-    setKeyframes(frames: Keyframe[]) { this.frames = frames }
+    constructor(frames: Keyframe[]) {
+      this.frames = frames
+    }
+    setKeyframes(frames: Keyframe[]) {
+      this.frames = frames
+    }
   }
   vi.stubGlobal('KeyframeEffect', Effect)
-  vi.spyOn(Element.prototype, 'animate').mockImplementation(frames => ({
-    effect: new Effect(frames as Keyframe[]),
-    cancel() {},
-    finished: new Promise(() => {}),
-    startTime: 0,
-  }) as unknown as Animation)
+  vi.spyOn(Element.prototype, 'animate').mockImplementation(
+    frames =>
+      ({
+        effect: new Effect(frames as Keyframe[]),
+        cancel() {},
+        finished: new Promise(() => {}),
+        startTime: 0,
+      }) as unknown as Animation,
+  )
   const shell = document.createElement('main')
   shell.dataset.satinLiquid = 'consumer'
   const dock = document.createElement('div')
-  dock.innerHTML = '<div class="satin-lens-tab-ink-clip"></div><div class="satin-lens-tab-ink-plane"></div><button role="tab"><small>Home</small></button>'
+  dock.innerHTML =
+    '<div class="satin-lens-tab-ink-clip"></div><div class="satin-lens-tab-ink-plane"></div><button role="tab"><small>Home</small></button>'
   const canvas = document.createElement('canvas')
   const rimCanvas = document.createElement('canvas')
   const lift = document.createElement('canvas')
@@ -280,18 +336,37 @@ it('takes chrome canvas ownership and reprojects a running collapse when geometr
   shell.append(dock, canvas, rimCanvas, lift, appCanvas, scroller)
   document.body.append(shell)
   const geometry: RuntimeGeometry = {
-    bottomInset: 0, circleSize: 48, circleY: 0, dockHeight: 62, dockRadius: 31,
-    dockWidth: 300, dockX: 0, dockY: 700, height: 800, leftX: 0,
-    physicalTopInset: 0, rightX: 0, surfaceMode: 'chrome', width: 400,
-    tabBarCentres: [50, 150, 250], tabBarSelectedIndex: 0,
-    tabBarPillWidth: 94, tabBarPillHeight: 54, tabBarPillCenterY: 31,
+    bottomInset: 0,
+    circleSize: 48,
+    circleY: 0,
+    dockHeight: 62,
+    dockRadius: 31,
+    dockWidth: 300,
+    dockX: 0,
+    dockY: 700,
+    height: 800,
+    leftX: 0,
+    physicalTopInset: 0,
+    rightX: 0,
+    surfaceMode: 'chrome',
+    width: 400,
+    tabBarCentres: [50, 150, 250],
+    tabBarSelectedIndex: 0,
+    tabBarPillWidth: 94,
+    tabBarPillHeight: 54,
+    tabBarPillCenterY: 31,
   }
   const play = vi.spyOn(FallbackMaterial.prototype, 'play').mockResolvedValue(undefined)
   const runtime = await FallbackGlassRuntime.create({
-    geometry, appearance: 'dark',
+    geometry,
+    appearance: 'dark',
     elements: { chrome: { dock }, band: { canvas, rimCanvas }, scroller, contentHost: scroller },
   } as unknown as import('../renderSpecs.ts').RuntimeOptions)
-  expect([canvas, rimCanvas, lift].map(el => el.style.visibility)).toEqual(['hidden', 'hidden', 'hidden'])
+  expect([canvas, rimCanvas, lift].map(el => el.style.visibility)).toEqual([
+    'hidden',
+    'hidden',
+    'hidden',
+  ])
   expect(appCanvas.style.visibility).toBe('')
   scroller.dispatchEvent(new PointerEvent('pointerdown', { pointerId: 1 }))
   scroller.scrollTop = 100
@@ -317,11 +392,22 @@ it('hides retained region overlays and container canvases until CSS ownership en
   const container = document.createElement('canvas')
   const unregisterContainer = registry.registerContainer('group', host, container)
   const unregister = registry.register({
-    id: 'control', element: host, canvas, overlay,
-    descriptor: { id: 'control', shape: 'capsule', material: { variant: 'regular', interactive: false } },
+    id: 'control',
+    element: host,
+    canvas,
+    overlay,
+    descriptor: {
+      id: 'control',
+      shape: 'capsule',
+      material: { variant: 'regular', interactive: false },
+    },
   })
   const fallback = new FallbackRegions(registry, 'dark')
-  expect([canvas, overlay, container].map(el => el.style.visibility)).toEqual(['hidden', 'hidden', 'hidden'])
+  expect([canvas, overlay, container].map(el => el.style.visibility)).toEqual([
+    'hidden',
+    'hidden',
+    'hidden',
+  ])
   unregister()
   unregisterContainer()
   fallback.refresh()

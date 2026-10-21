@@ -81,6 +81,7 @@ export function isPlainMenuSource(kind: MenuSourceKind | undefined) {
 }
 
 export const POPOVER_ARROW_HEIGHT = 14
+export const POPOVER_ARROW_HALF_BASE = 16
 /** @internal Tip x in measured frame points; scale is the frame's presentation scale. */
 export type PopoverArrow = Readonly<{ edge: 'top' | 'bottom'; x: number; scale: number }>
 export type GlassRegion = Readonly<{

@@ -65,7 +65,6 @@ export function GlassMaterialRoot({
         ref={scene}
         data-satin-glass-capability={capability.state}
         data-satin-scene-paint-layer="true"
-        data-satin-diagnostic-glass-off={import.meta.env.SATIN_DIAGNOSTIC_GLASS_OFF || undefined}
       >
         <MaterialEffectRoot
           scene={scene}

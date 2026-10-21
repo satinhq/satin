@@ -1,3 +1,4 @@
+import { popoverOutline } from './popoverOutline.ts'
 import type { CapsuleShape, SurfaceRenderSpec } from '../renderSpecs.ts'
 import { animateElement, timelineStart } from '../../motion/animate.ts'
 
@@ -19,11 +20,18 @@ export class FallbackMaterial {
     )
   }
   private frame(shape: CapsuleShape, spec: SurfaceRenderSpec) {
+    const outline =
+      spec.treatment === 'confirmation' && spec.popoverArrow
+        ? popoverOutline(shape, spec.popoverArrow)
+        : undefined
     return {
-      transform: `translate3d(${spec.frameX + shape.centerX - shape.halfWidth}px,${spec.frameY + shape.centerY - shape.halfHeight}px,0)`,
+      transform: `translate3d(${spec.frameX + shape.centerX - shape.halfWidth}px,${spec.frameY + shape.centerY - shape.halfHeight - (outline?.top ?? 0)}px,0)`,
       width: `${Math.max(0, shape.halfWidth * 2)}px`,
-      height: `${Math.max(0, shape.halfHeight * 2)}px`,
-      borderRadius: `${shape.radius}px ${shape.radius}px ${shape.bottomRadius ?? shape.radius}px ${shape.bottomRadius ?? shape.radius}px`,
+      height: `${outline?.height ?? Math.max(0, shape.halfHeight * 2)}px`,
+      clipPath: outline ? `path("${outline.path}")` : 'none',
+      borderRadius: outline
+        ? '0px'
+        : `${shape.radius}px ${shape.radius}px ${shape.bottomRadius ?? shape.radius}px ${shape.bottomRadius ?? shape.radius}px`,
       opacity: spec.restHidden ? 0 : (spec.opacity ?? 1),
     }
   }
@@ -44,13 +52,39 @@ export class FallbackMaterial {
       : dark
         ? `rgba(35,35,38,${reduced ? 1 : 0.68})`
         : `rgba(250,250,252,${reduced ? 1 : 0.58})`
-    for (const part of this.parts) {
+    this.element.querySelectorAll('[data-satin-fallback-shadow]').forEach(shadow => shadow.remove())
+    for (const [index, part] of this.parts.entries()) {
       part.style.background = background
       part.style.backdropFilter = reduced
         ? 'none'
         : `blur(${spec.variant === 'clear' ? 4 : 18}px) saturate(1.4)`
       part.style.setProperty('-webkit-backdrop-filter', part.style.backdropFilter)
       part.style.boxShadow = `inset 0 0 0 0.5px rgba(255,255,255,${dark ? 0.25 : 0.7}),0 2px 10px rgba(0,0,0,0.08)`
+      part.querySelector('svg')?.remove()
+      if (spec.treatment === 'confirmation' && spec.popoverArrow) {
+        const shape = this.shapes(spec)[index]
+        if (!shape) continue
+        const outline = popoverOutline(shape, spec.popoverArrow)
+        // Keep the existing body shadow outside the clipped backdrop aperture.
+        const shadow = document.createElement('span')
+        shadow.dataset.satinFallbackShadow = 'true'
+        shadow.style.cssText = 'position:absolute;left:0;top:0;pointer-events:none;'
+        Object.assign(shadow.style, this.frame(shape, { ...spec, popoverArrow: undefined }))
+        shadow.style.boxShadow = '0 2px 10px rgba(0,0,0,0.08)'
+        this.element.insertBefore(shadow, part)
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+        svg.setAttribute('viewBox', `0 0 ${outline.width} ${outline.height}`)
+        svg.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none;'
+        const rim = document.createElementNS('http://www.w3.org/2000/svg', 'path')
+        rim.setAttribute('d', outline.path)
+        rim.setAttribute('fill', 'none')
+        rim.setAttribute('stroke', `rgba(255,255,255,${dark ? 0.25 : 0.7})`)
+        rim.setAttribute('stroke-width', '1')
+        svg.append(rim)
+        part.append(svg)
+        // Half of the one-pixel stroke lies inside the single clipped aperture.
+        part.style.boxShadow = 'none'
+      }
     }
   }
   paint(spec: SurfaceRenderSpec, appearance: 'light' | 'dark') {
