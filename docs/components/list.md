@@ -3,7 +3,7 @@
 A scrollable collection of rows.
 
 ```tsx
-import { LabeledContent } from '@satinhq/kit'
+import { List } from '@satinhq/kit'
 ```
 
 ## Example

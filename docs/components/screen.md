@@ -3,7 +3,7 @@
 The title and toolbar configuration for the current screen.
 
 ```tsx
-import { LabeledContent } from '@satinhq/kit'
+import { Screen } from '@satinhq/kit'
 ```
 
 ## Example

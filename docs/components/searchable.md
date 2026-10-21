@@ -3,7 +3,7 @@
 Search configuration for a screen or list.
 
 ```tsx
-import { LabeledContent } from '@satinhq/kit'
+import { Screen } from '@satinhq/kit'
 ```
 
 ## Example
