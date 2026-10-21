@@ -3,7 +3,7 @@
 Arrange a small collection in fixed, flexible or adaptive tracks. These are stable exports from `@satinhq/kit`. All children mount eagerly. There is no virtualization; use [List](list.md) for long data.
 
 ```tsx
-import { GridItem, LazyVGrid, Text, VStack } from '@satinhq/kit'
+import { GridItem, LazyHGrid, LazyVGrid, Text, VStack } from '@satinhq/kit'
 
 <LazyVGrid
   columns={[GridItem.adaptive({ minimum: 150, spacing: 16 })]}

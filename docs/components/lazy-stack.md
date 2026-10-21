@@ -3,7 +3,7 @@
 Stable stack layouts for small collections. Both render every child eagerly and retain mounted state. They do not virtualize offscreen content; use [List](list.md) for long data.
 
 ```tsx
-import { LazyVStack, Text } from '@satinhq/kit'
+import { LazyHStack, LazyVStack, Text } from '@satinhq/kit'
 
 <LazyVStack alignment="leading" spacing={8} frame={{ maxWidth: 'infinity' }}>
   {items.map(item => <Text key={item.id}>{item.title}</Text>)}

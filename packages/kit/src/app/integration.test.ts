@@ -50,6 +50,7 @@ function selectedManifest(html: string, navigator: Record<string, unknown>, runt
   const manifest = html.match(/<link[^>]*rel="manifest"[^>]*>/)?.[0] ?? ''
   elements.set('satin-manifest', { href: manifest.match(/href="([^"]+)"/)?.[1] ?? '' })
   const document = {
+    querySelectorAll: () => [],
     querySelector: (selector: string) =>
       selector === 'link[rel="manifest"]' ? elements.get('satin-manifest') : {},
     hidden: false,
@@ -188,6 +189,7 @@ describe('definition build integration', () => {
     const calls: unknown[][] = []
     let lookups = 0
     const document = {
+      querySelectorAll: () => [],
       querySelector: () => ({}),
       hidden: false,
       title: '',
@@ -282,6 +284,7 @@ describe('definition build integration', () => {
     const callbacks: FrameRequestCallback[] = []
     let now = 0
     const document = {
+      querySelectorAll: () => [],
       querySelector: () => ({}),
       hidden: false,
       addEventListener: addLifecycle,

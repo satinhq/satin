@@ -237,3 +237,63 @@ it('preserves the remaining launch deadline across suspension', () => {
     'stopped making progress',
   )
 })
+
+it('keeps a slow script covered without failure and stays ready beyond its old deadlines', () => {
+  installLaunchWatchdog(10_000)
+  document.body.insertAdjacentHTML(
+    'beforeend',
+    '<script type="module" src="/slow-entry.js"></script>',
+  )
+  const script = document.body.querySelector('script')!
+  vi.advanceTimersByTime(15_000)
+  expect(prelaunchDOM.querySelector('[role="alert"]')).toBeNull()
+  script.dispatchEvent(new Event('load'))
+  window.dispatchEvent(new Event('satin-launch-revealed'))
+  vi.advanceTimersByTime(60_000)
+  expect(prelaunchDOM.querySelector('[role="alert"]')).toBeNull()
+})
+
+it('reports an unsettled script accurately after its visible ceiling, excluding suspension', () => {
+  installLaunchWatchdog(10_000)
+  document.body.insertAdjacentHTML('beforeend', '<script src="/never-arrives.js"></script>')
+  vi.advanceTimersByTime(30_000)
+  Object.defineProperty(document, 'hidden', { configurable: true, value: true })
+  document.dispatchEvent(new Event('visibilitychange'))
+  vi.advanceTimersByTime(600_000)
+  Object.defineProperty(document, 'hidden', { configurable: true, value: false })
+  document.dispatchEvent(new Event('visibilitychange'))
+  vi.advanceTimersByTime(29_999)
+  expect(prelaunchDOM.querySelector('[role="alert"]')).toBeNull()
+  vi.advanceTimersByTime(1)
+  expect(prelaunchDOM.querySelector('[role="alert"]')?.textContent).toContain(
+    'The app script has not finished loading. Try again.',
+  )
+})
+
+it('does not let an optional script failure obscure a slow but successful app', () => {
+  installLaunchWatchdog(10_000)
+  const script = document.createElement('script')
+  script.setAttribute('data-satin-launch-optional', '')
+  document.body.append(script)
+  script.dispatchEvent(new Event('error'))
+  expect(prelaunchDOM.querySelector('[role="alert"]')).toBeNull()
+  window.dispatchEvent(new Event('satin-launch-revealed'))
+  vi.advanceTimersByTime(60_000)
+  expect(prelaunchDOM.querySelector('[role="alert"]')).toBeNull()
+})
+
+it('replaces a script timeout with its real failure and preserves it through unrelated progress', () => {
+  installLaunchWatchdog(10_000)
+  document.body.insertAdjacentHTML('beforeend', '<script src="/failed-entry.js"></script>')
+  const script = document.body.querySelector('script')!
+  vi.advanceTimersByTime(60_000)
+  expect(prelaunchDOM.querySelector('[role="alert"]')?.textContent).toContain(
+    'The app script has not finished loading.',
+  )
+  script.dispatchEvent(new Event('error'))
+  const message = prelaunchDOM.querySelector('[role="alert"]')?.textContent
+  expect(message).toContain('The app script could not load.')
+  window.dispatchEvent(new CustomEvent('satin-launch-progress', { detail: { loaded: 100 } }))
+  vi.advanceTimersByTime(60_000)
+  expect(prelaunchDOM.querySelector('[role="alert"]')?.textContent).toBe(message)
+})

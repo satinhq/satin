@@ -3,7 +3,7 @@
 Search configuration for a screen or list.
 
 ```tsx
-import { Screen } from '@satinhq/kit'
+import { Screen, type Searchable } from '@satinhq/kit'
 ```
 
 ## Example

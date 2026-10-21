@@ -32,7 +32,7 @@ Choose a component to see its running example and props.
 - [Picker](picker.md)
 - [Stepper](stepper.md)
 - [Slider](slider.md)
-- [ContextMenu and swipe actions](context-menu.md)
+- [Context menu and swipe actions](context-menu.md)
 
 ## Presentation
 

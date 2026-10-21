@@ -493,7 +493,7 @@ export function satinAppFixtures(
           const notices = building
             ? html.replace(
                 '</head>',
-                `<script src="${fixtures[0]!.app.scope}acknowledgements.js"></script></head>`,
+                `<script data-satin-launch-optional src="${fixtures[0]!.app.scope}acknowledgements.js"></script></head>`,
               )
             : html
           return gateAppScripts(notices)

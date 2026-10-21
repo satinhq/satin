@@ -1879,4 +1879,4 @@ The declarations below have no dedicated reviewed behavior metadata. Type-only d
 
 ## Framework source fingerprint
 
-SHA-256 of sorted TS/TSX/CSS source paths and bytes, excluding tests: cc5465beda20367868f72fff1f3da389b573cb0ea11d8728da432f3841309977
+SHA-256 of sorted TS/TSX/CSS source paths and bytes, excluding tests: 12ada6c6348353ee113c4fea0bc9d54fd6ce57357a80ee3d5a448f693e4b616f

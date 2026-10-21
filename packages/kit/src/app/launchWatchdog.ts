@@ -1,5 +1,15 @@
 // This function is serialized into the head. Keep it independent of module loading and React.
 export function installLaunchWatchdog(budgetMs: number) {
+  // A pending request is not evidence of a failed script. Give bootstrap requests
+  // a separate visible-time ceiling; a deadline reports uncertainty, not a network cause.
+  const scriptCeilingMs = 60_000
+  const loadedScripts = new WeakSet<HTMLScriptElement>()
+  let launchVisibleMs = 0
+  let failureKind: 'recoverable' | 'fatal' = 'recoverable'
+  const pendingScript = () =>
+    [...document.querySelectorAll<HTMLScriptElement>('script[src]')].some(
+      script => !script.hasAttribute('data-satin-launch-optional') && !loadedScripts.has(script),
+    )
   let idleVisibleMs = 0
   let previousTime = performance.now()
   let lastBytes = 0
@@ -17,22 +27,38 @@ export function installLaunchWatchdog(budgetMs: number) {
   const armDeadline = () => {
     stopDeadline()
     if (revealed || failed || document.hidden || pageHidden) return
+    const waitingForScript = pendingScript()
+    const elapsed = performance.now() - previousTime
     timer = setTimeout(
       () => {
         timer = undefined
         if (document.hidden || pageHidden) return
+        if (pendingScript()) {
+          if (launchVisibleMs + performance.now() - previousTime < scriptCeilingMs) {
+            armDeadline()
+            return
+          }
+          showFailure('The app script has not finished loading. Try again.')
+          return
+        }
         showFailure(
           recordedError
             ? 'Launch failed. ' + recordedError.split('\n')[0]!.slice(0, 160)
             : 'Launch stopped making progress. Please retry.',
         )
       },
-      Math.max(0, budgetMs - idleVisibleMs),
+      Math.max(
+        0,
+        waitingForScript
+          ? scriptCeilingMs - launchVisibleMs - elapsed
+          : budgetMs - idleVisibleMs - elapsed,
+      ),
     )
   }
-  const showFailure = (reason: string) => {
-    if (failed || revealed) return
+  const showFailure = (reason: string, kind: 'recoverable' | 'fatal' = 'recoverable') => {
+    if (revealed || (failed && (failureKind === 'fatal' || kind === 'recoverable'))) return
     failed = true
+    failureKind = kind
     stopDeadline()
     const marks = performance
       .getEntriesByType('mark')
@@ -49,25 +75,56 @@ export function installLaunchWatchdog(budgetMs: number) {
     controller?.error(reason, 'Unable to Open App', undefined, 'Last stage: ' + stage)
     performance.mark('satin-launch-failed')
   }
+  // Script load/error events are receipts for this document's actual elements.
+  // Generated auxiliary data is explicitly optional; ordinary scripts remain required.
+  type ScriptInput = { type: 'loaded' | 'failed' | 'aborted'; script: HTMLScriptElement }
+  const receiveScript = ({ type, script }: ScriptInput) => {
+    if (revealed || script.hasAttribute('data-satin-launch-optional')) return
+    if (type !== 'loaded') {
+      showFailure(
+        type === 'aborted'
+          ? 'The app script download was interrupted. Try again.'
+          : 'The app script could not load. Check your connection and try again.',
+        'fatal',
+      )
+      return
+    }
+    loadedScripts.add(script)
+    const now = performance.now()
+    if (visible) launchVisibleMs += now - previousTime
+    previousTime = now
+    idleVisibleMs = 0
+    armDeadline()
+  }
+  const scriptLoaded = (event: Event) => {
+    if (event.target instanceof HTMLScriptElement)
+      receiveScript({ type: 'loaded', script: event.target })
+  }
+  const scriptAborted = (event: Event) => {
+    if (event.target instanceof HTMLScriptElement)
+      receiveScript({ type: 'aborted', script: event.target })
+  }
+  window.addEventListener('load', scriptLoaded, true)
+  window.addEventListener('abort', scriptAborted, true)
   window.addEventListener(
     'error',
     event => {
       const target = event.target
       if (target instanceof HTMLLinkElement && target.rel === 'stylesheet') {
         target.dataset.satinStyleError = 'true'
-        showFailure('App stylesheet failed to load. Retry.')
+        showFailure('App stylesheet failed to load. Retry.', 'fatal')
       } else if (target instanceof HTMLScriptElement) {
-        showFailure('The application script failed to load. Please retry.')
+        receiveScript({ type: 'failed', script: target })
       } else if (event instanceof ErrorEvent) {
         recordedError = event.message || 'Application script failed to load.'
-        showFailure('Launch failed. ' + recordedError.split('\n')[0]!.slice(0, 160))
+        showFailure('Launch failed. ' + recordedError.split('\n')[0]!.slice(0, 160), 'fatal')
       }
     },
     true,
   )
   window.addEventListener('unhandledrejection', event => {
     recordedError = event.reason instanceof Error ? event.reason.message : String(event.reason)
-    showFailure('Launch failed. ' + recordedError.split('\n')[0]!.slice(0, 160))
+    showFailure('Launch failed. ' + recordedError.split('\n')[0]!.slice(0, 160), 'fatal')
   })
   window.addEventListener('satin-glass-error', event => {
     const error = (event as CustomEvent<{ code: string; message: string; fallback?: true }>).detail
@@ -77,6 +134,7 @@ export function installLaunchWatchdog(budgetMs: number) {
     showFailure('Glass could not start: ' + error.code + '.')
   })
   const recover = () => {
+    if (failureKind === 'fatal' && !revealed) return
     failed = false
     ;(
       window as Window & { __SATIN_PRELAUNCH__?: { recover(): void } }
@@ -84,11 +142,14 @@ export function installLaunchWatchdog(budgetMs: number) {
   }
 
   const receiveProgress = (progress: { loaded: number; activity?: number } | null) => {
+    if (revealed) return
     if (progress && (progress.loaded > lastBytes || (progress.activity ?? 0) > lastActivity)) {
       lastBytes = progress.loaded
       lastActivity = progress.activity ?? 0
       idleVisibleMs = 0
-      previousTime = performance.now()
+      const now = performance.now()
+      if (visible) launchVisibleMs += now - previousTime
+      previousTime = now
       recover()
       armDeadline()
     } else if (!progress) {
@@ -189,7 +250,10 @@ export function installLaunchWatchdog(budgetMs: number) {
     if (event?.type === 'pagehide') pageHidden = true
     if (event?.type === 'pageshow') pageHidden = false
     const now = performance.now()
-    if (visible) idleVisibleMs += now - previousTime
+    if (visible) {
+      idleVisibleMs += now - previousTime
+      launchVisibleMs += now - previousTime
+    }
     previousTime = now
     visible = !document.hidden && !pageHidden
     armDeadline()
@@ -198,6 +262,8 @@ export function installLaunchWatchdog(budgetMs: number) {
     revealed = true
     recover()
     stopDeadline()
+    window.removeEventListener('load', scriptLoaded, true)
+    window.removeEventListener('abort', scriptAborted, true)
     document.removeEventListener('visibilitychange', visibilityChanged)
     window.removeEventListener('pagehide', visibilityChanged)
     window.removeEventListener('pageshow', visibilityChanged)

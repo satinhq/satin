@@ -1,4 +1,4 @@
-# ContextMenu and swipe actions
+# Context menu and swipe actions
 
 Commands attached to a row through a context menu or an edge swipe.
 
