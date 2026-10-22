@@ -14,5 +14,13 @@
     "prettier": "^3.9.9",
     "oxc-parser": "0.153.0",
     "oxc-transform": "0.153.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "source-map-js@>=1 <1.2.2": "1.2.2",
+      "vite@>=8.2 <8.2.4": "8.2.4",
+      "vite@>=8.2 <9": "8.2.4",
+      "rolldown@>=1 <2": "1.2.11"
+    }
   }
 }
