@@ -27,7 +27,7 @@ jobs:
           version: 10.22.0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
-          node-version: 22.22.2
+          node-version: 22.23.4
       - run: pnpm install --frozen-lockfile --ignore-scripts
       - run: pnpm --filter ./packages/kit build
       - run: pnpm -r typecheck && pnpm -r lint && pnpm build && pnpm -r test
