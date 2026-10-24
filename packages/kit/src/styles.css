@@ -1069,13 +1069,17 @@
       sans-serif;
     letter-spacing: 0;
   }
-  [data-satin-sidebar-row][aria-current='page'] {
-    background: var(--satin-sidebar-selection);
-    color: var(--satin-sidebar-tint);
-    font-weight: 500;
-  }
   [data-satin-sidebar-row]:disabled {
     opacity: 0.4;
+  }
+  [data-satin-sidebar-label] {
+    flex: 1;
+    min-width: 0;
+  }
+  [data-satin-sidebar-value] {
+    color: var(--satin-sidebar-secondary);
+    font-weight: 400;
+    flex: none;
   }
   [data-satin-sidebar-icon] {
     display: grid;
@@ -6072,6 +6076,15 @@
     --satin-row-inset-trailing: var(--satin-sidebar-rowPadding);
     padding-inline: var(--satin-sidebar-rowInset);
   }
+  [data-satin-pane='sidebar'] [data-satin-list='sidebar'] [data-satin-row-leading]:not(:empty) {
+    display: grid;
+    place-items: center;
+    width: var(--satin-sidebar-iconSize);
+    flex: none;
+  }
+  [data-satin-pane='sidebar'] [data-satin-row-value] {
+    font-weight: 400;
+  }
   [data-satin-pane='sidebar'] [data-satin-list='sidebar'] [data-satin-section-item]::after {
     display: none;
   }
@@ -8906,6 +8919,22 @@
   }
   [data-satin-selected]:has(+ [data-satin-selected])::after {
     background: var(--satin-separator);
+  }
+  /* Entries, route links and controlled List selection use the same sidebar selection.
+ Keep ordinary list selection unchanged, including its editing controls and separators. */
+  [data-satin-sidebar-row][aria-current='page'],
+  [data-satin-pane='sidebar'] [data-satin-row][aria-current='page'],
+  [data-satin-pane='sidebar'] [data-satin-list='sidebar'] [data-satin-selected] {
+    --satin-sidebar-selected-ink: var(--satin-sidebar-tint);
+    --satin-list-secondary: var(--satin-sidebar-secondary);
+    --satin-list-accent: var(--satin-sidebar-tint);
+    background: var(--satin-sidebar-selection);
+    border-radius: var(--satin-sidebar-rowRadius);
+    color: var(--satin-sidebar-tint);
+    font-weight: 500;
+  }
+  [data-satin-pane='sidebar'] [data-satin-list='sidebar'] [data-satin-selected] [data-satin-row] {
+    font-weight: inherit;
   }
   [data-satin-edit-control] {
     position: absolute;

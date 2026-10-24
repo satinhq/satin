@@ -27,6 +27,7 @@ export function commitPlaneSet(
     reused: ReadonlySet<string>
     capture: { context: MaterialContext } | undefined
     contextKey: string
+    contextOverlayKey?: string
     geometry: RuntimeGeometry
     resolution: number
     appearance: Appearance
@@ -85,7 +86,13 @@ export function commitPlaneSet(
     if (entry) Object.assign(entry, entryGeometry(plane))
   }
   if (capture)
-    runtime.contextGeometry = visiblePlaneSetKey(planes, runtime.planes, contentPlane, geometry)
+    runtime.contextGeometry = visiblePlaneSetKey(
+      planes,
+      runtime.planes,
+      contentPlane,
+      geometry,
+      prepared.contextOverlayKey,
+    )
   const removed = [...runtime.planes.keys()].filter(id => !planes.some(plane => plane.id === id))
   // Keep removed planes resident (newest last) when their host is still in the document and their
   // capture is current; the budget then evicts orphaned, stale and oldest entries.

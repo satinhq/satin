@@ -152,3 +152,53 @@ it('leaves the occluder capsule empty: its place on the canvas rides in the pres
   present()
   expect(uniforms.at(-1)!.slice(4)).toEqual([1, 0, 0, 0, 0, 0, 0, 0])
 })
+
+it('sizes shared storage from the presenting root and skips unchanged dimensions', () => {
+  const { rasters, present } = layer(2)
+  const canvas = (rasters[0] as unknown as { canvas: HTMLCanvasElement }).canvas
+  let width = 300
+  let height = 150
+  const writes: number[][] = []
+  Object.defineProperties(canvas, {
+    width: {
+      get: () => width,
+      set: (next: number) => {
+        width = next
+        writes.push([width, height])
+      },
+    },
+    height: {
+      get: () => height,
+      set: (next: number) => {
+        height = next
+        writes.push([width, height])
+      },
+    },
+  })
+  set(rasters[1], { setup: { resolution: 3, width: 120, height: 80, spec: {} } })
+  present()
+  expect([width, height]).toEqual([1320, 633])
+  expect(writes).toHaveLength(2)
+  present()
+  expect(writes).toHaveLength(2)
+  set(rasters[0], { setup: { resolution: 3, width: 440, height: 240, spec: {} } })
+  present()
+  expect([width, height]).toEqual([1320, 720])
+  expect(writes).toHaveLength(3)
+})
+
+it('does not mutate presentation storage while encoding a region result', () => {
+  const { rasters } = layer(2)
+  const canvas = (rasters[0] as unknown as { canvas: HTMLCanvasElement }).canvas
+  set(rasters[1], {
+    setup: { resolution: 3, width: 120, height: 80, spec: {} },
+    // Stop before GPU material passes: this test owns the shared-storage boundary.
+    sampleRectangle: () => {
+      throw Error('material encoding boundary')
+    },
+  })
+  expect(() => rasters[1].encodeResult(fakeEncoder().encoder, 0)).toThrow(
+    'material encoding boundary',
+  )
+  expect([canvas.width, canvas.height]).toEqual([1320, 633])
+})

@@ -261,7 +261,7 @@ Reject non-finite fractions at the task boundary. Keep framework styling and mot
 
 ## Adaptive lists and full-width dashboards
 
-`NavigationStack` always renders one stack. Use `NavigationSplitView` to make the declared root a sidebar at regular width while its pushed destination occupies detail. Compact windows collapse the same path into one stack. The destination's `sidebar` value identifies the selected row. Use the record ID, not a single static value for every detail.
+`NavigationStack` always renders one stack. Use `NavigationSplitView` to make the declared root a sidebar at regular width while its pushed destination occupies detail. Compact windows collapse the same path into one stack. `NavigationLink` automatically highlights the current detail destination, matching its route and parameters. The destination's optional `sidebar` value groups selection by record identity. Use the record ID, not a single static value for every detail.
 
 ```tsx
 import {

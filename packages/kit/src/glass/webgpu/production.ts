@@ -1,4 +1,5 @@
 import { PadSearchBarMotion } from '../../search/padSearchBarMotion.ts'
+import { toolbarMaterialOwner } from '../toolbarMaterialContext.ts'
 import { SCROLL_INSERTION_MOTION } from '../../scroll/insertionMotion.ts'
 import { KEYBOARD_CARRIER_MOTION } from '../../safe-area/keyboardCarrierGeometry.ts'
 import { keyboardBackdrop } from './keyboardBackdrop.ts'
@@ -480,6 +481,11 @@ export class ProductionGlassRuntime {
       lensDebug: (view: import('./lensDebug.ts').LensDebugView) =>
         this.client.request({ type: 'lens-debug', view }),
       profile: glassProfile,
+      /** Resolve slot ink through the same material ownership used by the renderer. */
+      materialOwner: (content: HTMLElement) =>
+        content.hasAttribute('data-satin-glass-slot-content')
+          ? toolbarMaterialOwner(content)
+          : content,
       /** Registered DOM regions, for per-frame ownership probes without GPU readback. */
       regions: () =>
         this.options.regions?.values().map(entry => ({
@@ -724,14 +730,14 @@ export class ProductionGlassRuntime {
       this.unsubscribe = observeNavigationGlass(navigator, state => {
         // A superseded image means the routes changed under the capture: capture them again.
         const prepare = (): Promise<void> =>
-          this.navigation(state).catch(error =>
-            error instanceof SupersededImage
-              ? prepare()
-              : (() => {
-                  this.fail('navigation source', error)
-                  throw error
-                })(),
-          )
+          this.navigation(state).catch(async error => {
+            if (error instanceof SupersededImage) return prepare()
+            this.fail('navigation source', error)
+            // The material owner decides whether this failure is recoverable. Navigation
+            // remains held until replacement material has reached a rendering opportunity.
+            if (this.options.onMaterialReplacement) return this.options.onMaterialReplacement(error)
+            throw error
+          })
         return prepare()
       })
   }

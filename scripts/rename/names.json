@@ -5,7 +5,7 @@
   "engine": "Lumen",
   "domain": "satin.build",
   "repository": "https://github.com/satinhq/satin",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "distTag": "latest",
   "createPackage": "create-satin",
   "profiles": {

@@ -1,14 +1,25 @@
 import { useContext, useLayoutEffect, useRef, useState } from 'react'
-import { GlassEffect } from '../glass/GlassEffect.tsx'
+import { partitionMaterialFrame } from '../glass/partitionMorph.ts'
+import {
+  GlassContainerMembership,
+  GlassEffect,
+  GlassEffectContainer,
+} from '../glass/GlassEffect.tsx'
 import { MaterialEffectContext } from '../glass/liquidContext.ts'
 import { Glass, glassRadius } from '../glass/regions.ts'
 import { NAVIGATION_CHROME_DISSOLVE } from './chromeCurves.ts'
-import { ToolbarGlassMotion } from './toolbarGlassMotion.ts'
+import { ToolbarGlassMotion, toolbarCarriedContent } from './toolbarGlassMotion.ts'
+import { toolbarCorrespondence, type ToolbarPair } from './toolbarCorrespondence.ts'
 import { toolbarMotionAnimation } from './toolbarMotionOwner.ts'
-import { glassApertureInFrame, glassShapeTrack } from '../glass/shapeTrackRegistry.ts'
+import {
+  glassApertureInFrame,
+  glassShapeTrack,
+  setGlassShapeTrack,
+} from '../glass/shapeTrackRegistry.ts'
 import { shapeTrackClock } from '../glass/shapeTrack.ts'
 import {
   bindToolbarMaterialContent,
+  bindToolbarMaterialRun,
   toolbarMaterialItems,
   toolbarMaterialRuns,
   toolbarMaterials,
@@ -23,7 +34,10 @@ type Item = {
   key: string
   placement: Placement
   index: number
+  /** The shared field of a slot that splits or merges during this transition. */
+  union?: string
   frame: Frame
+  canvasFrame: Frame
   radius: number
   opacity: number
   material: ToolbarMaterial
@@ -56,9 +70,14 @@ function itemFrame(content: HTMLElement, container: HTMLElement, layout: Size): 
     if (oneSample || attempt === 3) {
       const scaleX = after.width / layout.width || 1
       const scaleY = after.height / layout.height || 1
+      const translation = toolbarCarriedContent.has(content)
+        ? getComputedStyle(content)
+            .translate.split(' ')
+            .map(value => parseFloat(value) || 0)
+        : [0, 0]
       return {
-        x: (rect.left - after.left) / scaleX,
-        y: (rect.top - after.top) / scaleY,
+        x: (rect.left - after.left) / scaleX - translation[0]!,
+        y: (rect.top - after.top) / scaleY - (translation[1] ?? 0),
         width: rect.width / scaleX,
         height: rect.height / scaleY,
       }
@@ -170,15 +189,55 @@ function mostlyCovers(cover: Frame, item: Frame) {
   return width > 0 && height > 0 && width * height > 0.5 * item.width * item.height
 }
 
-/** Outgoing and incoming item i share one persistent region, including its live shape. */
+/** A capsule keeps one glass for as long as its content run lasts. A morph pair shares the
+ * outgoing run's glass, a departing run keeps its own until it leaves, and the incoming run
+ * keeps the pair's glass at rest. Glass already on screen claims its key before arrivals do.
+ * (Keys by position handed a departing capsule's glass to its neighbour when a transition
+ * began, and the departing ink showed without material until a new glass was presented.) */
+function assignGlassKeys(
+  pairs: readonly ToolbarPair[],
+  owners: WeakMap<HTMLElement, string>,
+  newKey: () => string,
+) {
+  const used = new Set<string>()
+  const claim = (run: readonly HTMLElement[]) => {
+    const key = owners.get(run[0]!)
+    if (key === undefined || used.has(key)) return undefined
+    used.add(key)
+    return key
+  }
+  const keys = new Map<ToolbarPair, string>()
+  for (const pair of pairs) if (pair.start) keys.set(pair, claim(pair.start) ?? newKey())
+  for (const pair of pairs) if (!pair.start && pair.end) keys.set(pair, claim(pair.end) ?? newKey())
+  for (const [pair, key] of keys) {
+    if (pair.start) owners.set(pair.start[0]!, key)
+    if (pair.end) owners.set(pair.end[0]!, key)
+  }
+  return keys
+}
+
+/** Each capsule's glass is one persistent region, shared by a morph pair, including its live shape. */
 export function ToolbarGlass() {
   const root = useRef<HTMLDivElement>(null)
   const liquid = useContext(MaterialEffectContext)
   const [occupied, setOccupied] = useState<Item[]>([])
   const occupiedKeys = useRef('')
+  const glassOwners = useRef(new WeakMap<HTMLElement, string>())
+  const glassCount = useRef(0)
   const frames = useRef(new Map<string, Item>())
   const transitionOrigins = useRef(new Map<string, Item>())
   const transitionKey = useRef('')
+  const inheritedAnimations = useRef(new Set<Animation>())
+  // Observer subscriptions can change while a capsule's chrome tail is running.
+  // Its transaction belongs to the mounted material, not to that subscription.
+  const motions = useRef(new Map<HTMLElement, ToolbarGlassMotion>()).current
+  useLayoutEffect(
+    () => () => {
+      for (const motion of motions.values()) motion.clear()
+      motions.clear()
+    },
+    [motions],
+  )
   useLayoutEffect(() => {
     const header = root.current?.closest<HTMLElement>('[data-satin-navigation-chrome]')
     if (!header) return
@@ -186,7 +245,6 @@ export function ToolbarGlass() {
     // settle under a transform no observer sees. Measure every frame until the motion ends.
     const presentation = header.closest('dialog')
     const presenting = () => presentation?.hasAttribute('data-satin-presentation-moving') === true
-    const motions = new Map<HTMLElement, ToolbarGlassMotion>()
     let animationFrame = 0
     const measure = () => {
       animationFrame = 0
@@ -217,13 +275,22 @@ export function ToolbarGlass() {
         incoming && outgoing.length
           ? `${outgoing.map(toolbar => toolbar.dataset.satinEntryToolbar).join(',')}:${incoming.dataset.satinEntryToolbar}`
           : ''
+      if (!key) {
+        inheritedAnimations.current = new Set(
+          toolbars.flatMap(toolbar =>
+            [...toolbar.querySelectorAll<HTMLElement>('[data-satin-navigation-toolbar-slot]')]
+              .map(slot => toolbarMotionAnimation(slot, 'opacity'))
+              .filter((animation): animation is Animation => animation !== undefined),
+          ),
+        )
+      }
       if (key !== transitionKey.current) {
         const at = shapeTrackClock()
         transitionOrigins.current = key
           ? new Map(
               [...frames.current].map(([itemKey, item]) => {
                 const owner = container.querySelector<HTMLElement>(
-                  `[data-satin-toolbar-glass="${item.placement}"][data-satin-toolbar-glass-item="${item.index}"]`,
+                  `[data-satin-toolbar-glass-key="${itemKey}"]`,
                 )
                 if (!owner || !glassShapeTrack(owner)) return [itemKey, item]
                 const aperture = glassApertureInFrame(
@@ -256,6 +323,7 @@ export function ToolbarGlass() {
       ])
       const backGlass = backGlassFrame(backVisual, frameOf)
       for (const placement of placements) {
+        const stableCanvas = placement === 'bottom' && layout.width > 0
         const selector = `[data-satin-navigation-toolbar-slot="${placement}"]`
         // A screen presenting search has given its items way to the field: it owns no glass.
         const slot = (toolbar: HTMLElement | undefined) =>
@@ -280,16 +348,32 @@ export function ToolbarGlass() {
         const starts = toolbarMaterialRuns(outgoingSlot)
         const ends = toolbarMaterialRuns(incomingSlot)
         const settled = toolbarMaterialRuns(activeSlot)
-        const count = key ? Math.max(starts.length, ends.length) : settled.length
-        for (let index = 0; index < count; index++) {
-          const itemKey = `${placement}:${index}`
-          const start = starts[index]
-          const end = ends[index]
-          const content = key ? (end ?? start) : settled[index]
+        const incomingAnimation = toolbarMotionAnimation(incomingSlot, 'opacity')
+        // An explicitly held pose can exist without a running animation after
+        // interruption. The default fully-visible layout is not such a pose.
+        const heldOpacity = incomingSlot?.style.opacity
+        const heldPose = heldOpacity !== undefined && heldOpacity !== '' && Number(heldOpacity) < 1
+        const preparing = Boolean(
+          key &&
+          ((!incomingAnimation && !heldPose) ||
+            (incomingAnimation && inheritedAnimations.current.has(incomingAnimation))),
+        )
+        const pairs: ToolbarPair[] = key
+          ? toolbarCorrespondence(starts, ends, run => restingFrame(run, placement, frameOf))
+          : settled.map((end, index) => ({ start: undefined, startIndex: undefined, end, index }))
+        const glassKeys = assignGlassKeys(
+          pairs,
+          glassOwners.current,
+          () => `${placement}:${++glassCount.current}`,
+        )
+        for (const pair of pairs) {
+          const { start, end, index, partition, splitFrom, mergeInto, splitting } = pair
+          const itemKey = glassKeys.get(pair)!
+          const content = end ?? start
           if (!content) continue
           const startMaterial = runMaterial(start)
           const endMaterial = runMaterial(end)
-          const progress = key ? slotOpacity(incomingSlot) : 1
+          const progress = key ? (preparing ? 0 : slotOpacity(incomingSlot)) : 1
           const material = (key
             ? progress > 0.5
               ? (endMaterial ?? startMaterial)
@@ -302,13 +386,19 @@ export function ToolbarGlass() {
           // Only a place both screens occupy morphs, between its resting capsules. An item that
           // only leaves or only arrives stays on its own measured frame, which carries its
           // dissolve's scale: native scales that item's platter with its symbol.
-          const morphing = start !== undefined && end !== undefined
+          const branch = splitFrom ? 'split' : mergeInto ? 'merge' : undefined
+          const morphing = Boolean((start && end) || branch)
           const frameFor = morphing ? restingFrame : runFrame
           const startFrame = start && frameFor(start, placement, frameOf)
           const endFrame = end && frameFor(end, placement, frameOf)
-          const previous = transitionOrigins.current.get(itemKey)
-          const origin = previous?.frame ?? startFrame ?? endFrame
-          const target = endFrame ?? startFrame
+          const previous = start ? transitionOrigins.current.get(itemKey) : undefined
+          const origin =
+            previous?.frame ??
+            startFrame ??
+            (splitFrom && restingFrame(splitFrom, placement, frameOf)) ??
+            endFrame
+          const target =
+            endFrame ?? (mergeInto && restingFrame(mergeInto, placement, frameOf)) ?? startFrame
           let frame = runFrame(content, placement, frameOf)
           let opacity = 1
           let radius = glassRadius(material.shape, frame.width, frame.height)
@@ -340,6 +430,18 @@ export function ToolbarGlass() {
             if (!start) opacity = progress
             else if (!end) opacity = slotOpacity(outgoingSlot)
           }
+          if (key && branch && origin && target) {
+            frame = partitionMaterialFrame(
+              branch === 'split' ? origin : target,
+              branch === 'split' ? target : origin,
+              // A preparing transition holds every capsule where it was, merge branches too:
+              // the branch's ink is not clipped until its motion starts.
+              branch === 'split' ? progress : preparing ? 1 : slotOpacity(outgoingSlot),
+              branch,
+            )
+            radius = glassRadius(material.shape, frame.width, frame.height)
+            opacity = 1
+          }
           // One circle, never two stacked: the back control's glass draws it (transitionChrome.ts
           // leadingGlassSwap cross-fades only the symbols).
           if (placement === 'leading' && backGlass && mostlyCovers(backGlass, frame)) opacity = 0
@@ -349,7 +451,25 @@ export function ToolbarGlass() {
             key: itemKey,
             placement,
             index,
+            // Only a splitting or merging slot needs a shared field. All other glass stays
+            // standalone, so a bar at rest or under a moving sheet does no field work.
+            union: key && partition !== undefined ? `${placement}:${partition}` : undefined,
             frame,
+            canvasFrame: stableCanvas
+              ? {
+                  ...frame,
+                  x: 0,
+                  width: layout.width,
+                  ...(branch && origin && target
+                    ? {
+                        y: Math.min(origin.y, target.y),
+                        height:
+                          Math.max(origin.y + origin.height, target.y + target.height) -
+                          Math.min(origin.y, target.y),
+                      }
+                    : {}),
+                }
+              : frame,
             radius,
             opacity,
             material,
@@ -358,10 +478,11 @@ export function ToolbarGlass() {
           next.push(item)
           frames.current.set(itemKey, item)
           const owner = root.current?.querySelector<HTMLElement>(
-            `[data-satin-toolbar-glass="${placement}"][data-satin-toolbar-glass-item="${index}"]`,
+            `[data-satin-toolbar-glass-key="${itemKey}"]`,
           )
           if (!owner) continue
           bindToolbarMaterialContent(owner, ink)
+          bindToolbarMaterialRun(owner, [...(start ?? []), ...(end ?? [])])
           // A menu emerging from any member takes the run's whole capsule with it.
           const emerged = inkRun.some(member =>
             Boolean(
@@ -375,11 +496,22 @@ export function ToolbarGlass() {
             motions.set(owner, motion)
           }
           const moving = motion.update({
-            slot: key ? (end ? incomingSlot : outgoingSlot) : activeSlot,
+            slot: preparing ? undefined : key ? (end ? incomingSlot : outgoingSlot) : activeSlot,
             content: content[0]!,
             from: origin ?? frame,
-            to: restingFrame(content, placement, frameOf),
+            to: branch ? (target ?? frame) : restingFrame(content, placement, frameOf),
             morph: Boolean(key && morphing),
+            partition: key ? branch : undefined,
+            preserveSymbols: !splitting,
+            canvasWidth: stableCanvas ? layout.width : undefined,
+            ink: [
+              ...(start ?? []).map(element => ({
+                element,
+                frame: frameOf(element),
+                incoming: false,
+              })),
+              ...(end ?? []).map(element => ({ element, frame: frameOf(element), incoming: true })),
+            ],
             padding: runPadding(content, placement),
             shape: material.shape,
             fromRadius:
@@ -395,10 +527,10 @@ export function ToolbarGlass() {
               emerged || (placement === 'leading' && !!backGlass && mostlyCovers(backGlass, frame)),
           })
           const style = {
-            left: `${frame.x}px`,
-            top: `${frame.y}px`,
-            width: `${frame.width}px`,
-            height: `${frame.height}px`,
+            left: `${item.canvasFrame.x}px`,
+            top: `${item.canvasFrame.y}px`,
+            width: `${item.canvasFrame.width}px`,
+            height: `${item.canvasFrame.height}px`,
             borderRadius: `${radius}px`,
             opacity: String(emerged ? 0 : opacity),
             // A leaving or arriving item's dissolve (chromeCurves.ts chromeDissolve) blurs its
@@ -415,6 +547,27 @@ export function ToolbarGlass() {
             Object.assign(owner.style, style)
             liquid?.regions?.invalidate()
           }
+          if (!moving && stableCanvas) {
+            const aperture = {
+              x: frame.x,
+              y: frame.y - item.canvasFrame.y,
+              width: frame.width,
+              height: frame.height,
+            }
+            const previousTrack = glassShapeTrack(owner)
+            if (
+              previousTrack?.duration !== 0 ||
+              JSON.stringify(previousTrack.frames[0]) !== JSON.stringify(aperture) ||
+              previousTrack.radii?.[0] !== radius
+            ) {
+              setGlassShapeTrack(owner, {
+                epoch: 0,
+                duration: 0,
+                frames: [aperture],
+                radii: [radius],
+              })
+            }
+          }
           const regionId = owner.dataset.satinGlassRegionId
           if (regionId)
             liquid?.regions?.updatePresentation(regionId, {
@@ -429,7 +582,7 @@ export function ToolbarGlass() {
             })
         }
       }
-      const keys = next.map(item => item.key).join(',')
+      const keys = next.map(item => `${item.key}/${item.union ?? ''}`).join(',')
       for (const existing of frames.current.keys()) {
         if (!next.some(item => item.key === existing)) frames.current.delete(existing)
       }
@@ -481,13 +634,12 @@ export function ToolbarGlass() {
     measure()
     return () => {
       cancelAnimationFrame(animationFrame)
-      for (const motion of motions.values()) motion.clear()
       mutation.disconnect()
       motion.disconnect()
       resize.disconnect()
       header.removeEventListener('satin-toolbar-material', schedule)
     }
-  })
+  }, [liquid, occupied, motions])
   return (
     <div
       ref={root}
@@ -495,25 +647,34 @@ export function ToolbarGlass() {
       aria-hidden="true"
       style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
     >
-      {occupied.map(item => (
-        <GlassEffect
-          key={item.key}
-          glass={item.material.glass}
-          shape={item.material.shape}
-          press={item.material.press ?? 'bar'}
-          data-satin-toolbar-glass={item.placement}
-          data-satin-toolbar-glass-item={item.index}
-          style={{
-            position: 'absolute',
-            left: item.frame.x,
-            top: item.frame.y,
-            width: item.frame.width,
-            height: item.frame.height,
-            opacity: item.opacity,
-            pointerEvents: 'none',
-          }}
-        />
-      ))}
+      {occupied.length > 0 && (
+        <GlassEffectContainer style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+          {occupied.map(item => (
+            <GlassContainerMembership key={item.key} joined={item.union !== undefined}>
+              <GlassEffect
+                namespace={item.union ? 'toolbar-material' : undefined}
+                union={item.union}
+                glass={item.material.glass}
+                shape={item.material.shape}
+                recipe={item.material.recipe}
+                press={item.material.press ?? 'bar'}
+                data-satin-toolbar-glass={item.placement}
+                data-satin-toolbar-glass-item={item.index}
+                data-satin-toolbar-glass-key={item.key}
+                style={{
+                  position: 'absolute',
+                  left: item.canvasFrame.x,
+                  top: item.canvasFrame.y,
+                  width: item.canvasFrame.width,
+                  height: item.canvasFrame.height,
+                  opacity: item.opacity,
+                  pointerEvents: 'none',
+                }}
+              />
+            </GlassContainerMembership>
+          ))}
+        </GlassEffectContainer>
+      )}
     </div>
   )
 }

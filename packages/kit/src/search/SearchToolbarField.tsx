@@ -107,7 +107,11 @@ export function SearchToolbarField({
       data-satin-search-toolbar-presented={presented || undefined}
     >
       <div data-satin-search-toolbar-field="">
-        <GlassBackground shape="capsule" recipe={darkAppearance ? undefined : 'searchField'} />
+        <GlassBackground
+          shape="capsule"
+          recipe={darkAppearance ? undefined : 'searchField'}
+          toolbarMaterial={!presented && !navigation}
+        />
         <SymbolImage
           name="magnifyingglass"
           weight="medium"

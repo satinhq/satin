@@ -8,15 +8,24 @@ export type ToolbarMaterial = {
   glass: Glass
   shape: GlassShape
   press?: 'button' | 'bar' | 'menu'
+  recipe?: 'searchField'
 }
 
 /** A child describes the slot's material without registering a second renderer region. */
 export const toolbarMaterials = new WeakMap<HTMLElement, ToolbarMaterial>()
+const materialOwners = new WeakMap<HTMLElement, HTMLElement>()
+
+export function bindToolbarMaterialRun(owner: HTMLElement, run: readonly HTMLElement[]) {
+  for (const member of run) materialOwners.set(member, owner)
+}
 
 /** Each run of top-level glass items gets a persistent placement/index owner. */
 export function toolbarMaterialOwner(content: HTMLElement | null | undefined) {
   const slot = content?.closest<HTMLElement>('[data-satin-navigation-toolbar-slot]')
   if (!slot || !content) return
+  const member = content.closest<HTMLElement>('[data-satin-glass-slot-content]') ?? content
+  const owner = materialOwners.get(member)
+  if (owner?.isConnected) return owner
   const runs = toolbarMaterialRuns(slot)
   const index = runs.findIndex(run => run.some(item => item === content || item.contains(content)))
   if (index < 0) return

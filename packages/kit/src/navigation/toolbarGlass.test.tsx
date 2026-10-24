@@ -7,10 +7,12 @@ import { expect, it, vi } from 'vitest'
 import { ToolbarGlass } from './ToolbarGlass.tsx'
 import { ScreenToolbar, ToolbarContext, ToolbarConfirmationContext } from '../public/chrome.tsx'
 import { Button } from '../public/controls.tsx'
-import { GlassEffect, ToolbarGroup, GlassButton } from '../glass/GlassEffect.tsx'
+import { GlassEffect, GlassBackground, ToolbarGroup, GlassButton } from '../glass/GlassEffect.tsx'
 import { MaterialEffectContext } from '../glass/liquidContext.ts'
 import {
   toolbarMaterialOwner,
+  toolbarMaterialRuns,
+  toolbarMaterials,
   toolbarMaterialContent,
   toolbarMenuTrigger,
   ToolbarMaterialPortal,
@@ -23,6 +25,35 @@ import { GlassRegionRegistry } from '../glass/regionRegistry.ts'
 import { registerToolbarMotion } from './toolbarMotionOwner.ts'
 import { glassShapeTrack } from '../glass/shapeTrackRegistry.ts'
 import { shapeTrackFrame } from '../glass/shapeTrack.ts'
+import { toolbarCorrespondence } from './toolbarCorrespondence.ts'
+
+it('keeps the trailing action paired when a leading capsule is inserted', () => {
+  const action = (symbol: string) => {
+    const element = document.createElement('div')
+    element.innerHTML = `<svg data-satin-symbol="${symbol}"></svg>`
+    return [element]
+  }
+  const outgoing = action('checkmark')
+  const leading = action('magnifyingglass')
+  const trailing = action('checkmark')
+  const pairs = toolbarCorrespondence([outgoing], [leading, trailing], run => ({
+    x: run === leading ? 20 : 360,
+    y: 800,
+    width: 44,
+    height: 44,
+  }))
+  expect(pairs[0]?.start).toBeUndefined()
+  expect(pairs[0]?.splitFrom).toBeUndefined()
+  expect(pairs[1]?.start).toBe(outgoing)
+  const reverse = toolbarCorrespondence([leading, trailing], [outgoing], run => ({
+    x: run === leading ? 20 : 360,
+    y: 800,
+    width: 44,
+    height: 44,
+  }))
+  expect(reverse[0]?.start).toBe(trailing)
+  expect(reverse[1]?.end).toBeUndefined()
+})
 
 it('registers one capsule while outgoing and incoming items share a trailing slot', () => {
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
@@ -165,8 +196,13 @@ it('morphs one capsule on the chrome timeline without motion-time layout writes'
       expect(material().getAttribute('style')).toBe(style)
       expect(glassShapeTrack(material())).toBe(track)
     }
-    source.playState = 'idle'
+    // Removing the outgoing page also changes the context and observer binding.
+    // The still-mounted capsule must keep its original tail, not start an arrival.
     render(false)
+    step()
+    expect(glassShapeTrack(material())).toBe(track)
+    expect(shapeTrackFrame(glassShapeTrack(material())!, track.epoch + 120).width).toBe(80)
+    source.playState = 'idle'
     step()
     expect(regions.size).toBe(1)
     expect(material().style.width).toBe('120px')
@@ -1003,6 +1039,214 @@ it('draws a bare toolbar symbol as the icon-only circle and keeps its accessible
     expect(done?.getAttribute('data-satin-glass-button')).toBe('glassProminent')
   } finally {
     toolbar.done()
+    vi.restoreAllMocks()
+  }
+})
+
+it('keeps a resting search field in the same material transaction as its toolbar group', () => {
+  Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
+  const regions = new GlassRegionRegistry()
+  const host = document.createElement('div')
+  document.body.append(host)
+  const root = createRoot(host)
+  const render = (presented: boolean) =>
+    act(() =>
+      root.render(
+        <MaterialEffectContext value={{ regions, ready: true, registerTabs() {} }}>
+          <div data-satin-navigation-toolbar-slot="bottom">
+            <div data-satin-toolbar-item="search">
+              <div data-testid="field">
+                <GlassBackground recipe="searchField" toolbarMaterial={!presented} />
+                <input aria-label="Search" />
+              </div>
+            </div>
+          </div>
+        </MaterialEffectContext>,
+      ),
+    )
+  try {
+    render(false)
+    const slot = host.querySelector<HTMLElement>('[data-satin-navigation-toolbar-slot]')!
+    const field = host.querySelector<HTMLElement>('[data-testid="field"]')!
+    expect(toolbarMaterialRuns(slot)).toEqual([[field]])
+    expect(toolbarMaterials.get(field)?.recipe).toBe('searchField')
+    expect(regions.size).toBe(0)
+    render(true)
+    expect(toolbarMaterialRuns(slot)).toEqual([])
+    expect(toolbarMaterials.has(field)).toBe(false)
+    expect(regions.values()).toHaveLength(1)
+    expect(regions.values()[0]?.element).toBe(field)
+    expect(regions.values()[0]?.descriptor.material.recipe).toBe('searchField')
+    render(false)
+    expect(toolbarMaterialRuns(slot)).toEqual([[field]])
+    expect(regions.size).toBe(0)
+  } finally {
+    act(() => root.unmount())
+    host.remove()
+  }
+})
+
+it('pairs search with the destination group without borrowing the trailing button capsule', () => {
+  Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
+  const regions = new GlassRegionRegistry()
+  const host = document.createElement('div')
+  document.body.append(host)
+  const root = createRoot(host)
+  try {
+    act(() =>
+      root.render(
+        <MaterialEffectContext value={{ regions, ready: true, registerTabs() {} }}>
+          <header data-satin-navigation-chrome="true">
+            <ToolbarGlass />
+            <ScreenToolbar
+              entryKey="old"
+              active={false}
+              motion="outgoing"
+              fallback={
+                <>
+                  <div data-satin-toolbar-item="search">
+                    <div data-testid="search-origin">
+                      <GlassBackground toolbarMaterial recipe="searchField" />
+                      <input aria-label="Search" />
+                    </div>
+                  </div>
+                  <GlassButton aria-label="Compose" onPress={() => {}}>
+                    Compose
+                  </GlassButton>
+                </>
+              }
+            />
+            <ScreenToolbar
+              entryKey="new"
+              motion="incoming"
+              fallback={
+                <>
+                  <ToolbarGroup>
+                    <button>Flag</button>
+                    <button>Folder</button>
+                  </ToolbarGroup>
+                  <GlassButton aria-label="Done" onPress={() => {}}>
+                    Done
+                  </GlassButton>
+                </>
+              }
+            />
+          </header>
+        </MaterialEffectContext>,
+      ),
+    )
+    const search = host.querySelector<HTMLElement>('[data-testid="search-origin"]')!
+    const compose = host.querySelector<HTMLElement>('[aria-label="Compose"]')!
+    expect(regions.size).toBe(2)
+    const searchOwner = toolbarMaterialOwner(search)
+    expect(searchOwner?.dataset.satinToolbarGlassItem).toBe('0')
+    expect(toolbarMaterialOwner(compose)?.dataset.satinToolbarGlassItem).toBe('1')
+    expect(
+      regions.values().every(region => region.element.closest('[data-satin-toolbar-materials]')),
+    ).toBe(true)
+  } finally {
+    act(() => root.unmount())
+    host.remove()
+  }
+})
+
+it('keeps partition membership through split and merge without duplicating ink owners', () => {
+  const item = (name: string) => {
+    const element = document.createElement('div')
+    element.innerHTML = `<svg data-satin-symbol="${name}"></svg>`
+    return element
+  }
+  const grouped = [item('bell'), item('flag')]
+  const bell = [item('bell')]
+  const flag = [item('flag')]
+  const frame = (run: HTMLElement[]) => ({
+    x: run === flag ? 60 : 0,
+    y: 0,
+    width: run === grouped ? 88 : 44,
+    height: 44,
+  })
+  const split = toolbarCorrespondence([grouped], [bell, flag], frame)
+  expect(split[0]).toMatchObject({ start: grouped, end: bell, partition: 0, splitting: true })
+  expect(split[1]).toMatchObject({ splitFrom: grouped, end: flag, partition: 0 })
+  expect(split[1]!.start).toBeUndefined()
+  const merge = toolbarCorrespondence([bell, flag], [grouped], frame)
+  expect(merge[0]).toMatchObject({ start: bell, end: grouped, partition: 0 })
+  expect(merge[0]!.splitting).toBeUndefined()
+  expect(merge[1]).toMatchObject({ start: flag, mergeInto: grouped, partition: 0 })
+})
+
+it('keeps a departing capsule on the glass that drew it when the transition begins', () => {
+  Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
+  const callbacks: FrameRequestCallback[] = []
+  vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation(callback => {
+    callbacks.push(callback)
+    return callbacks.length
+  })
+  vi.spyOn(globalThis, 'cancelAnimationFrame').mockImplementation(() => {})
+  vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (
+    this: HTMLElement,
+  ) {
+    if (this.hasAttribute('data-satin-toolbar-materials')) return new DOMRect(0, 0, 0, 0)
+    // The incoming item sits where the outgoing "second" did, so the two pair up.
+    return new DOMRect(this.textContent?.includes('second') ? 250 : 320, 66, 44, 44)
+  })
+  const regions = new GlassRegionRegistry()
+  const host = document.createElement('div')
+  document.body.append(host)
+  const root = createRoot(host)
+  const item = (label: string) => (
+    <GlassEffect glass={Glass.regular.interactive()}>
+      <button>{label}</button>
+    </GlassEffect>
+  )
+  const frame = () =>
+    act(() => {
+      for (const callback of callbacks.splice(0)) callback(16)
+    })
+  const ownerOf = (label: string) =>
+    [...host.querySelectorAll<HTMLElement>('[data-satin-toolbar-glass]')].find(owner =>
+      toolbarMaterialContent(owner).textContent?.includes(label),
+    )
+  const render = (incoming: boolean) =>
+    act(() =>
+      root.render(
+        <MaterialEffectContext value={{ regions, ready: true, registerTabs() {} }}>
+          <header data-satin-navigation-chrome="true">
+            <ToolbarGlass />
+            <ScreenToolbar
+              entryKey="old"
+              active={!incoming}
+              motion={incoming ? 'outgoing' : undefined}
+              fallback={
+                <>
+                  {item('first')}
+                  {item('second')}
+                </>
+              }
+            />
+            {incoming && (
+              <ScreenToolbar entryKey="new" motion="incoming" fallback={item('second again')} />
+            )}
+          </header>
+        </MaterialEffectContext>,
+      ),
+    )
+  try {
+    render(false)
+    frame()
+    const departing = ownerOf('first')
+    expect(departing).toBeDefined()
+    render(true)
+    host.querySelector<HTMLElement>(
+      '[data-satin-entry-toolbar="new"] [data-satin-navigation-toolbar-slot="trailing"]',
+    )!.style.opacity = '0.25'
+    frame()
+    frame()
+    expect(ownerOf('first')).toBe(departing)
+    expect(departing?.isConnected).toBe(true)
+  } finally {
+    act(() => root.unmount())
+    host.remove()
     vi.restoreAllMocks()
   }
 })

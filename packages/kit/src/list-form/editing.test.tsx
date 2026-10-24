@@ -2,10 +2,11 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { act, useState } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
-import { EditButton, List } from '../public/controls.tsx'
+import { Button, EditButton, List } from '../public/controls.tsx'
 import { EditModeScope, ForEach } from './editing.tsx'
 import { moving, removing } from './offsets.ts'
 import { Section } from './ListForm.tsx'
+import { NavigationPaneContext } from '../navigation/navigationContext.tsx'
 
 let root: Root | undefined
 let node: HTMLDivElement
@@ -70,7 +71,9 @@ it('gives ForEach rows swipe-to-delete that reports the row offset, using source
   const remove = rows()[1].querySelector<HTMLButtonElement>('[data-satin-action-access] button')
   expect(remove?.textContent).toBe('Delete')
   // Stock onDelete supplies its trash glyph, including multiline rows.
-  expect(rows()[1].querySelector('[data-satin-swipe-action] [data-satin-symbol="trash"]')).not.toBeNull()
+  expect(
+    rows()[1].querySelector('[data-satin-swipe-action] [data-satin-symbol="trash"]'),
+  ).not.toBeNull()
   await act(async () => remove!.click())
   expect(onDelete).toHaveBeenCalledWith([1])
 })
@@ -114,4 +117,29 @@ it('applies onMove and onDelete offsets as Swift move(fromOffsets:toOffset:) and
   expect(moving(letters, { fromOffsets: [2, 0], toOffset: 4 })).toEqual(['b', 'd', 'a', 'c'])
   expect(removing(letters, [3, 1])).toEqual(['a', 'c'])
   expect(letters).toEqual(['a', 'b', 'c', 'd'])
+})
+
+it('announces the controlled sidebar destination for buttons and external selection changes', () => {
+  function Mailboxes() {
+    const [selection, setSelection] = useState<string | null>('a')
+    return (
+      <NavigationPaneContext value="sidebar">
+        <button onClick={() => setSelection('c')}>Restore destination</button>
+        <List id="mailboxes" selection={selection} onSelectionChange={setSelection}>
+          <Section>
+            <ForEach data={notes}>
+              {note => <Button onPress={() => setSelection(note.id)}>{note.title}</Button>}
+            </ForEach>
+          </Section>
+        </List>
+      </NavigationPaneContext>
+    )
+  }
+  render(<Mailboxes />)
+  const selected = () => node.querySelector('[aria-current="page"]')?.textContent
+  expect(selected()).toBe('Groceries')
+  act(() => rows()[1].querySelector<HTMLButtonElement>('button')!.click())
+  expect(selected()).toBe('Call Alex')
+  act(() => node.querySelector<HTMLButtonElement>('button')!.click())
+  expect(selected()).toBe('Plan weekend')
 })

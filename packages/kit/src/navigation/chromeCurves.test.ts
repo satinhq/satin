@@ -183,11 +183,12 @@ it('dissolves leaving and arriving items as native does: scale and blur follow o
   const [incoming] = of(pop.secondaryToolbar[0]!)
   // Native at opacity a: scale 1 + 0.2 (1 - a), blur 10 (1 - a) pt.
   const at100 = outgoing!.frames.find(frame => frame.offset === 100 / 283)
-  expect(at100).toMatchObject({ opacity: 0.72, filter: 'blur(2.8px)' })
+  expect(at100).toMatchObject({ opacity: 0.72 })
+  expect(at100!.filter).toBeUndefined()
   expect(back?.frames.at(-1)).toMatchObject({ opacity: 0, scale: '1.2', filter: 'blur(10px)' })
-  expect(incoming?.frames.at(0)).toMatchObject({ opacity: 0, filter: 'blur(10px)' })
+  expect(incoming?.frames.at(0)).toMatchObject({ opacity: 0 })
   // A shown item keeps no filter or scale (menus inside it stay positioned by the viewport).
-  expect(incoming?.frames.at(-1)).toMatchObject({ opacity: 1, filter: 'none' })
+  expect(incoming?.frames.at(-1)).toMatchObject({ opacity: 1 })
   // Each item scales about its own centre. Scaled as a whole, a bar spanning the screen would
   // carry its edge items out toward the edges (a bottom plus moved 17 pt at the crossover).
   for (const frame of [...outgoing!.frames, ...incoming!.frames])
@@ -198,12 +199,12 @@ it('dissolves leaving and arriving items as native does: scale and blur follow o
       1.056,
       3,
     )
-    expect(scale!.frames.at(-1)).toMatchObject({ scale: '1.2' })
+    expect(scale!.frames.at(-1)).toMatchObject({ scale: '1.2', filter: 'blur(10px)' })
   }
   for (const item of incomingItems) {
     const [scale] = of(item)
     expect(scale!.frames.at(0)).toMatchObject({ scale: '1.2' })
-    expect(scale!.frames.at(-1)).toMatchObject({ scale: 'none' })
+    expect(scale!.frames.at(-1)).toMatchObject({ scale: 'none', filter: 'none' })
     expect(scale!.frames.at(-1)!.opacity).toBeUndefined()
   }
 })

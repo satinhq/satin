@@ -279,13 +279,16 @@ export class WebGPURaster {
   loseDevice() {
     this.owner.loseForTest()
   }
+  private allocatedStorage?: string
   private release() {
+    this.allocatedStorage = undefined
     for (const lease of this.textureLeases) lease.release()
     this.textureLeases = []
     this.targets = {}
   }
   private allocate() {
-    return gpuScope(this.device, 'allocate', () => this.allocateScoped())
+    gpuScope(this.device, 'allocate', () => this.allocateScoped())
+    this.allocatedStorage = this.storageKey(this.setup!, this.imageLeases)
   }
   private allocateScoped() {
     const { spec, resolution } = this.setup!
@@ -343,7 +346,11 @@ export class WebGPURaster {
     } else if (spec.variant === 'clear') {
       target('clearHorizontal', sampleWidth * resolution, sampleHeight * resolution)
       target('clearVertical', sampleWidth * resolution, sampleHeight * resolution)
-    } else if (spec.tint?.[3]) target('tinted', sampleWidth * resolution, sampleHeight * resolution)
+    }
+    // A field can highlight one member even when its resting material has no tint.
+    // Keep that pass available throughout a press, including clear/presentation materials.
+    if (spec.tint?.[3] || spec.shape?.members?.length)
+      target('tinted', sampleWidth * resolution, sampleHeight * resolution)
     if (this.setup!.lift?.optics)
       target('liftRest', sampleWidth * resolution, sampleHeight * resolution)
     const scale = spec.materialProfile === 'menu' ? 0.25 : 0.5
@@ -418,32 +425,32 @@ export class WebGPURaster {
     ]
     return this.installLeases(setup, leases, present)
   }
+  /** Allocation identity belongs to GPU storage, never to a spec already changed by a live pose. */
+  private storageKey(setup: RasterSetup, images: GraphLease<ImageBitmap>[]) {
+    return JSON.stringify([
+      setup.width,
+      setup.height,
+      setup.resolution,
+      setup.spec.sampleWidth,
+      setup.spec.sampleHeight,
+      setup.spec.materialProfile,
+      setup.spec.variant,
+      setup.spec.treatment,
+      !!(setup.spec.tint?.[3] || setup.spec.shape?.members?.length),
+      !!setup.lift?.optics,
+      !!setup.navigationAtlas,
+      images.map(lease => lease.key),
+    ])
+  }
   private installLeases(setup: RasterSetup, leases: GraphLease<ImageBitmap>[], present = true) {
-    const storage = (rasterSetup: RasterSetup, images: GraphLease<ImageBitmap>[]) =>
-      JSON.stringify([
-        rasterSetup.width,
-        rasterSetup.height,
-        rasterSetup.resolution,
-        rasterSetup.spec.sampleWidth,
-        rasterSetup.spec.sampleHeight,
-        rasterSetup.spec.materialProfile,
-        rasterSetup.spec.variant,
-        rasterSetup.spec.treatment,
-        !!rasterSetup.spec.tint?.[3],
-        !!rasterSetup.lift?.optics,
-        !!rasterSetup.navigationAtlas,
-        images.map(lease => lease.key),
-      ])
-    const replace =
-      !this.targets.front ||
-      !this.setup ||
-      storage(this.setup, this.imageLeases) !== storage(setup, leases)
+    const replace = this.allocatedStorage !== this.storageKey(setup, leases)
     // Acquire replacement storage before releasing the old: a texture whose key
     // survives (shared capture, unchanged glyphs) keeps its upload.
     const previousTextures = replace ? this.textureLeases : []
     if (replace) {
       this.textureLeases = []
       this.targets = {}
+      this.allocatedStorage = undefined
     }
     const previousImages = this.imageLeases
     this.imageLeases = leases
@@ -657,11 +664,12 @@ export class WebGPURaster {
       spec.sampleHeight <= 0
     )
       throw Error('Invalid glass sampling envelope')
-    const changed =
-      spec.sampleWidth !== this.setup.spec.sampleWidth ||
-      spec.sampleHeight !== this.setup.spec.sampleHeight
     this.setup = { ...this.setup, spec }
-    if (changed && !this.suspended && !this.lost) {
+    if (
+      this.allocatedStorage !== this.storageKey(this.setup, this.imageLeases) &&
+      !this.suspended &&
+      !this.lost
+    ) {
       this.release()
       this.allocate()
       this.upload()
@@ -687,7 +695,8 @@ export class WebGPURaster {
       const root = this.presentationRoot
       if (!root.collectingPresentation && root.targets.result)
         WebGPURaster.presentLayer(encoder, root.presentationSequence ?? [root])
-    } else
+    } else {
+      this.resizeCanvas()
       this.custom(
         encoder,
         this.presentPipeline,
@@ -698,6 +707,7 @@ export class WebGPURaster {
         this.presentScissor(),
         [this.canvas.width, this.canvas.height],
       )
+    }
     if (this.timing) {
       encoder.resolveQuerySet(this.timing.queries, 0, 2, this.timing.resolve, 0)
       encoder.copyBufferToBuffer(this.timing.resolve, 0, this.timing.read, 0, 16)
@@ -757,6 +767,7 @@ export class WebGPURaster {
   }
   private resizeCanvas() {
     const [width, height] = this.canvasSize()
+    if (this.canvas.width !== width || this.canvas.height !== height) this.forgetPresent()
     if (this.canvas.width !== width) this.canvas.width = width
     if (this.canvas.height !== height) this.canvas.height = height
   }
@@ -839,6 +850,9 @@ export class WebGPURaster {
    * `presentedLayers`): the same results at the same places, or nothing at all. */
   static presentLayer(encoder: GPUCommandEncoder, rasters: readonly WebGPURaster[]) {
     const root = rasters[0]
+    // Only the presenter sizes shared canvas storage. Region results can have different
+    // sample dimensions; encoding them must not repeatedly resize the layer canvas.
+    root.resizeCanvas()
     root.presentationSequence = rasters
     const visible = [...new Set([...rasters, ...root.presentationMembers])].filter(
       raster =>
@@ -1176,7 +1190,6 @@ export class WebGPURaster {
     const setup = this.setup
     const { spec, appearance, resolution } = setup
     const targets = this.targets
-    this.resizeCanvas()
     const sampleRect = this.sampleRectangle()
     this.presentRect = sampleRect
     // Result space = layer space shifted by an integer pixel origin, so every kernel
@@ -1491,7 +1504,7 @@ export class WebGPURaster {
       [resultSampleX, resultSampleY, sampleWidth * resolution, sampleHeight * resolution],
       [targets.material],
       false,
-      layout.local && spec.shape.members?.length
+      layout.local && spec.shape?.members?.length
         ? [
             sampleRect[0] - this.resultOrigin[0],
             sampleRect[1] - this.resultOrigin[1],

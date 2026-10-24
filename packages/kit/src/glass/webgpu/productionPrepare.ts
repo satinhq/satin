@@ -339,8 +339,13 @@ async function prepareRevision(
     // The context is also rebuilt when only the visible plane SET changed (a popped page's plane
     // leaving): reusing it kept the popped page's context and tab ink regime. Geometry alone (a
     // sheet or route moving) does not rebuild it: that readback cost frames during motion.
-    const contextGeometry =
-      visiblePlaneSetKey(planes, runtime.planes, contentPlane, geometry) + overlayKey
+    const contextGeometry = visiblePlaneSetKey(
+      planes,
+      runtime.planes,
+      contentPlane,
+      geometry,
+      overlayKey,
+    )
     const cached = !captures.size && reused.size ? runtime.resident.context(contextKey) : undefined
     let contextBytes = 0
     const contextUnchanged =
@@ -525,6 +530,7 @@ async function prepareRevision(
       reused,
       capture,
       contextKey,
+      contextOverlayKey: overlayKey,
       geometry,
       resolution,
       appearance,
