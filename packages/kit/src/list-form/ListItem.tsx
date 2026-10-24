@@ -11,6 +11,7 @@ import {
   type ReactNode,
 } from 'react'
 import { flushSync } from 'react-dom'
+import { NavigationPaneContext } from '../navigation/navigationContext.tsx'
 import { ListItemActions, type RowActionsController } from '../actions/RowActions.tsx'
 import type { ActionItem, RowActionsProps } from '../actions/types.ts'
 import { CONTEXT_HOLD_MS } from '../actions/contextMotion.ts'
@@ -71,6 +72,7 @@ export function ListItem({
   itemRef: (element: HTMLDivElement | null) => void
 }) {
   const [editMode] = useEditMode()
+  const pane = useContext(NavigationPaneContext)
   const selection = useContext(ListSelectionContext)
   const editing = editMode === 'active' && item !== undefined
   const selectable = Boolean(selection && item && !options?.selectionDisabled)
@@ -144,6 +146,9 @@ export function ListItem({
       style={itemStyle}
       data-satin-editing={editing || undefined}
       data-satin-selected={selected || undefined}
+      aria-current={
+        pane === 'sidebar' && selection?.mode === 'single' && selected ? 'page' : undefined
+      }
       data-satin-reorder-group={item?.editing.onMove ? item.group : undefined}
       data-satin-foreach-offset={item?.offset}
       {...rowTap}

@@ -6,7 +6,13 @@ import { Backdrop } from './backdrop.ts'
 import { FrameGraph } from './frameGraph.ts'
 import { uncoveredSourceRows } from './captureBands.ts'
 import { WebGPURaster } from './raster.ts'
-import { regionSpec, pressedRegionSpec, emergeRegionSpec, RegionScene } from './regionScene.ts'
+import {
+  fieldRegionSpec,
+  regionSpec,
+  pressedRegionSpec,
+  emergeRegionSpec,
+  RegionScene,
+} from './regionScene.ts'
 import { Glass, type GlassRegion } from '../regions.ts'
 import type { LayerDevice } from './layers.ts'
 import type { SurfaceRenderSpec } from '../renderSpecs.ts'
@@ -62,6 +68,31 @@ const region: GlassRegion = {
   shape: { kind: 'roundedRectangle', cornerRadius: 12 },
   material: Glass.regular.material,
 }
+it('keeps an aperture playing when an older paused scene arrives after its release', async () => {
+  const scene = await initializedScene({} as LayerDevice)
+  const track = {
+    epoch: 100,
+    duration: 240,
+    frames: [
+      { x: 0, y: 0, width: 48, height: 48 },
+      { x: 0, y: 0, width: 300, height: 48 },
+    ],
+  }
+  const snapshot = {
+    revision: 1,
+    layers: [region.layer],
+    scrolls: [],
+    regions: [{ ...region, shapeTrack: { ...track, epoch: Number.MAX_VALUE } }],
+  }
+  await scene.request({ type: 'scene', snapshot })
+  await scene.request({ type: 'region-shape-track', regionId: region.id, track })
+  await scene.request({ type: 'scene', snapshot: { ...snapshot, revision: 2 } })
+  expect(scene.diagnostics().scene.regions[0]!.shapeTrack).toEqual(track)
+  await scene.request({ type: 'region-shape-track', regionId: region.id, track: undefined })
+  await scene.request({ type: 'scene', snapshot: { ...snapshot, revision: 3 } })
+  expect(scene.diagnostics().scene.regions[0]!.shapeTrack).toBeUndefined()
+})
+
 it('accepts presentation retargets only for the admitted content generation', async () => {
   const scene = await initializedScene({} as LayerDevice)
   const track = {
@@ -1683,7 +1714,11 @@ it.each(['document ink', 'retained ink', 'sheet'])(
     const raster = new WebGPURaster()
     const spec = regionSpec(accessory, presenter, snapshot)
     // Exercise the real sampling rectangle without requiring a GPU in the unit test.
-    Object.assign(raster, { setup: { spec, viewportOrigin: presenter.origin } })
+    Object.assign(raster, {
+      setup: { spec, viewportOrigin: presenter.origin },
+      allocate() {},
+      upload() {},
+    })
     raster.setViewport({ ...presenter.origin, scaleX: 1, scaleY: 1 })
     const sampleRect = () =>
       (
@@ -2190,3 +2225,62 @@ it.each([22, -22])(
     expect(shifted.shape.first.halfHeight).toBe(30)
   },
 )
+
+it('samples every partition aperture in the shared field, not its canvas envelope', async () => {
+  const members: GlassRegion[] = [0, 1].map(index => ({
+    ...region,
+    id: `branch-${index}`,
+    layer: { id: 'fixed', depth: 0, attachment: { kind: 'fixed' } },
+    frame: { x: 0, y: 800, width: 440, height: 44 },
+    shape: 'capsule',
+    container: { id: 'toolbar', spacing: 20 },
+    shapeTrack: {
+      epoch: 100,
+      duration: 100,
+      frames: [
+        { x: index * 60, y: 0, width: 20, height: 20 },
+        { x: index * 60, y: 0, width: 44, height: 44 },
+      ],
+      radii: [10, 22],
+    },
+  }))
+  const snapshot = { revision: 1, layers: [members[0]!.layer], scrolls: [], regions: members }
+  const presenter = {
+    id: 'toolbar',
+    role: 'material' as const,
+    regionIds: members.map(member => member.id),
+    layerId: 'fixed',
+    origin: { x: 0, y: 800 },
+    width: 440,
+    height: 44,
+    resolution: 1,
+  }
+  const spec = fieldRegionSpec(members, presenter, snapshot, 150)
+  expect(spec.shape.members).toHaveLength(2)
+  expect(
+    spec.shape.members!.map(member => [member.halfWidth, member.halfHeight, member.radius]),
+  ).toEqual([
+    [16, 16, 16],
+    [16, 16, 16],
+  ])
+  expect(spec.shape.members![1]!.centerX - spec.shape.members![0]!.centerX).toBe(60)
+  // A retired partition (no area) leaves the field instead of blending in as a point.
+  const retired = { ...members[1]!.shapeTrack!, frames: [{ x: 60, y: 22, width: 0, height: 0 }] }
+  const merged = fieldRegionSpec(
+    [members[0]!, { ...members[1]!, shapeTrack: retired }],
+    presenter,
+    snapshot,
+    150,
+  )
+  expect(merged.shape.members).toEqual([spec.shape.members![0]])
+  const scene = await initializedScene({} as LayerDevice)
+  await scene.request({ type: 'scene', snapshot })
+  const raster = { spec, updateSpec: vi.fn(), draw: vi.fn() }
+  ;(scene as unknown as { presenters: Map<string, unknown> }).presenters.set('toolbar', {
+    descriptor: presenter,
+    raster,
+  })
+  scene.sample(150)
+  expect(raster.updateSpec).toHaveBeenCalledTimes(1)
+  expect(raster.updateSpec.mock.calls[0]![0].shape.members).toEqual(spec.shape.members)
+})

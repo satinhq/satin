@@ -2,7 +2,7 @@ import { animateElement } from '../motion/animate.ts'
 import { sampleFieldAxis } from './fieldMotion.ts'
 import { glassIdentityKey } from './morphField.ts'
 import type { GlassInteraction, GlassRegionEvent } from './rendererContract.ts'
-import { GLASS_REGION_LIMIT, isPlainMenuSource, type GlassRegion } from './regions.ts'
+import { isPlainMenuSource, type GlassRegion } from './regions.ts'
 export type GlassRegionRegistration = Readonly<{
   id: string
   element: HTMLElement
@@ -290,8 +290,9 @@ export class GlassRegionRegistry {
   }
   register(entry: GlassRegionRegistration) {
     if (this.entries.has(entry.id)) throw new Error(`Duplicate glass registration: ${entry.id}`)
-    if (this.entries.size >= GLASS_REGION_LIMIT)
-      throw new Error(`Glass supports at most ${GLASS_REGION_LIMIT} app regions.`)
+    // Registration owns DOM lifetime, including retained routes. Capacity belongs to the
+    // renderer's validated snapshot: a renderer failure can select the release fallback,
+    // whereas throwing here tears down React before that fallback can render the owners.
     const identity = glassIdentityKey(entry.descriptor)
     if (identity && this.values().some(value => glassIdentityKey(value.descriptor) === identity))
       throw Error(`Duplicate active glassEffectID: ${identity}`)

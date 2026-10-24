@@ -401,6 +401,8 @@ export type RuntimeOptions = Readonly<{
   onPresented?: (ready: boolean) => void
   /** `rebuilding`: the renderer is rebuilding its sources once after this error (bounded). */
   onPresentationError?: (error: unknown, rebuilding?: boolean) => void
+  /** The material owner may fulfill an interrupted readiness request with its replacement. */
+  onMaterialReplacement?: (error: unknown) => Promise<void>
   subscribeAppearance?: (listener: () => void) => () => void
   currentAppearance?: () => Appearance
   onTabActivated?: (index: number) => void

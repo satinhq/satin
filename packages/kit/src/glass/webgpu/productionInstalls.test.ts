@@ -1,7 +1,7 @@
 import { expect, it } from 'vitest'
 import { commitPlaneSet, surfaceInstalls } from './productionInstalls.ts'
 import type { ProductionGlassRuntime } from './production.ts'
-import type { MaterialContext, Plane } from './productionPlanes.ts'
+import { visiblePlaneSetKey, type MaterialContext, type Plane } from './productionPlanes.ts'
 import { ResidentPlanes } from './residentPlanes.ts'
 import { releaseCaptureCanvases } from './captureRelease.ts'
 
@@ -149,3 +149,56 @@ it('carries the current source rows into dock and lift installs on navigation se
     expect(Reflect.get(install, 'setup').sourceScrollY).toBe(1240)
   }
 })
+
+it.each(['null', JSON.stringify({ owner: 'menu', alpha: 0.2 })])(
+  'commits the same content and overlay identity used to reuse material context (%s)',
+  contextOverlayKey => {
+    const source = plane('plane-1')
+    const runtime = {
+      planes: new Map(),
+      damaged: new Set(),
+      resident: new ResidentPlanes<MaterialContext>(80e6),
+      captureRevision: 0,
+      planeBytes: new Map(),
+      planeCanvases: new Map(),
+    } as unknown as ProductionGlassRuntime
+    const geometry = { width: 440, height: 956 } as never
+    commitPlaneSet(runtime, {
+      planes: [source],
+      contentPlane: source,
+      captures: new Map([['plane-1', { bitmap: {} as ImageBitmap, signature: source.signature }]]),
+      reused: new Set(),
+      capture: { context: {} as MaterialContext },
+      contextKey: 'context',
+      contextOverlayKey,
+      geometry,
+      resolution: 3,
+      appearance: 'light',
+      text: '17px',
+    })
+    const key = () =>
+      visiblePlaneSetKey([source], runtime.planes, source, geometry, contextOverlayKey)
+    expect(runtime.contextGeometry).toBe(key())
+    // Presentation travel reuses source pixels; it does not change their identity.
+    source.origin = { x: 0, y: 120 }
+    source.clip = [0, 120, 440, 600]
+    expect(runtime.contextGeometry).toBe(key())
+    // A new source or overlay must still force a fresh material snapshot.
+    expect(runtime.contextGeometry).not.toBe(
+      visiblePlaneSetKey(
+        [source],
+        runtime.planes,
+        source,
+        geometry,
+        contextOverlayKey + ':changed',
+      ),
+    )
+    const installed = runtime.planes.get(source.id)!
+    const originalKey = installed.key
+    installed.key += ':changed'
+    expect(runtime.contextGeometry).not.toBe(key())
+    installed.key = originalKey
+    source.hidden = true
+    expect(runtime.contextGeometry).not.toBe(key())
+  },
+)

@@ -39,12 +39,27 @@ const ContainerContext = createContext<{ id: string; spacing: number } | undefin
 export function PresentationGlassBoundary({ children }: { children: ReactNode }) {
   return <ContainerContext value={undefined}>{children}</ContainerContext>
 }
+
+/** @internal Glass that joins its enclosing container's field only while `joined`. The glass
+ * stays mounted either way, so it keeps its element and canvas when membership changes. */
+export function GlassContainerMembership({
+  joined,
+  children,
+}: {
+  joined: boolean
+  children: ReactNode
+}) {
+  const container = useContext(ContainerContext)
+  return <ContainerContext value={joined ? container : undefined}>{children}</ContainerContext>
+}
 export type GlassEffectProps = HTMLAttributes<HTMLDivElement> &
   Readonly<{
     glass?: Glass
     shape?: GlassShape
     /** @internal Contact lighting owned by the shared menu presenter. */
     touchLight?: boolean
+    /** @internal Material recipe retained when a toolbar owns a search field. */
+    recipe?: 'searchField'
     glassEffectID?: string
     namespace?: string
     union?: string
@@ -65,6 +80,7 @@ export function GlassEffect({
   glass = Glass.regular,
   shape = 'capsule',
   touchLight,
+  recipe,
   glassEffectID,
   namespace,
   union,
@@ -96,7 +112,8 @@ export function GlassEffect({
       : hostsField
         ? { ...glass.material, field: true as const }
         : glass.material
-  const material = touchLight ? { ...pressMaterial, touchLight: true } : pressMaterial
+  const litMaterial = touchLight ? { ...pressMaterial, touchLight: true } : pressMaterial
+  const material = recipe ? { ...litMaterial, recipe } : litMaterial
   // A glass button may let the back swipe through (GLASS_BACK_SWIPE, owner decision pending): its
   // glass then stays pressed while the page moves; a field always owns its drag.
   const yieldsBackSwipe = !!press && !hostsField && GLASS_BACK_SWIPE.yieldingKinds.includes(press)
@@ -166,7 +183,7 @@ export function GlassEffect({
     if (slotOwned !== belongsToSlot) setSlotOwned(belongsToSlot)
     if (belongsToSlot && element.current) {
       const content = element.current
-      toolbarMaterials.set(content, { glass, shape, press })
+      toolbarMaterials.set(content, { glass, shape, press, recipe })
       content.dispatchEvent(new Event('satin-toolbar-material', { bubbles: true }))
       return () => {
         toolbarMaterials.delete(content)
@@ -554,6 +571,7 @@ export function GlassBackground({
   interactive = false,
   selection,
   recipe,
+  toolbarMaterial = false,
 }: {
   shape?: GlassShape
   glass?: Glass
@@ -564,6 +582,8 @@ export function GlassBackground({
   selection?: Readonly<{ index: number; count: number; onSelect?: (index: number) => void }>
   /** @internal The search field's own glass parameters (GlassMaterial.recipe). */
   recipe?: 'searchField'
+  /** @internal Resting bar fields share the toolbar material transaction. */
+  toolbarMaterial?: boolean
 }) {
   const id = useId(),
     canvas = useRef<HTMLCanvasElement>(null),
@@ -579,7 +599,23 @@ export function GlassBackground({
   selectionRef.current = selection
   useLayoutEffect(() => {
     const target = canvas.current?.parentElement
-    if (!target || !canvas.current || !liquid?.regions) return
+    if (!target || !canvas.current) return
+    // Presented search leaves the bar and resumes its own keyboard-carried region.
+    // Register the field, not its canvas, so the same endpoint carries its ink and geometry.
+    if (toolbarMaterial && target.closest('[data-satin-navigation-toolbar-slot]')) {
+      const presenter = canvas.current
+      presenter.style.visibility = 'hidden'
+      target.setAttribute('data-satin-glass-slot-content', 'true')
+      toolbarMaterials.set(target, { glass, shape, recipe })
+      target.dispatchEvent(new Event('satin-toolbar-material', { bubbles: true }))
+      return () => {
+        presenter.style.visibility = ''
+        toolbarMaterials.delete(target)
+        target.removeAttribute('data-satin-glass-slot-content')
+        target.dispatchEvent(new Event('satin-toolbar-material', { bubbles: true }))
+      }
+    }
+    if (!liquid?.regions) return
     const unregister = liquid.regions.register({
       id,
       element: target,
@@ -605,7 +641,7 @@ export function GlassBackground({
       delete target.dataset.satinGlassInk
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, liquid?.regions, shape, materialKey, draggableSelection])
+  }, [id, liquid?.regions, shape, materialKey, draggableSelection, toolbarMaterial])
   useSelectionThumbContact(id, canvas, selectionRef, draggableSelection)
   const selectionIndex = selection?.index,
     selectionCount = selection?.count

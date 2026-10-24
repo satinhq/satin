@@ -52,9 +52,17 @@ export type { ButtonBorderShape } from './buttonBorderShape.ts'
 import { ToolbarConfirmationContext, ToolbarContext } from './toolbar.tsx'
 import { useScreenContentNavigation } from './screenChrome.tsx'
 import { useNavigation } from './runtime.tsx'
+import { NavigationPaneContext, NavigatorContext } from '../navigation/navigationContext.tsx'
+import { SplitContext } from '../navigation/splitContext.ts'
+import { sameRouteParams } from '../navigation/routeCodec.ts'
 import type { RowActionsProps } from '../actions/types.ts'
 import { ListContext, ListRowContentContext } from '../list-form/listContext.ts'
-import { useEditMode, type ListItemID } from '../list-form/editing.tsx'
+import {
+  ListItemContext,
+  ListSelectionContext,
+  useEditMode,
+  type ListItemID,
+} from '../list-form/editing.tsx'
 import type { Routes, RouteProps, RegisteredRoutes } from './routes.tsx'
 
 /** The `swipeActions` and `contextMenu` props of a row in a `List`. */
@@ -330,7 +338,10 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
           symbol ? (
             <SymbolImage
               name={symbol}
-              style={{ fontSize: 21.7, color: configuration.tint ?? 'var(--satin-tint)' }}
+              style={{
+                fontSize: 21.7,
+                color: `var(--satin-sidebar-selected-ink, ${configuration.tint ?? 'var(--satin-tint)'})`,
+              }}
             />
           ) : undefined
         }
@@ -442,7 +453,8 @@ export type NavigationLinkProps<R extends Routes = RegisteredRoutes> = [
         }
     }[keyof R['definitions'] & string]
 /**
- * Pushes a declared route. In a `List` it draws a disclosure row; elsewhere it is a plain
+ * Pushes a declared route. In a split sidebar it highlights the current destination.
+ * In other `List` contexts it draws a disclosure row; elsewhere it is a plain
  * pressable. Use `prefetch={signal => resource.prefetch(key, signal)}` to start
  * loading on press-down; scrolling or swiping cancels speculative work.
  *
@@ -460,22 +472,46 @@ export function NavigationLink<R extends Routes = RegisteredRoutes>({
 }: NavigationLinkProps<R>) {
   const list = useContext(ListContext)
   const navigation = useNavigation<Routes>()
+  const pane = useContext(NavigationPaneContext)
+  const split = useContext(SplitContext)
+  const navigator = useContext(NavigatorContext)
+  const listSelection = useContext(ListSelectionContext)
+  const item = useContext(ListItemContext)
+  const selectionIdentity = navigator?.registry.resolve(to)?.splitSelection
+  // The first detail entry owns sidebar selection, even while its detail stack pushes deeper.
+  // Without an explicit grouping identity, distinguish destinations by route AND parameters.
+  const selected =
+    !listSelection &&
+    pane === 'sidebar' &&
+    split?.mode === 'split' &&
+    Boolean(split.entry) &&
+    (selectionIdentity === undefined
+      ? split.entry?.screenId === to && sameRouteParams(split.entry.params, params)
+      : split.identity ===
+        (typeof selectionIdentity === 'function' ? selectionIdentity(params) : selectionIdentity))
   const configuration = useControlStyle({
     disabled: 'disabled' in props ? Boolean(props.disabled) : undefined,
   })
   const onPress = () => {
-    ;(navigation.push as (id: string, params?: unknown) => boolean)(to, params)
+    const accepted = (navigation.push as (id: string, params?: unknown) => boolean)(to, params)
+    // Split selection returns void; only an explicit false rejects navigation. Unlike an
+    // arbitrary Button action, a destination link also selects its identified List row.
+    if (accepted !== false && pane === 'sidebar' && listSelection) item?.select()
   }
   return list ? (
     <Rows.NavigationRow
       {...props}
       {...{ swipeActions, contextMenu }}
+      buttonProps={{ 'aria-current': selected ? 'page' : undefined }}
       label={children}
       leading={
         symbol ? (
           <SymbolImage
             name={symbol}
-            style={{ fontSize: 21.7, color: configuration.tint ?? 'var(--satin-tint)' }}
+            style={{
+              fontSize: 21.7,
+              color: `var(--satin-sidebar-selected-ink, ${configuration.tint ?? 'var(--satin-tint)'})`,
+            }}
           />
         ) : (
           props.leading
@@ -489,6 +525,7 @@ export function NavigationLink<R extends Routes = RegisteredRoutes>({
       disabled={configuration.disabled}
       style={controlTintStyle(configuration.tint)}
       data-satin-navigation-link="true"
+      aria-current={selected ? 'page' : undefined}
       onPress={onPress}
     >
       {symbol && <SymbolImage name={symbol} />}

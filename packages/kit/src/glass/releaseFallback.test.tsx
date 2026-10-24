@@ -617,3 +617,49 @@ it('keeps the same material through failed retries and grants one foreground ret
   expect(gpu.create).toHaveBeenCalledTimes(7)
   expect(material.isConnected).toBe(true)
 })
+
+it('holds interrupted navigation readiness until the release replacement is painted', async () => {
+  const view = await mount()
+  const options = gpu.create.mock.calls[0]![0]
+  const failure = Error('region capacity exceeded')
+  act(() => view.reportGlassError('presentation', failure, 'navigation source'))
+  let ready = false
+  const first = options.onMaterialReplacement(failure).then(() => {
+    ready = true
+  })
+  const second = options.onMaterialReplacement(failure)
+  await act(async () => {
+    await vi.dynamicImportSettled()
+  })
+  expect(ready).toBe(false)
+  await waitForFallback(view)
+  await Promise.all([first, second])
+  expect(ready).toBe(true)
+  expect(gpu.dispose).toHaveBeenCalledOnce()
+  expect(view.chrome.querySelector('[data-satin-fallback-material]')).not.toBeNull()
+})
+
+it('rejects interrupted navigation in strict mode instead of fulfilling it without glass', async () => {
+  vi.stubEnv('SATIN_STRICT_GLASS', '1')
+  const view = await mount()
+  const failure = Error('region capacity exceeded')
+  act(() => view.reportGlassError('presentation', failure, 'navigation source'))
+  await expect(gpu.create.mock.calls[0]![0].onMaterialReplacement(failure)).rejects.toBe(failure)
+  expect(view.chrome.querySelector('[data-satin-fallback-material]')).toBeNull()
+})
+
+it('does not fulfill replacement readiness after its material owner is disposed', async () => {
+  const view = await mount()
+  const options = gpu.create.mock.calls[0]![0]
+  const failure = Error('region capacity exceeded')
+  act(() => view.reportGlassError('presentation', failure, 'navigation source'))
+  const ready = options.onMaterialReplacement(failure)
+  const rejected = expect(ready).rejects.toBe(failure)
+  cleanup?.()
+  cleanup = undefined
+  await act(async () => {
+    await vi.dynamicImportSettled()
+    vi.advanceTimersToNextFrame()
+  })
+  await rejected
+})

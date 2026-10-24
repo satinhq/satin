@@ -180,7 +180,7 @@ Components, hooks and types for building the app.
 | [`NavigationArguments`](../public/runtime.d.ts) | The typed parameter tuple accepted by push and replace. |  |  |
 | [`NavigationBackButtonBehavior`](../navigation/types.d.ts) | Whether a pushed screen shows its back button. `automatic` shows it; `hidden` removes it. |  |  |
 | [`NavigationDeclaration`](../public/structure.d.ts) | An app's primary navigation: either tabs, each owning a stack, or one stack. |  |  |
-| [`NavigationLink`](../public/controls.d.ts) | Pushes a declared route. In a `List` it draws a disclosure row; elsewhere it is a plain pressable. Use `prefetch={signal => resource.prefetch(key, signal)}` to start loading on press-down; scrolling or swiping cancels speculative work. | Navigation does not use browser history. Route params must match the declared schema. | push; disclosure row |
+| [`NavigationLink`](../public/controls.d.ts) | Pushes a declared route. In a split sidebar it highlights the current destination. In other `List` contexts it draws a disclosure row; elsewhere it is a plain pressable. Use `prefetch={signal => resource.prefetch(key, signal)}` to start loading on press-down; scrolling or swiping cancels speculative work. | Navigation does not use browser history. Route params must match the declared schema. | push; disclosure row |
 | [`NavigationLinkProps`](../public/controls.d.ts) | A destination route and its params (typed against the registered routes), plus the row's label and accessories. |  |  |
 | [`NavigationSplitView`](../public/runtime.d.ts) | Shows the declared root as a sidebar and pushes into a retained detail column. At compact width it collapses to a plain stack. A `NavigationStack` never splits by itself. | It renders an existing declared stack; it takes no modal or ad hoc root. | sidebar and detail; split view |
 | [`NavigationSplitViewProps`](../public/runtime.d.ts) | Selects which declared primary stack the split view renders; inside a `Tab`, its own. |  |  |
@@ -1867,11 +1867,11 @@ The declarations below have no dedicated reviewed behavior metadata. Type-only d
 
 ## Declaration graph fingerprints
 
-- `@satinhq/kit:5566a824a0961de2c85058cf287f1f066ff0874ff909cb5c366fdf94b6476102`
+- `@satinhq/kit:207a070c9c74a3ac043b2beeaa42fedb3a7f41a1fd98376479ca44791ca336ba`
 - `@satinhq/kit/vite:2a5c37d7a4a86a6f4e93516451716df9b5c73b3c81ac98509061536453d43207`
 - `@satinhq/kit/install:e080a0874c9490077cf9cbb117e03d5d58252226e9424d84101be7ee4454a422`
-- `@satinhq/kit/internal:db3014211632761557f2b42c73a14562c1a5567a5405a2b48f91637231397e28`
-- `@satinhq/kit/unstable:d429053ae5a14e1d724e3feb09226a36847eee07597cbb52aa76611e753e5ff6`
+- `@satinhq/kit/internal:102ecde74028a069b87c830488deb31624323f6c36c2f1177716f29bbe609754`
+- `@satinhq/kit/unstable:ea354a6220828e60f13d97aee252f1bc93235c60036749cb45e8507332751d53`
 - `@satinhq/kit/server:7d2b996d9541bd82fd0936e0482554f3182ffe004be56928e590ad4c4c8c79bd`
 - `@satinhq/kit/testing:04a86ddf0741e53228777bd599cbd00ff503b9e216a1f86a9791fdbee1bd5e12`
 - `@satinhq/kit/diagnostics:05327eaa9f5a55ab73834d5abaeaeffd98cfc6294fa5af5d3ba03a8609463eac`
@@ -1879,4 +1879,4 @@ The declarations below have no dedicated reviewed behavior metadata. Type-only d
 
 ## Framework source fingerprint
 
-SHA-256 of sorted TS/TSX/CSS source paths and bytes, excluding tests: a027210227daab9aabfedd9d0fab73a8ae611af0cca87ee6c63e1bd6e1a180e3
+SHA-256 of sorted TS/TSX/CSS source paths and bytes, excluding tests: 22ee065246aa56cb8be2a3138a9bded06ecb39d05ff39e127e900edec945f425

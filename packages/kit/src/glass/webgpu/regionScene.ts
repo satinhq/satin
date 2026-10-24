@@ -1,6 +1,11 @@
 import { sampleKeyboardTranslation, type KeyboardTranslation } from '../../keyboard/translation.ts'
 import { accessoryPose, accessoryOffset } from './accessoryTrack.ts'
-import { shapeTrackRunning, trackedShapeSpec } from '../shapeTrack.ts'
+import {
+  shapeTrackRunning,
+  shapeTrackFrame,
+  shapeTrackRadius,
+  trackedShapeSpec,
+} from '../shapeTrack.ts'
 import { MenuTouchLight } from '../lens/menuTouchLight.ts'
 import type { GlassFieldMember } from '../fieldGeometry.ts'
 import {
@@ -176,17 +181,36 @@ export function fieldRegionSpec(
   regions: readonly GlassRegion[],
   presenter: GlassPresenter,
   scene: GlassSceneSnapshot,
+  at = performance.timeOrigin + performance.now(),
 ): SurfaceRenderSpec {
   const base = regionSpec(regions[0], presenter, scene),
     inset = base.sampleInsetX
-  const members = regions.map(region => {
-    const frame = glassViewportFrame(region, scene.scrolls)
+  // A tracked partition with no area has retired (merge) or not yet grown (split). Native
+  // removes that platter outright; left in the field, its point would still blend into its
+  // neighbour and swell it. Untracked members keep their places for the field spring.
+  const sampled = regions.filter(region => {
+    const aperture = region.shapeTrack && shapeTrackFrame(region.shapeTrack, at)
+    return !aperture || (aperture.width > 0 && aperture.height > 0)
+  })
+  const members = (sampled.length ? sampled : regions.slice(0, 1)).map(region => {
+    const viewport = glassViewportFrame(region, scene.scrolls)
+    const aperture = region.shapeTrack && shapeTrackFrame(region.shapeTrack, at)
+    const frame = aperture
+      ? { ...aperture, x: viewport.x + aperture.x, y: viewport.y + aperture.y }
+      : viewport
+    const radius = glassRadius(region.shape, frame.width, frame.height)
     return {
       centerX: frame.x + frame.width / 2 - presenter.origin.x - inset,
       centerY: frame.y + frame.height / 2 - presenter.origin.y - inset,
       halfWidth: frame.width / 2,
       halfHeight: frame.height / 2,
-      radius: glassRadius(region.shape, frame.width, frame.height),
+      radius: region.shapeTrack
+        ? Math.min(
+            frame.width / 2,
+            frame.height / 2,
+            shapeTrackRadius(region.shapeTrack, at, radius),
+          )
+        : radius,
     }
   })
   return {
@@ -524,6 +548,8 @@ type RegionInteraction = {
 export class RegionScene {
   private samplePixels = 0
   private scene: GlassSceneSnapshot = { revision: 0, layers: [], regions: [], scrolls: [] }
+  /** A captured scene may arrive after a newer directly delivered aperture. */
+  private shapeTracks = new Map<string, GlassRegion['shapeTrack']>()
   private presenters = new Map<
     string,
     {
@@ -1008,23 +1034,24 @@ export class RegionScene {
   }
   /** Glass changing size inside a still canvas: draw each frame's shape at its presentation time. */
   private presentShapeTracks(at: number) {
-    for (const region of this.scene.regions) {
-      const track = region.shapeTrack
-      if (!track) continue
-      for (const p of this.presenters.values()) {
-        if (
-          !p.descriptor.regionIds.includes(region.id) ||
-          !p.raster?.spec ||
-          p.parked ||
-          p.suspended ||
-          p.descriptor.role === 'lift'
-        )
-          continue
-        p.raster.updateSpec(this.shapeAt(region, p.raster.spec, track, at))
-        if (this.visible && !this.deferred) p.raster.draw(0)
-      }
+    for (const p of this.presenters.values()) {
+      if (!p.raster?.spec || p.parked || p.suspended || p.descriptor.role === 'lift') continue
+      const members = p.descriptor.regionIds
+        .map(id => this.scene.regions.find(region => region.id === id))
+        .filter((region): region is GlassRegion => region !== undefined)
+      if (!members.some(region => region.shapeTrack)) continue
+      const region = members[0]!
+      this.fields.delete(p.descriptor.id)
+      // Sample all partitions together. Applying a single rectangle track to a
+      // union replaces its field and lets the last arriving branch erase siblings.
+      const spec = region.container
+        ? fieldRegionSpec(members, p.descriptor, this.scene, at)
+        : this.shapeAt(region, p.raster.spec, region.shapeTrack!, at)
+      p.raster.updateSpec(spec)
+      if (this.visible && !this.deferred) p.raster.draw(0)
     }
   }
+
   private shapeAt(
     region: GlassRegion,
     spec: SurfaceRenderSpec,
@@ -1586,6 +1613,7 @@ export class RegionScene {
         return
       }
       case 'region-shape-track': {
+        this.shapeTracks.set(request.regionId, request.track)
         this.scene = {
           ...this.scene,
           regions: this.scene.regions.map(region =>
@@ -1750,7 +1778,18 @@ export class RegionScene {
         }
         this.retargetSelections(request.snapshot.regions)
         this.sourcePending = false
-        this.scene = request.snapshot
+        for (const previous of this.scene.regions) {
+          if (!request.snapshot.regions.some(region => region.id === previous.id))
+            this.shapeTracks.delete(previous.id)
+        }
+        this.scene = {
+          ...request.snapshot,
+          regions: request.snapshot.regions.map(region =>
+            this.shapeTracks.has(region.id)
+              ? { ...region, shapeTrack: this.shapeTracks.get(region.id) }
+              : region,
+          ),
+        }
         this.samplePixels = budget.samplePixels
         for (const id of this.touchLights.keys())
           if (!this.scene.regions.some(region => region.id === id && region.material.touchLight))
@@ -2053,6 +2092,7 @@ export class RegionScene {
           this.owner.detach(id)
         }
         this.presenters.clear()
+        this.shapeTracks.clear()
         this.touchLights.clear()
         for (const source of this.sources.values()) source.lease.release()
         this.sources.clear()
@@ -2173,7 +2213,12 @@ export class RegionScene {
             )
           : regionSpec(region, p.descriptor, this.scene)
       const memberIds = region.container ? members.map(member => member.id) : undefined
-      if (memberIds && p.raster?.spec?.shape.members) {
+      if (members.some(member => member.shapeTrack)) this.fields.delete(p.descriptor.id)
+      if (
+        memberIds &&
+        !members.some(member => member.shapeTrack) &&
+        p.raster?.spec?.shape.members
+      ) {
         const previous = p.raster.spec
         const running = this.fields.get(p.descriptor.id)
         const previousIds = running?.memberIds ?? p.fieldMemberIds ?? memberIds
@@ -2289,7 +2334,8 @@ export class RegionScene {
       const foreground = this.sources.get(`foreground:${region.id}`)
       if (region.accessoryTrack && foreground)
         spec = accessoryPose(spec, region.accessoryTrack, this.trackClock(), foreground.descriptor)
-      if (region.shapeTrack) spec = this.shapeAt(region, spec, region.shapeTrack, this.trackClock())
+      if (region.shapeTrack && !region.container)
+        spec = this.shapeAt(region, spec, region.shapeTrack, this.trackClock())
       if (region.selection) spec = selectionInk(spec, foreground?.descriptor)
       const thumb = this.thumbs.get(region.id)
       if (region.selection && thumb)

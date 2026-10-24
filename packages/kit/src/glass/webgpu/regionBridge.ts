@@ -329,7 +329,10 @@ export class RegionBridge {
   private foregroundRevision = 0
   private epoch = 0
   private serial = Promise.resolve()
-  private canvases = new Map<HTMLCanvasElement, { id: string; layerId: string }>()
+  private canvases = new Map<
+    HTMLCanvasElement,
+    { id: string; layerId: string; descriptor?: GlassPresenter }
+  >()
   private nextPresenter = 0
   private foregrounds = new WeakMap<HTMLElement, string>()
   private dirtyForegrounds = new WeakSet<HTMLElement>()
@@ -1022,8 +1025,11 @@ export class RegionBridge {
           )
         : undefined)
     const style = getComputedStyle(entry.element)
+    // The rows are keyed by their layout size, not their on-screen rect. A held panel strains
+    // with the finger through a transform on an ancestor: that moves the rect by fractions of a
+    // point every frame without changing the ink, and recapturing each frame stalled the drag.
     const key = JSON.stringify([
-      rowsRect && [rowsRect.width, rowsRect.height, inkSignature(rowsElement!)],
+      rowsElement && [rowsElement.offsetWidth, rowsElement.offsetHeight, inkSignature(rowsElement)],
       rowsElement?.textContent,
       triggerRect && [
         triggerRect.width,
@@ -1163,7 +1169,7 @@ export class RegionBridge {
   }
   private fieldEnvelopes = new WeakMap<
     HTMLElement,
-    { x: number; y: number; width: number; height: number }
+    Map<string, { x: number; y: number; width: number; height: number }>
   >()
   private fieldEnvelope(
     container: HTMLElement,
@@ -1180,7 +1186,15 @@ export class RegionBridge {
     const top = Math.min(...frames.map(frame => frame.y)) - holder.y - support
     const right = Math.max(...frames.map(frame => frame.x + frame.width)) - holder.x + support
     const bottom = Math.max(...frames.map(frame => frame.y + frame.height)) - holder.y + support
-    const previous = this.fieldEnvelopes.get(container)
+    const key = glassFieldKey(entries[0]!.descriptor)
+    let envelopes = this.fieldEnvelopes.get(container)
+    if (!envelopes) {
+      envelopes = new Map()
+      this.fieldEnvelopes.set(container, envelopes)
+    }
+    // A container can own independent fields, such as top and bottom toolbar groups.
+    // Retaining their combined bounds would rasterize the empty space between them.
+    const previous = envelopes.get(key)
     // Grow in whole steps: members following a live layout transition move every frame, and
     // each envelope change reallocates the presenter's sampling storage.
     const step = FIELD_ENVELOPE_STEP
@@ -1201,7 +1215,7 @@ export class RegionBridge {
         ) - y,
     }
     // Retain the observed sweep, rather than resize an attachment on every spring sample.
-    this.fieldEnvelopes.set(container, envelope)
+    envelopes.set(key, envelope)
     return { ...envelope, x: holder.x + x, y: holder.y + y }
   }
   private async refreshNow(epoch: number, waitForCoverage = true) {
@@ -1547,7 +1561,7 @@ export class RegionBridge {
               resolution: devicePixelRatio,
             }
           const offscreen = this.client.documentOwned ? canvas : canvas.transferControlToOffscreen()
-          known = { id, layerId: layer.id }
+          known = { id, layerId: layer.id, descriptor: presenter }
           this.canvases.set(canvas, known)
           this.viewportSamples.set(id, {
             viewport: { x: bounds.x, y: bounds.y, scaleX: 1, scaleY: 1 },
@@ -1557,21 +1571,25 @@ export class RegionBridge {
             { type: 'attach-presenter', presenter, canvas: offscreen },
             this.client.documentOwned ? [] : [offscreen as OffscreenCanvas],
           )
-        } else if (group)
-          await this.send({
-            type: 'update-presenter',
-            presenter: {
-              id: known.id,
-              role,
-              layerId: layer.id,
-              regionIds,
-              origin: { x: bounds.x, y: bounds.y },
-              ...(group && container ? { fieldOrigin: { x: holder.x, y: holder.y } } : {}),
-              width: bounds.width,
-              height: bounds.height,
-              resolution: devicePixelRatio,
-            },
-          })
+        } else if (group) {
+          const presenter: GlassPresenter = {
+            id: known.id,
+            role,
+            layerId: layer.id,
+            regionIds,
+            origin: { x: bounds.x, y: bounds.y },
+            ...(container ? { fieldOrigin: { x: holder.x, y: holder.y } } : {}),
+            width: bounds.width,
+            height: bounds.height,
+            resolution: devicePixelRatio,
+          }
+          // A stable field needs no worker round trip before its next scene. Keep
+          // the last admitted descriptor; failed updates must remain retryable.
+          if (JSON.stringify(known.descriptor) !== JSON.stringify(presenter)) {
+            await this.send({ type: 'update-presenter', presenter })
+            known.descriptor = presenter
+          }
+        }
         this.retainPresenterExtent(known.id, bounds)
         const holderElement =
           container && groupCanvas === container.canvas ? container.element : entry.element
@@ -1721,7 +1739,13 @@ export class RegionBridge {
       void uncovered.then(this.invalidate, this.fail)
       return
     }
-    for (const [canvas] of this.canvases) if (!active.has(canvas)) canvas.hidden = true
+    for (const [canvas, known] of this.canvases) {
+      if (active.has(canvas)) continue
+      canvas.hidden = true
+      // The renderer can resize an unused presenter before it is reused (a toolbar field
+      // that dissolves after a split returns for the merge). Admit its descriptor again then.
+      known.descriptor = undefined
+    }
     // A scroll-driven scene (every frame while content scrolls under fixed glass) is posted,
     // not awaited: waiting for the worker's reply before the next refresh could run held region
     // glass to ~40 Hz on iPadOS 27. The worker applies scenes in post order either way. A scene

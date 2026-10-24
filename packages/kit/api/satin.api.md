@@ -2527,7 +2527,8 @@ Value
 
 ```ts
 /**
- * Pushes a declared route. In a `List` it draws a disclosure row; elsewhere it is a plain
+ * Pushes a declared route. In a split sidebar it highlights the current destination.
+ * In other `List` contexts it draws a disclosure row; elsewhere it is a plain
  * pressable. Use `prefetch={signal => resource.prefetch(key, signal)}` to start
  * loading on press-down; scrolling or swiping cancels speculative work.
  *
@@ -10264,7 +10265,8 @@ minLines?: number;
 
 // public/controls.d.ts :: NavigationLink
 /**
- * Pushes a declared route. In a `List` it draws a disclosure row; elsewhere it is a plain
+ * Pushes a declared route. In a split sidebar it highlights the current destination.
+ * In other `List` contexts it draws a disclosure row; elsewhere it is a plain
  * pressable. Use `prefetch={signal => resource.prefetch(key, signal)}` to start
  * loading on press-down; scrolling or swiping cancels speculative work.
  *

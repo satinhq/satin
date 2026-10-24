@@ -105,3 +105,38 @@ NavigationLink uses `to` and `params`. The framework owns the in-memory stack an
 | `params` | `RouteParameters` | Typed destination parameters. |
 
 Related: [Quick start](../learn/quick-start.md), [List](../components/list.md), [Screen](../components/screen.md).
+
+## Sidebar selection
+
+A `NavigationLink` in the sidebar automatically marks the destination shown in detail as current.
+Links to the same route with different parameters remain distinct. Pushing another screen inside
+the detail column keeps its parent sidebar row selected. A route's `sidebar` option can group
+several destinations under the same sidebar identity. Compact navigation keeps ordinary stack rows.
+
+Use `symbol` for the leading icon and `value` for a trailing count:
+
+```tsx
+<NavigationLink to="mailbox" params={{ id: 'inbox' }} symbol="tray" value={12}>
+  Inbox
+</NavigationLink>
+```
+
+For application-owned detail state, bind `List` selection to that same state and identify rows
+with `ForEach`. A Button's action sets the binding; changes made elsewhere also update the highlight.
+The framework cannot infer which destination an arbitrary Button callback displays. A Button row
+can also declare `aria-current={mailbox === item.id ? 'page' : undefined}` when it owns the
+selection directly; it receives the same sidebar treatment.
+
+```tsx
+<List id="mailboxes" selection={mailbox} onSelectionChange={setMailbox}>
+  <Section>
+    <ForEach data={mailboxes}>
+      {item => <Button onPress={() => setMailbox(item.id)}>{item.title}</Button>}
+    </ForEach>
+  </Section>
+</List>
+```
+
+A controlled List binding owns selection when it contains NavigationLinks too. Activating a link
+updates its ForEach row selection. Programmatic navigation should update the binding as well. For mailbox → message list → message detail, retain the
+mailbox as the sidebar identity while message selection belongs to the detail column.

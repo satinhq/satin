@@ -1,6 +1,10 @@
 import { expect, it, vi } from 'vitest'
 import { clampScissor, encodePass } from './passes.ts'
 import { WebGPURaster } from './raster.ts'
+import { encodeMaterial } from './rasterMaterial.ts'
+import type { RasterSetup } from '../worker/protocol.ts'
+import type { Passes, Target } from './passes.ts'
+import type { ResultLayout } from './rasterUniforms.ts'
 /** WebKit-like encoder: an out-of-bounds scissor invalidates the pass, and ending an
  * invalid (or never ending a) pass leaves the command encoder locked, so finish() fails. */
 function webkitEncoder(width: number, height: number) {
@@ -182,4 +186,84 @@ it.each([false, true])('preserves material ping-pong with member highlight %s', 
   expect(targets.material).toBe(original)
   expect(custom.mock.calls.at(-1)?.[4]).toEqual([original])
   expect(copy).not.toHaveBeenCalled()
+})
+
+// Keep allocation real: pre-populating every target hides missing material storage.
+it('renders a same-size toolbar material change and its retained-source reinstall', () => {
+  const raster = new WebGPURaster()
+  const image = { width: 140, height: 100 } as ImageBitmap
+  const lease = { key: 'toolbar', value: image, release() {} }
+  const shape = { centerX: 50, centerY: 30, halfWidth: 40, halfHeight: 20, radius: 20 }
+  const setup: RasterSetup = {
+    width: 140,
+    height: 100,
+    resolution: 1,
+    appearance: 'dark',
+    spec: {
+      variant: 'regular',
+      materialProfile: 'chrome',
+      id: 'region:toolbar',
+      frameWidth: 100,
+      frameHeight: 60,
+      radius: 20,
+      materialMix: 1,
+      shaderAperture: true,
+      sampleWidth: 140,
+      sampleHeight: 100,
+      sampleInsetX: 20,
+      sampleInsetY: 20,
+      frameX: 20,
+      frameY: 20,
+      shape: { first: shape, blendRadius: 0, rimAlpha: 1, whiteMix: 0 },
+    },
+  }
+  const submitted: string[] = []
+  const passes = {
+    kernel(_encoder: unknown, name: string, output: Target) {
+      // The real GPU pass dereferences this attachment before it can submit.
+      output.texture.createView()
+      submitted.push(name)
+    },
+  } as unknown as Passes
+  Object.assign(raster, {
+    device: { pushErrorScope() {}, popErrorScope: () => Promise.resolve(null) },
+    graph: {
+      image: () => lease,
+      target: (_name: string, width: number, height: number) => ({
+        value: { width, height, texture: { createView: () => ({}) } },
+        release() {},
+      }),
+      upload() {},
+    },
+    draw() {
+      const current = Reflect.get(raster, 'setup') as RasterSetup
+      encodeMaterial(
+        {} as GPUCommandEncoder,
+        passes,
+        Reflect.get(raster, 'targets'),
+        {
+          ...current,
+          sampleWidth: current.spec.sampleWidth,
+          sampleHeight: current.spec.sampleHeight,
+        } as ResultLayout,
+        {},
+      )
+    },
+  })
+  raster.installRetained(setup, lease, lease)
+  const pressed = { ...setup.spec, tint: [1, 1, 1, 0.12] as const }
+  raster.updateSpec(pressed)
+  expect(() => raster.draw(0)).not.toThrow()
+  expect(submitted.at(-1)).toBe('tint')
+  // The old retry compared against the already-mutated spec and kept the missing target.
+  expect(() => raster.installRetained({ ...setup, spec: pressed }, lease, lease)).not.toThrow()
+  raster.updateSpec(setup.spec)
+  raster.updateSpec({
+    ...pressed,
+    tint: undefined,
+    shape: { ...pressed.shape, members: [shape] },
+    memberHighlight: { member: 0, amount: 0.4 },
+  })
+  expect(() => raster.draw(0)).not.toThrow()
+  expect(submitted.at(-1)).toBe('tint')
 })

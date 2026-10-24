@@ -22,6 +22,7 @@ export class GlassMaterialRuntime {
   private fallback = false
   private disposed = false
   private demoting = false
+  private fallbackReady?: Promise<void>
   private generation = 0
   private revision = 0
   private token = String(++ownerSequence)
@@ -30,7 +31,14 @@ export class GlassMaterialRuntime {
   private cancelRecovery = () => {}
   private options: RuntimeOptions
   private constructor(options: RuntimeOptions) {
-    this.options = options
+    this.options = {
+      ...options,
+      onMaterialReplacement: async error => {
+        if (this.disposed || !glassFallbackRequired()) throw error
+        await this.installFallback()
+        if (this.disposed || !this.fallback) throw error
+      },
+    }
   }
   static async create(options: RuntimeOptions, backend: 'fallback' | 'webgpu') {
     const owner = new GlassMaterialRuntime(options)
@@ -75,7 +83,15 @@ export class GlassMaterialRuntime {
     if (document.documentElement.dataset.satinMaterialRecoveryShow === this.token)
       delete document.documentElement.dataset.satinMaterialRecoveryShow
   }
-  private async installFallback() {
+  private installFallback(): Promise<void> {
+    if (this.fallback) return Promise.resolve()
+    if (!this.fallbackReady)
+      this.fallbackReady = this.replaceWithFallback().finally(() => {
+        this.fallbackReady = undefined
+      })
+    return this.fallbackReady
+  }
+  private async replaceWithFallback() {
     this.demoting = true
     this.generation++
     this.stopRecovery()

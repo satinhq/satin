@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.1
+
+### Changed
+
+- Toolbar glass morphs between bars as one surface. When a screen's bottom bar changes (for example a search field and compose button becoming a group of actions and a checkmark), each capsule changes shape while its content cross-fades inside it. Separated buttons split from and merge into groups, and symbols shared by both bars stay sharp.
+- Sidebars in a split view show the current destination. `NavigationLink` rows highlight the destination shown in the detail column and keep it highlighted while you navigate deeper; a controlled `List` selection uses the same appearance.
+
+### Fixed
+
+- A slow app script no longer shows "Unable to Open App" during launch. The error appears only after a real load failure, or after the script has been pending for 60 seconds of visible time.
+- Glass always renders a material. When WebGPU glass can't start or is lost, every surface uses the CSS material, including popover pointers, and navigation waits for it instead of cancelling. Registering more glass elements than the renderer supports falls back instead of failing.
+- Glass no longer fails with "undefined is not an object (evaluating 'n.texture')" when a material changes appearance without changing size, and recovers instead of repeating the error.
+- Closing sheets and scrolling right after a pop drop fewer frames, and dragging across a toolbar menu no longer recaptures the menu on every frame.
+
 ## 0.1.0
 
 The first release without a beta suffix. The framework is unchanged from the last beta (beta.7). Install commands now use `@latest`, for example `npm create satin@latest my-app`, and the packages publish to the `latest` tag.

@@ -20,6 +20,8 @@ import { createRouteCodec } from '../navigation/routeCodec.ts'
 import { encodePushRoute, decodePushRoute } from '../push/routes.ts'
 import { createSceneRestoration } from '../restoration/scene.ts'
 import { createNavigator } from '../navigation/store.ts'
+import { Sidebar } from '../navigation/Sidebar.tsx'
+import { ForEach } from '../list-form/editing.tsx'
 import { defineApp } from './definition.ts'
 import {
   runApp,
@@ -1275,6 +1277,126 @@ it('draws standalone press controls as plain native labels: no UA chrome, inheri
   click('Album')
   expect(document.body.textContent).toContain('Album detail')
   style.remove()
+})
+
+it('keeps the selected mailbox visible while navigating its detail branch', () => {
+  const mailboxParams = { id: param.string() }
+  function Mailboxes() {
+    const navigation = useNavigation<typeof routes>()
+    return (
+      <Screen title="Mailboxes">
+        <List id="mailboxes">
+          <Section>
+            <NavigationLink<typeof routes> to="mailbox" params={{ id: 'inbox' }} value={12}>
+              Inbox
+            </NavigationLink>
+            <NavigationLink<typeof routes> to="mailbox" params={{ id: 'flagged' }}>
+              Flagged
+            </NavigationLink>
+            <NavigationLink<typeof routes> to="archive">Archive</NavigationLink>
+            <Button onPress={() => navigation.push('archivedMessage')}>Restore archive</Button>
+          </Section>
+        </List>
+      </Screen>
+    )
+  }
+  const routes = defineRoutes({
+    home: route(Mailboxes),
+    mailbox: route(
+      (): React.ReactElement => (
+        <Screen title="Mailbox">
+          <NavigationLink<typeof routes> to="message">Open message</NavigationLink>
+        </Screen>
+      ),
+      { params: mailboxParams },
+    ),
+    message: route(() => <Screen title="Message">Message body</Screen>),
+    archive: route(() => <Screen title="Archive">Archive body</Screen>, { sidebar: 'archive' }),
+    archivedMessage: route(() => <Screen title="Archived message">Archived message body</Screen>, {
+      sidebar: 'archive',
+    }),
+  })
+  adaptiveLayout.horizontal = 'regular'
+  adaptiveLayout.width = 1366
+  const mount = () =>
+    act(() => {
+      root = runApp({
+        app,
+        routes,
+        navigation: defineNavigation(routes, { stack: { root: 'home' } }),
+        content: () => <NavigationSplitView />,
+      })
+    })
+  mount()
+  const selected = () =>
+    [...document.querySelectorAll('[aria-current="page"]')].map(row => row.textContent)
+  expect(selected()).toEqual([])
+  click('Inbox12')
+  expect(selected()).toEqual(['Inbox12'])
+  click('Open message')
+  expect(selected()).toEqual(['Inbox12'])
+  click('Flagged')
+  expect(selected()).toEqual(['Flagged'])
+  click('Flagged')
+  expect(selected()).toEqual(['Flagged'])
+  click('Restore archive')
+  expect(selected()).toEqual(['Archive'])
+  act(() => root!.unmount())
+  adaptiveLayout.horizontal = 'compact'
+  adaptiveLayout.width = 402
+  mount()
+  click('Inbox12')
+  expect(selected()).toEqual([])
+})
+
+it('keeps Sidebar accessories and controlled List links on the same destination', () => {
+  const mailboxes = [
+    { id: 'inbox', label: 'Inbox', value: 0 },
+    { id: 'flagged', label: 'Flagged', value: 7 },
+  ]
+  function Mailboxes() {
+    const [selection, setSelection] = useState<string | null>('inbox')
+    return (
+      <>
+        <Sidebar entries={mailboxes} selection={selection} onSelect={setSelection} />
+        <List id="bound-mailboxes" selection={selection} onSelectionChange={setSelection}>
+          <Section>
+            <ForEach data={mailboxes}>
+              {mailbox => (
+                <NavigationLink<typeof routes> to="mailbox" params={{ id: mailbox.id }}>
+                  {mailbox.label}
+                </NavigationLink>
+              )}
+            </ForEach>
+          </Section>
+        </List>
+      </>
+    )
+  }
+  const routes = defineRoutes({
+    home: route(Mailboxes),
+    mailbox: route(() => <Screen title="Mailbox">Mailbox body</Screen>, {
+      params: { id: param.string() },
+    }),
+  })
+  adaptiveLayout.horizontal = 'regular'
+  adaptiveLayout.width = 1366
+  act(() => {
+    root = runApp({
+      app,
+      routes,
+      navigation: defineNavigation(routes, { stack: { root: 'home' } }),
+      content: () => <NavigationSplitView />,
+    })
+  })
+  const selected = () =>
+    [...document.querySelectorAll('[aria-current="page"]')].map(row => row.textContent)
+  expect(selected()).toEqual(['Inbox0', 'Inbox'])
+  click('Flagged')
+  expect(selected()).toEqual(['Flagged7', 'Flagged'])
+  // Application state owns the selection even when the displayed route has not changed.
+  click('Inbox0')
+  expect(selected()).toEqual(['Inbox0', 'Inbox'])
 })
 
 it('keeps wide NavigationStack single-column and requires explicit NavigationSplitView', () => {

@@ -37,6 +37,11 @@ await mkdir(artifacts, { recursive: true })
 await mkdir(evidence, { recursive: true })
 const runRoot = await mkdtemp(resolve(scratchReal, 'consumer-'))
 let transcript = ''
+// A consumer runs npm directly, not inside pnpm. pnpm exports its own npm_config_* settings to the
+// scripts it runs, and newer npm warns about the ones it doesn't know, so the proof drops them.
+const consumerEnvironment = Object.fromEntries(
+  Object.entries(process.env).filter(([name]) => !name.toLowerCase().startsWith('npm_config_')),
+)
 function run(command, args, cwd, options = {}) {
   const line = `> ${command} ${args.join(' ')}\n`
   console.log(line)
@@ -45,6 +50,7 @@ function run(command, args, cwd, options = {}) {
     encoding: 'utf8',
     maxBuffer: 32 * 1024 * 1024,
     ...options,
+    env: options.env ?? consumerEnvironment,
   })
   transcript += line + (result.stdout ?? '') + (result.stderr ?? '')
   if (!args.includes('--json')) process.stdout.write(result.stdout ?? '')
@@ -347,7 +353,7 @@ try {
       "export const app = {\n  advanced: { updateProfile: 'preview' },",
     ),
   )
-  const previewEnvironment = { ...process.env }
+  const previewEnvironment = { ...consumerEnvironment }
   delete previewEnvironment.SATIN_ENABLE_HOT_RELOAD
   run('npm', ['run', 'build'], subpathApp, { env: previewEnvironment })
   const previewHtml = await readFile(resolve(subpathDist, 'index.html'), 'utf8')

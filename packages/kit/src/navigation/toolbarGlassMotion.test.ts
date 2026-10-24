@@ -152,6 +152,198 @@ it('publishes one fixed envelope and shares the original chrome epoch, including
   expect(glassShapeTrack(owner)).toBeUndefined()
 })
 
+it('retains the morph through a chrome tail after the outgoing page unmounts', () => {
+  const { owner, slot, source, motion, input } = setup()
+  motion.update({ ...input, fromRadius: 22, toRadius: 24 })
+  const track = glassShapeTrack(owner)
+  source.currentTime = 120
+  motion.update({ ...input, fromRadius: 21.9, toRadius: 25.02 })
+  expect(glassShapeTrack(owner)).toBe(track)
+  expect(track!.radii?.at(-1)).toBe(24)
+  source.currentTime = 220
+  motion.update({ ...input, morph: false, to: { ...to, width: 80 } })
+  expect(glassShapeTrack(owner)).toBe(track)
+  Object.assign(slot, { getAnimations: () => [] })
+  expect(motion.update({ ...input, morph: false })).toBe(false)
+  expect(glassShapeTrack(owner)).toBeUndefined()
+})
+
+it('releases a held morph clock even after the outgoing page unmounts', () => {
+  const { owner, source, motion, input } = setup()
+  Object.assign(source, { startTime: null, playState: 'paused', currentTime: 0 })
+  motion.update(input)
+  expect(glassShapeTrack(owner)!.frames).toHaveLength(1)
+  Object.assign(source, { startTime: 200, playState: 'running' })
+  motion.update({ ...input, morph: false })
+  const track = glassShapeTrack(owner)!
+  expect(track.frames.length).toBeGreaterThan(1)
+  expect(track.epoch).toBe(performance.timeOrigin + 200)
+  motion.clear()
+})
+
+it('carries and clips outgoing content inside the same moving aperture', () => {
+  const { owner, source, motion, input } = setup()
+  const oldInk = document.createElement('div')
+  const nextInk = document.createElement('div')
+  const from = { x: 20, y: 800, width: 300, height: 48 }
+  const to = { x: 40, y: 800, width: 120, height: 48 }
+  motion.update({
+    ...input,
+    from,
+    to,
+    canvasWidth: 440,
+    ink: [
+      { element: oldInk, frame: from, incoming: false },
+      { element: nextInk, frame: to, incoming: true },
+    ],
+  })
+  const track = glassShapeTrack(owner)!
+  expect(owner.style.width).toBe('440px')
+  const outgoing = oldInk.getAnimations()[0]!
+  const incoming = nextInk.getAnimations()[0]!
+  expect(outgoing.startTime).toBe(source.startTime)
+  expect(incoming.startTime).toBe(source.startTime)
+  const oldFrames = (outgoing.effect as KeyframeEffect).getKeyframes()
+  const nextFrames = (incoming.effect as KeyframeEffect).getKeyframes()
+  const sample = (
+    keyframes: ComputedKeyframe[],
+    time: number,
+    property: 'translate' | 'clipPath',
+  ) => {
+    const progress = time / track.duration
+    const nextIndex = keyframes.findIndex(frame => frame.computedOffset >= progress)
+    const end = keyframes[nextIndex < 0 ? keyframes.length - 1 : nextIndex]!
+    const start = keyframes[Math.max(0, nextIndex - 1)]!
+    const values = (frame: ComputedKeyframe) =>
+      String(frame[property])
+        .match(/-?[\d.]+/g)!
+        .map(Number)
+    const from = values(start)
+    const to = values(end)
+    const mix =
+      end.computedOffset === start.computedOffset
+        ? 0
+        : (progress - start.computedOffset) / (end.computedOffset - start.computedOffset)
+    return from.map((value, axis) => value + (to[axis]! - value) * mix)
+  }
+  for (let time = 0; time <= track.duration; time += 0.5) {
+    const aperture = shapeTrackFrame(track, track.epoch + time)
+    const left = parseFloat(owner.style.left) + aperture.x
+    expect(sample(oldFrames, time, 'translate')[0]! + from.x).toBeCloseTo(left)
+    expect(sample(nextFrames, time, 'translate')[0]! + to.x).toBeCloseTo(left)
+    expect(sample(oldFrames, time, 'clipPath')[1]).toBeCloseTo(from.width - aperture.width)
+    expect(sample(nextFrames, time, 'clipPath')[1]).toBeCloseTo(to.width - aperture.width)
+  }
+  expect(oldFrames.at(-1)!.clipPath).toBe('inset(0px 180px 0px 0px round 24px)')
+  motion.clear()
+  expect(oldInk.getAnimations()).toHaveLength(0)
+  expect(nextInk.getAnimations()).toHaveLength(0)
+
+  // A late-mounted incoming field is already scaled. Its clip must reach zero
+  // at rest and coincide with the aperture throughout the remaining dissolve.
+  const scaleSource = {
+    ...source,
+    effect: {
+      getTiming: () => ({ duration: 240 }),
+      getKeyframes: () => [
+        { computedOffset: 0, scale: '1.2' },
+        { computedOffset: 1, scale: '1' },
+      ],
+    },
+  }
+  const animations = nextInk.getAnimations.bind(nextInk)
+  vi.spyOn(nextInk, 'getAnimations').mockImplementation(() => [
+    scaleSource as unknown as Animation,
+    ...animations(),
+  ])
+  const style = getComputedStyle
+  vi.stubGlobal('getComputedStyle', (element: Element) =>
+    element === nextInk
+      ? { ...style(element), scale: String(1.2 - (0.2 * 80) / 240), transformOrigin: '60px 24px' }
+      : style(element),
+  )
+  const initialScale = 1.2 - (0.2 * 80) / 240
+  motion.update({
+    ...input,
+    from,
+    to,
+    canvasWidth: 440,
+    ink: [
+      {
+        element: nextInk,
+        incoming: true,
+        frame: {
+          x: to.x + 60 * (1 - initialScale),
+          y: to.y + 24 * (1 - initialScale),
+          width: to.width * initialScale,
+          height: to.height * initialScale,
+        },
+      },
+    ],
+  })
+  const scaledFrames = (animations()[0]!.effect as KeyframeEffect).getKeyframes()
+  const scaledTrack = glassShapeTrack(owner)!
+  for (let time = 0; time <= scaledTrack.duration; time += 0.5) {
+    const size = 1.2 - (0.2 * time) / 240
+    const aperture = shapeTrackFrame(scaledTrack, scaledTrack.epoch + time)
+    const translation = sample(scaledFrames, time, 'translate')
+    const clip = sample(scaledFrames, time, 'clipPath')
+    const left = to.x + 60 * (1 - size) + translation[0]!
+    const right = left + to.width * size
+    expect(left + clip[3]! * size).toBeCloseTo(aperture.x + parseFloat(owner.style.left), 3)
+    expect(right - clip[1]! * size).toBeCloseTo(
+      aperture.x + parseFloat(owner.style.left) + aperture.width,
+      3,
+    )
+  }
+  expect(scaledFrames.at(-1)!.clipPath).toBe('inset(0px 0px 0px 0px round 24px)')
+  motion.clear()
+
+  const first = document.createElement('div')
+  const last = document.createElement('div')
+  motion.update({
+    ...input,
+    from: { ...to, width: 40 },
+    to,
+    canvasWidth: 440,
+    ink: [
+      { element: first, frame: { ...to, width: 40 }, incoming: true },
+      { element: last, frame: { ...to, x: to.x + 80, width: 40 }, incoming: true },
+    ],
+  })
+  const groupTrack = glassShapeTrack(owner)!
+  const firstFrames = (first.getAnimations()[0]!.effect as KeyframeEffect).getKeyframes()
+  const lastFrames = (last.getAnimations()[0]!.effect as KeyframeEffect).getKeyframes()
+  for (let time = 0; time <= groupTrack.duration; time += 0.5) {
+    const aperture = shapeTrackFrame(groupTrack, groupTrack.epoch + time)
+    const left = aperture.x + parseFloat(owner.style.left)
+    expect(to.x + 20 + sample(firstFrames, time, 'translate')[0]!).toBeCloseTo(left + 20)
+    expect(to.x + 100 + sample(lastFrames, time, 'translate')[0]!).toBeCloseTo(
+      left + aperture.width - 20,
+    )
+  }
+  motion.clear()
+
+  // Returning from actions to a field grows the material, not the old group's
+  // layout. The outgoing flag must dissolve beside the bell, inside the rim.
+  const expanded = { ...to, width: 300 }
+  motion.update({
+    ...input,
+    from: to,
+    to: expanded,
+    ink: [
+      { element: first, frame: { ...to, x: to.x + 5, width: 40 }, incoming: false },
+      { element: last, frame: { ...to, x: to.x + 75, width: 40 }, incoming: false },
+    ],
+  })
+  const expandingTrack = glassShapeTrack(owner)!
+  const flagFrames = (last.getAnimations()[0]!.effect as KeyframeEffect).getKeyframes()
+  for (let time = 0; time <= expandingTrack.duration; time += 0.5) {
+    expect(to.x + 95 + sample(flagFrames, time, 'translate')[0]!).toBeCloseTo(to.x + 95)
+  }
+  motion.clear()
+})
+
 it('holds paused preparation and adopts its start time without a second clock', () => {
   const { owner, source, motion, input } = setup()
   source.playState = 'paused'
@@ -163,6 +355,39 @@ it('holds paused preparation and adopts its start time without a second clock', 
   motion.update(input)
   expect(glassShapeTrack(owner)!.epoch).toBe(performance.timeOrigin + 900)
   motion.clear()
+})
+
+it('keeps a shared symbol sharp and restores live symbols when the transition ends', () => {
+  const { owner, motion, input } = setup()
+  const member = () => {
+    const element = document.createElement('div')
+    element.innerHTML = '<svg data-satin-symbol="flag" style="color: blue"></svg>'
+    const symbol = element.firstElementChild as SVGElement
+    vi.spyOn(element, 'getBoundingClientRect').mockReturnValue(new DOMRect(20, 800, 48, 48))
+    vi.spyOn(symbol, 'getBoundingClientRect').mockReturnValue(new DOMRect(32, 812, 24, 24))
+    return { element, symbol }
+  }
+  const old = member()
+  const next = member()
+  const frame = { x: 20, y: 800, width: 48, height: 48 }
+  motion.update({
+    ...input,
+    from: frame,
+    to: frame,
+    ink: [
+      { element: old.element, frame, incoming: false },
+      { element: next.element, frame, incoming: true },
+    ],
+  })
+  const visible = owner.querySelector<SVGElement>('svg')!
+  expect(visible.style.opacity).toBe('1')
+  expect(visible.style.filter).toBe('none')
+  expect(old.symbol.style.visibility).toBe('hidden')
+  expect(next.symbol.style.visibility).toBe('hidden')
+  motion.clear()
+  expect(owner.querySelector('svg')).toBeNull()
+  expect(old.symbol.style.visibility).toBe('')
+  expect(next.symbol.style.visibility).toBe('')
 })
 
 it('copies one-sided fades and cancels them when the source disappears', () => {

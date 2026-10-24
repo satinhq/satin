@@ -328,6 +328,7 @@ export function visiblePlaneSetKey(
   installed: ReadonlyMap<string, PlaneEntry>,
   contentPlane: Plane,
   geometry: RuntimeGeometry,
+  overlayKey = 'null',
 ) {
   return JSON.stringify([
     planes
@@ -336,6 +337,7 @@ export function visiblePlaneSetKey(
     contentPlane.id,
     geometry.width,
     geometry.height,
+    overlayKey,
   ])
 }
 

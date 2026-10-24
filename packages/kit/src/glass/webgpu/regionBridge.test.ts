@@ -940,11 +940,26 @@ async function menuInkFixture() {
 
 it('re-captures a menu ink atlas when the appearance changes, and only then', async () => {
   const fixture = await menuInkFixture()
-  const { capture, bridge } = fixture
+  const { capture, bridge, rows } = fixture
   try {
     await bridge.refresh()
     const once = capture.mock.calls.length
     expect(once).toBeGreaterThan(0)
+    await bridge.refresh()
+    expect(capture.mock.calls.length).toBe(once)
+    // A held panel strains with the finger: its transform moves the rows' on-screen rect by
+    // fractions of a point every frame, but their ink is unchanged.
+    vi.spyOn(rows, 'getBoundingClientRect').mockReturnValue({
+      x: 170.06,
+      y: 61.94,
+      width: 249.88,
+      height: 190.12,
+      top: 61.94,
+      left: 170.06,
+      right: 419.94,
+      bottom: 252.06,
+      toJSON: () => ({}),
+    })
     await bridge.refresh()
     expect(capture.mock.calls.length).toBe(once)
     await bridge.sourceChanged('dark')
@@ -1551,7 +1566,7 @@ it('carries both toolbar symbols in the shared capsule ink', async () => {
   }
 })
 
-it('sends the container origin separately from its retained presenter envelope', async () => {
+it('retains independent field envelopes while their shared container moves', async () => {
   const messages: GlassRendererOperation[] = []
   const client = {
     request: async ({ request }: { request: GlassRendererOperation }) => {
@@ -1579,15 +1594,37 @@ it('sends the container origin separately from its retained presenter envelope',
   for (const target of [canvas, memberCanvas])
     Object.defineProperty(target, 'transferControlToOffscreen', { value: () => ({}) })
   registry.registerContainer('cards', container, canvas)
-  registry.register({
+  const cardRegistration = {
     id: 'card',
     element: member,
     canvas: memberCanvas,
     descriptor: {
       id: 'card',
+      shape: 'capsule' as const,
+      material: Glass.regular.material,
+      container: { id: 'cards', spacing: 20 },
+    },
+  }
+  let unregisterCard = registry.register(cardRegistration)
+  const distant = document.createElement('div')
+  const distantCanvas = document.createElement('canvas')
+  distant.append(distantCanvas)
+  container.append(distant)
+  vi.spyOn(distant, 'getBoundingClientRect').mockImplementation(
+    () => new DOMRect(16, y + 450, 80, 44),
+  )
+  Object.defineProperty(distantCanvas, 'transferControlToOffscreen', { value: () => ({}) })
+  const unregisterDistant = registry.register({
+    id: 'distant',
+    element: distant,
+    canvas: distantCanvas,
+    descriptor: {
+      id: 'distant',
       shape: 'capsule',
       material: Glass.regular.material,
       container: { id: 'cards', spacing: 20 },
+      namespace: 'controls',
+      union: 'distant',
     },
   })
   const bridge = new RegionBridge(client, 'light')
@@ -1599,9 +1636,20 @@ it('sends the container origin separately from its retained presenter envelope',
       x: 16,
       y: 240,
     })
+    // Independent fields must not allocate the empty space between their materials.
+    const attachments = messages.filter(message => message.type === 'attach-presenter')
+    expect(attachments).toHaveLength(2)
+    for (const message of attachments) expect(message.presenter.height).toBeLessThan(300)
+    const updates = () => messages.filter(message => message.type === 'update-presenter').length
+    const unchanged = updates()
+    await bridge.refresh()
+    expect(updates()).toBe(unchanged)
     y = 40
     await bridge.refresh()
-    const updated = messages.findLast(message => message.type === 'update-presenter')
+    const updated = messages.findLast(
+      message =>
+        message.type === 'update-presenter' && message.presenter.regionIds.includes('card'),
+    )
     expect(updated?.type === 'update-presenter' && updated.presenter.fieldOrigin).toEqual({
       x: 16,
       y: 40,
@@ -1610,6 +1658,20 @@ it('sends the container origin separately from its retained presenter envelope',
       throw Error('missing presenters')
     expect(updated.presenter.origin.y - attached.presenter.origin.y).toBe(-200)
     expect(updated.presenter.height).toBe(attached.presenter.height)
+    // A field that dissolves leaves its presenter unused, and the renderer may resize it
+    // meanwhile. Rejoining with unchanged geometry must admit the descriptor again.
+    unregisterDistant()
+    await bridge.refresh()
+    unregisterCard()
+    const { container: _container, ...standalone } = cardRegistration.descriptor
+    unregisterCard = registry.register({ ...cardRegistration, descriptor: standalone })
+    await bridge.refresh()
+    expect(canvas.hidden).toBe(true)
+    unregisterCard()
+    unregisterCard = registry.register(cardRegistration)
+    const beforeRejoin = updates()
+    await bridge.refresh()
+    expect(updates()).toBe(beforeRejoin + 1)
   } finally {
     bridge.unbind()
   }

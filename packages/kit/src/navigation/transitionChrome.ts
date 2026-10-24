@@ -110,7 +110,7 @@ type ChromeTrack = {
 /** Native scales each bar item about its own centre as it dissolves (NAVIGATION_CHROME_DISSOLVE).
  * A slot can span the whole bar (the bottom bar spans the screen), so scaling the slot would carry
  * its items toward the bar's ends: a bottom plus 168 pt from the centre moved 17 pt at the
- * crossover, where native's stays put. The slot keeps the opacity and blur, which move nothing;
+ * crossover, where native's stays put. The slot keeps opacity; blur belongs to the item so its aperture clips the blurred result.
  * each run of merged items (one glass capsule) scales about the capsule's centre. */
 function slotScaleTargets(slot: HTMLElement) {
   const targets: { element: HTMLElement; origin?: string }[] = []
@@ -129,15 +129,16 @@ function slotScaleTargets(slot: HTMLElement) {
   return targets
 }
 
-function withoutScale({ scale: _scale, ...frame }: Keyframe) {
+function withoutScale({ scale: _scale, filter: _filter, ...frame }: Keyframe) {
   return frame
 }
 
-/** The items' share of a slot's dissolve frames: the scale alone. */
+/** Blur before the item's aperture clip; ancestor blur would spread clipped ink past the rim. */
 function scaleFrames(frames: readonly Keyframe[], origin: string | undefined) {
-  return frames.map(({ offset, scale }) => ({
+  return frames.map(({ offset, scale, filter }) => ({
     offset,
     scale,
+    filter,
     ...(origin ? { transformOrigin: origin } : {}),
   }))
 }
@@ -274,6 +275,7 @@ function preserveItemScale(element: HTMLElement) {
   const style = getComputedStyle(element)
   element.style.scale = style.scale || ''
   element.style.transformOrigin = style.transformOrigin || ''
+  element.style.filter = style.filter || ''
 }
 
 /** Holds an interrupted chrome item where it is: its opacity and the dissolve that goes with it. */
@@ -295,6 +297,7 @@ export function clearChromeStyle(element: HTMLElement) {
   if (!element.dataset?.satinNavigationToolbarSlot) return
   for (const item of toolbarMaterialItems(element)) {
     item.style.removeProperty('scale')
+    item.style.removeProperty('filter')
     item.style.removeProperty('transform-origin')
   }
 }
@@ -351,13 +354,17 @@ export function startChromeTracks(
     const { frames, duration } = track(origin)
     // Held at its last value until the transition ends (the page usually runs longer).
     const options: KeyframeAnimationOptions = { duration, easing: 'linear', fill: 'both' }
-    const animation = animate(element, slot ? frames.map(withoutScale) : frames, options)
+    const targets = slot ? slotScaleTargets(element) : []
+    const slotFrames = targets.length
+      ? frames.map(withoutScale)
+      : frames.map(({ scale: _scale, ...frame }) => frame)
+    const animation = animate(element, slot ? slotFrames : frames, options)
     chromeAnimations.set(animation, element)
     if (slot) registerToolbarMotion(element, 'opacity', animation)
     if (swell) swellAnimations.add(animation)
     animations.push(animation)
     if (!slot) continue
-    for (const target of slotScaleTargets(element)) {
+    for (const target of targets) {
       const scale = animate(target.element, scaleFrames(frames, target.origin), options)
       chromeAnimations.set(scale, target.element)
       registerToolbarMotion(target.element, 'scale', scale)

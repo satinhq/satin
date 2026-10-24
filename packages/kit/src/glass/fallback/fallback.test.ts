@@ -425,3 +425,31 @@ it('restores original canvas visibility after repeated ownership updates', () =>
   owner.dispose()
   expect(canvas.style.visibility).toBe('visible')
 })
+
+it('retains over-capacity app owners for fallback and releases their material on unmount', () => {
+  const registry = new GlassRegionRegistry()
+  const remove = Array.from({ length: 17 }, (_, index) => {
+    const host = document.createElement('div')
+    Object.defineProperties(host, { offsetWidth: { value: 44 }, offsetHeight: { value: 44 } })
+    const canvas = document.createElement('canvas')
+    host.append(canvas)
+    document.body.append(host)
+    return registry.register({
+      id: `button-${index}`,
+      element: host,
+      canvas,
+      descriptor: {
+        id: `button-${index}`,
+        shape: 'capsule',
+        material: { variant: 'regular', interactive: false },
+      },
+    })
+  })
+  const fallback = new FallbackRegions(registry, 'light')
+  expect(document.querySelectorAll('[data-satin-fallback-material]')).toHaveLength(17)
+  remove.forEach(unregister => unregister())
+  fallback.refresh()
+  expect(registry.size).toBe(0)
+  expect(document.querySelectorAll('[data-satin-fallback-material]')).toHaveLength(0)
+  fallback.dispose()
+})
