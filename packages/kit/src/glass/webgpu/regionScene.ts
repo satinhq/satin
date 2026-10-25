@@ -225,7 +225,11 @@ export function fieldRegionSpec(
       ...base.shape,
       first: members[0],
       members,
-      blendRadius: glassBlendRadius(regions[0].container!.spacing),
+      // A navigation can leave a member outside the container for a frame; the field keeps the
+      // spacing of the members still inside it rather than failing the whole presentation.
+      blendRadius: glassBlendRadius(
+        regions.find(region => region.container)?.container!.spacing ?? 0,
+      ),
     },
   }
 }
@@ -1040,11 +1044,12 @@ export class RegionScene {
         .map(id => this.scene.regions.find(region => region.id === id))
         .filter((region): region is GlassRegion => region !== undefined)
       if (!members.some(region => region.shapeTrack)) continue
-      const region = members[0]!
+      // The member that leaves a container mid-navigation may also have dropped its track.
+      const region = members.find(member => member.shapeTrack)!
       this.fields.delete(p.descriptor.id)
       // Sample all partitions together. Applying a single rectangle track to a
       // union replaces its field and lets the last arriving branch erase siblings.
-      const spec = region.container
+      const spec = members.some(member => member.container)
         ? fieldRegionSpec(members, p.descriptor, this.scene, at)
         : this.shapeAt(region, p.raster.spec, region.shapeTrack!, at)
       p.raster.updateSpec(spec)

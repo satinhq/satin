@@ -19,14 +19,6 @@
     --satin-touch-callout-policy: none;
     --satin-user-select-policy: none;
 
-    /* Keep the clipped shell in the layout viewport's containing block. Fixed
-     document roots can freeze WebKit's opaque status strip at its launch colour
-     after a touch, even when the document background changes. This framework
-     policy must also win over legacy app rules such as #root { position: fixed }. */
-    position: absolute !important;
-    inset: 0;
-    width: 100%;
-    height: 100%;
     margin: 0;
     overflow: hidden;
     overscroll-behavior: none;
@@ -36,6 +28,44 @@
     -webkit-touch-callout: var(--satin-touch-callout-policy);
     -webkit-user-select: var(--satin-user-select-policy);
     user-select: var(--satin-user-select-policy);
+  }
+
+  /* The document stays in normal flow and may grow past the initial viewport: WebKit
+   then grows the layout viewport to the screen, so the app paints every edge after
+   rotation. A percentage height restores the short viewport. html propagates
+   clipping to the viewport and the body cap clips stray in-flow siblings, so the
+   document itself never scrolls. These rules must beat app styles. */
+  html[data-satin-document='true'],
+  body[data-satin-document='true'] {
+    position: static !important;
+    inset: auto !important;
+    width: auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overscroll-behavior: none !important;
+  }
+
+  html[data-satin-document='true'] {
+    overflow: hidden !important;
+  }
+
+  body[data-satin-document='true'] {
+    max-height: 100lvh !important;
+    overflow: clip !important;
+  }
+
+  [data-satin-mount='true'] {
+    position: static !important;
+    inset: auto !important;
+    width: auto !important;
+    height: auto !important;
+    min-height: 100lvh !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: clip !important;
+    overscroll-behavior: none !important;
   }
 
   :root[data-satin-appearance='dark'],
@@ -57,10 +87,12 @@
     --satin-touch-callout-policy: none;
     --satin-user-select-policy: none;
 
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
+    position: relative;
+    inset: auto;
+    width: auto;
+    height: auto;
+    min-height: inherit;
+    padding: 0;
     overflow: hidden;
     overscroll-behavior: none;
     isolation: isolate;
@@ -4251,6 +4283,13 @@
     initial-value: 0ms;
   }
   [data-satin-root='true'][data-satin-keyboard='visible'] {
+    /* Keep the keyboard pan out of document flow. Content boundaries already avoid
+     the keyboard, so the root keeps the full layout frame and measured offset.
+     Fixed only in cover installs; the fitted rule below keeps the root relative. */
+    position: fixed;
+    min-height: 0;
+    left: 0;
+    right: 0;
     top: var(--satin-keyboard-offset-top, 0px);
     bottom: auto;
     height: var(--satin-keyboard-layout-height);
@@ -5902,10 +5941,10 @@
     margin-top: 35px;
   }
 
-  /* Fitted installs keep the app in the same absolute shell as the document.
-   A fixed root here reintroduces opaque status-strip colour retention. */
+  /* Fitted installs use the same flow frame. Only the short status paint source
+   below is viewport-pinned; it must not take the root out of document flow. */
   html:is([data-satin-viewport-fit='auto'], [data-satin-viewport-fit='contain']) [data-satin-root] {
-    position: absolute;
+    position: relative;
     background-color: var(--satin-status-band, var(--satin-background));
   }
   [data-satin-presentation-dimmer] {

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.2
+
+### Fixed
+
+- Apps draw every edge after rotation. On iPhone Duo, rotating or folding no longer leaves a black area over the Home indicator or shifts the app, and full-screen apps on iPad no longer leave a band at the bottom edge.
+- The page itself can't scroll or bounce. App stylesheets that size or scroll `html`, `body` or `#root`, content outside the app root, and the keyboard's offset no longer move the page or trigger pull-to-refresh.
+- Glass no longer fails with "undefined is not an object (evaluating 'e[0].container.spacing')" when a toolbar button leaves its group during navigation.
+
 ## 0.1.1
 
 ### Changed

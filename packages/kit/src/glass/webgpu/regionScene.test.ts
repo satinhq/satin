@@ -2284,3 +2284,60 @@ it('samples every partition aperture in the shared field, not its canvas envelop
   expect(raster.updateSpec).toHaveBeenCalledTimes(1)
   expect(raster.updateSpec.mock.calls[0]![0].shape.members).toEqual(spec.shape.members)
 })
+
+it('keeps a field whose first member has left its container mid-navigation', async () => {
+  const members: GlassRegion[] = [0, 1].map(index => ({
+    ...region,
+    id: `item-${index}`,
+    layer: { id: 'fixed', depth: 0, attachment: { kind: 'fixed' } },
+    frame: { x: index * 60, y: 800, width: 44, height: 44 },
+    shape: 'capsule',
+    ...(index ? { container: { id: 'toolbar', spacing: 20 } } : {}),
+  }))
+  const snapshot = { revision: 1, layers: [members[0]!.layer], scrolls: [], regions: members }
+  const presenter = {
+    id: 'toolbar',
+    role: 'material' as const,
+    regionIds: members.map(member => member.id),
+    layerId: 'fixed',
+    origin: { x: 0, y: 800 },
+    width: 104,
+    height: 44,
+    resolution: 1,
+  }
+  const contained = fieldRegionSpec(
+    members.map(member => ({ ...member, container: { id: 'toolbar', spacing: 20 } })),
+    presenter,
+    snapshot,
+  )
+  const spec = fieldRegionSpec(members, presenter, snapshot)
+  expect(spec.shape.members).toHaveLength(2)
+  expect(spec.shape.blendRadius).toBe(contained.shape.blendRadius)
+  // The departed member has also dropped its track while its sibling still moves.
+  const moving = members.map((member, index) =>
+    index
+      ? {
+          ...member,
+          shapeTrack: {
+            epoch: 100,
+            duration: 100,
+            frames: [
+              { x: 0, y: 0, width: 20, height: 20 },
+              { x: 0, y: 0, width: 44, height: 44 },
+            ],
+            radii: [10, 22],
+          },
+        }
+      : member,
+  )
+  const scene = await initializedScene({} as LayerDevice)
+  await scene.request({ type: 'scene', snapshot: { ...snapshot, regions: moving } })
+  const raster = { spec, updateSpec: vi.fn(), draw: vi.fn() }
+  ;(scene as unknown as { presenters: Map<string, unknown> }).presenters.set('toolbar', {
+    descriptor: presenter,
+    raster,
+  })
+  scene.sample(150)
+  expect(raster.updateSpec).toHaveBeenCalledTimes(1)
+  expect(raster.updateSpec.mock.calls[0]![0].shape.members).toHaveLength(2)
+})
