@@ -46,7 +46,9 @@ export function scrollSnapshotsEqual(
       !rightOffset ||
       leftOffset.x !== rightOffset.x ||
       leftOffset.y !== rightOffset.y ||
-      leftOffset.atEnd !== rightOffset.atEnd
+      leftOffset.atEnd !== rightOffset.atEnd ||
+      leftOffset.anchor?.id !== rightOffset.anchor?.id ||
+      leftOffset.anchor?.top !== rightOffset.anchor?.top
     ) {
       return false
     }

@@ -1,3 +1,4 @@
+import { rewriteFileWorker } from './file-worker-url.mjs'
 import { assertPublicDoc } from '../../create-satin/scripts/agent-docs.mjs'
 import { cp, copyFile, readFile, readdir, rm, mkdir, writeFile } from 'node:fs/promises'
 import { spawnSync } from 'node:child_process'
@@ -65,6 +66,8 @@ await writeFile(
   ),
 )
 const gpuClientPath = resolve(outputDirectory, 'glass/webgpu/client.js')
+const fileWriterPath = resolve(outputDirectory, 'data/file-writer.js')
+await writeFile(fileWriterPath, rewriteFileWorker(await readFile(fileWriterPath, 'utf8')))
 await writeFile(
   gpuClientPath,
   (await readFile(gpuClientPath, 'utf8')).replace('./entry.worker.ts', './entry.worker.js'),

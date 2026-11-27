@@ -5,6 +5,7 @@ import { TabRegistrationContext } from '../tabs/context.ts'
 import { SystemScrollRegistryContext } from '../navigation/navigationContext.tsx'
 import { ScreenContentContext } from '../public/chrome.tsx'
 import { createScrollSurfaceRegistry } from '../scroll/registry.ts'
+import { usePrimaryScrollIndicator } from '../scroll/PrimaryScrollIndicator.tsx'
 import { SheetChromeContext } from './sheetChromeContext.ts'
 import { DismissContext, PresentationBoundary } from './dismiss.tsx'
 import {
@@ -89,10 +90,23 @@ export function PresentedSheet({
     retainedKeyboard.current = hasKeyboard
   })
   const [navigatorCount, setNavigatorCount] = useState(0)
+  const [navigationChromeCount, setNavigationChromeCount] = useState(0)
   const [scrollRegistry] = useState(() => createScrollSurfaceRegistry())
-  const registerNavigator = useCallback(() => {
+  const indicatorFrame = useRef<HTMLDivElement>(null)
+  // A navigator's screens own indicators inside its content/chrome stacking context.
+  const scrollIndicator = usePrimaryScrollIndicator(
+    indicatorFrame,
+    scrollRegistry,
+    'sheet',
+    navigatorCount === 0,
+  )
+  const registerNavigator = useCallback((ownsTitle = true) => {
     setNavigatorCount(count => count + 1)
-    return () => setNavigatorCount(count => count - 1)
+    if (ownsTitle) setNavigationChromeCount(count => count + 1)
+    return () => {
+      setNavigatorCount(count => count - 1)
+      if (ownsTitle) setNavigationChromeCount(count => count - 1)
+    }
   }, [])
   const viewport = geometry.layoutViewport
   const placement = sheetPlacement(
@@ -634,7 +648,7 @@ export function PresentedSheet({
           cancelDrag(event.currentTarget)
         },
       }}
-      navigationChrome={navigatorCount > 0 || titleVisibility === 'hidden'}
+      navigationChrome={navigationChromeCount > 0 || titleVisibility === 'hidden'}
       expansion={expansionFor(paintedSize)}
       opaque={usesExpandedSheetMaterial(paintedSize, heightFor('medium'), available)}
       dismissDisabled={interactiveDismissDisabled}
@@ -677,7 +691,11 @@ export function PresentedSheet({
         />
       </div>
       <div className="satin-sheet-content">
-        <div className="satin-sheet-content-scale" data-satin-presentation-content="true">
+        <div
+          className="satin-sheet-content-scale"
+          data-satin-presentation-content="true"
+          ref={indicatorFrame}
+        >
           <NavigationLayoutContext value={navigationClass}>
             <PresentationLayoutClassContext value={traits}>
               <SheetChromeContext value={registerNavigator}>
@@ -694,6 +712,7 @@ export function PresentedSheet({
               </SheetChromeContext>
             </PresentationLayoutClassContext>
           </NavigationLayoutContext>
+          {scrollIndicator}
         </div>
       </div>
     </Surface>

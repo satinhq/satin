@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef } from 'react'
 import { observeNavigationEdge } from './navigationEdge.ts'
+import { screenPrimaryScroller } from '../scroll/screenPrimary.ts'
 
 /** A moving page keeps its own edge material until the shared bar takes over at rest. */
 export function TransitionEdge({ barHidden }: { barHidden: boolean }) {
@@ -9,9 +10,10 @@ export function TransitionEdge({ barHidden }: { barHidden: boolean }) {
     const page = edge?.closest('[data-satin-navigation-motion-layer]')
     if (!edge || !page) return
     let release: (() => void) | undefined
-    const update = () => {
+    const update = (event?: Event) => {
+      if (event && event.target !== page) return
       release?.()
-      const scroller = page.querySelector<HTMLElement>('[data-satin-primary="true"]')
+      const scroller = screenPrimaryScroller(page)
       // A presented drawer already owns its material inside this same moving page.
       if (scroller?.hasAttribute('data-satin-search-presented')) {
         edge.setAttribute('data-satin-scroll-edge-visible', 'false')

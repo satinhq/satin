@@ -1,7 +1,12 @@
 import type { Appearance } from '../lens/theme.ts'
 import type { SharedSourceImage } from '../worker/protocol.ts'
 import { cssColor } from './backdropLayers.ts'
-import { rasterProductionSource } from './capture.ts'
+import {
+  captureIncomplete,
+  captureMissingPhotos,
+  reportUnavailablePhotos,
+  rasterProductionSource,
+} from './capture.ts'
 import { releaseCaptureCanvas } from './captureRelease.ts'
 import { keepSourcePixels, pixelImage, takeSourcePixels } from './preparedSourcePixels.ts'
 import type { ProductionGlassRuntime } from './production.ts'
@@ -16,6 +21,8 @@ import { traceStage, traceStageStart } from './profile.ts'
 
 /** What one source revision changes about pinned tops: applied with its commit. */
 export type PinnedTopChanges = {
+  /** These pins keep their last complete capture; other planes may still commit. */
+  pendingPhotos?: Set<string>
   /** New pinned images, for the batch (slot `plane:<id>:top`). */
   images: SharedSourceImage[]
   /** Slots of pinned tops that are no longer kept. */
@@ -60,6 +67,7 @@ export async function preparePinnedTops(
   frame: PlaneCaptureFrame,
   text: string,
   capturedGenerations?: ReadonlyMap<string, number>,
+  pendingPhotos: ReadonlySet<string> = new Set(),
 ): Promise<PinnedTopChanges> {
   const changes: PinnedTopChanges = {
     images: [],
@@ -75,6 +83,15 @@ export async function preparePinnedTops(
     if (!planes.some(plane => plane.id === id && !plane.hidden)) changes.release.push(slot(id))
   for (const plane of planes) {
     if (plane.hidden) continue
+    if (
+      pendingPhotos.has(plane.id) ||
+      (runtime.photoRecovery?.pending(plane.id, 'top') &&
+        !runtime.photoRecovery.ready(plane.id, 'top'))
+    ) {
+      const kept = runtime.pinnedTops.get(plane.id)
+      if (kept) changes.next.set(plane.id, kept)
+      continue
+    }
     changes.generations.set(plane.id, runtime.damageGenerations?.get(plane.id) ?? 0)
     const existing = runtime.pinnedTops.get(plane.id)
     const installed = captures.has(plane.id) ? runtime.planes.get(plane.id) : undefined
@@ -100,8 +117,10 @@ export async function preparePinnedTops(
         damaged: runtime.damaged.has(plane.id),
         hasBytes: !!outgoingBytes,
       },
-      mayCapture: runtime.growPlanes.has(plane.id),
+      mayCapture:
+        runtime.growPlanes.has(plane.id) || !!runtime.photoRecovery?.pending(plane.id, 'top'),
     })
+    if (plan.action !== 'capture') runtime.photoRecovery?.complete(plane.id, 'top')
     if (plan.action === 'none') continue
     if (plan.action === 'keep') {
       changes.next.set(plane.id, existing!)
@@ -112,7 +131,7 @@ export async function preparePinnedTops(
       continue
     }
     const started = traceStageStart()
-    let image: ImageBitmap
+    let image: ImageBitmap | undefined
     if (plan.action === 'crop') {
       // Cropping keeps the older plane's pixels, not the page state at this pin's start.
       if (capturedGenerations)
@@ -121,6 +140,11 @@ export async function preparePinnedTops(
       image = pixelImage(outgoingImage!.width, rows)
       keepSourcePixels(image, cropTopRows(outgoingBytes!, outgoingImage!.width, rows))
     } else image = await capturePinnedTop(runtime, plane, plan.window, frame, appearance)
+    if (!image) {
+      ;(changes.pendingPhotos ??= new Set()).add(plane.id)
+      if (existing) changes.next.set(plane.id, existing)
+      continue
+    }
     traceStage('pinned-top', started, () => `${plan.action} ${image.width}x${image.height}`)
     const key = `backdrop:${plane.id}:top:${++runtime.captureRevision}`
     changes.images.push({ slot: slot(plane.id), key: `${key}:front`, image })
@@ -159,7 +183,37 @@ async function capturePinnedTop(
       frame.resolution,
       appearance === 'dark',
       cssColor(top.fill),
+      runtime.photoRecovery?.unavailable(plane.id),
     )
+    if (captureIncomplete(canvas)) {
+      // Teardown can finish while the raster awaits a page callback.
+      if (runtime.attached) {
+        const settled = runtime.photoRecovery.defer(plane.id, captureMissingPhotos(canvas), 'top')
+        reportUnavailablePhotos(top.measured, settled)
+        runtime.damaged.add(plane.id)
+        if (settled.size) {
+          // An earlier main capture in this revision must adopt the settled material too.
+          runtime.damageGenerations.set(
+            plane.id,
+            (runtime.damageGenerations.get(plane.id) ?? 0) + 1,
+          )
+          runtime.prepareAgain = true
+        }
+        if (!runtime.photoRecovery.pending(plane.id, 'top')) {
+          await rasterProductionSource(
+            canvas,
+            top.measured,
+            top.width,
+            top.height,
+            frame.resolution,
+            appearance === 'dark',
+            cssColor(top.fill),
+            runtime.photoRecovery.unavailable(plane.id),
+          )
+        } else return undefined
+      } else return undefined
+    }
+    runtime.photoRecovery?.complete(plane.id, 'top')
     const image = pixelImage(canvas.width, canvas.height)
     await runtime.sourcePixels.prepare(image, canvas)
     return image

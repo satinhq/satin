@@ -9,8 +9,9 @@ import { SymbolImage, SymbolProvider, SymbolSelectionContext, resolveSymbol } fr
 import { coreSymbols } from './catalogue.ts'
 import { coreSymbolSvg } from './svg.ts'
 import * as lensIcons from '../glass/lens/icons.ts'
-import { cp, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises'
-import { spawnSync } from 'node:child_process'
+import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises'
+import { execFile } from 'node:child_process'
+import { promisify } from 'node:util'
 import { tmpdir } from 'node:os'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -57,22 +58,32 @@ describe('SymbolImage contract', () => {
     const fixture = await mkdtemp(resolve(scratchRoot, 'symbols-generation-'))
     try {
       await mkdir(resolve(fixture, 'scripts'))
-      await cp(resolve(packageRoot, 'src/symbols'), resolve(fixture, 'src/symbols'), {
-        recursive: true,
-      })
+      await mkdir(resolve(fixture, 'src/symbols'), { recursive: true })
+      // The generator only reads these inputs. Keep its output isolated without
+      // copying the catalogue, tests and every custom glyph under gate load.
+      await Promise.all(
+        ['exclusions.ts', 'optical-calibration.json', 'ink-normalization.json', 'glyphs'].map(
+          name =>
+            symlink(
+              resolve(packageRoot, 'src/symbols', name),
+              resolve(fixture, 'src/symbols', name),
+            ),
+        ),
+      )
       await symlink(resolve(packageRoot, 'node_modules'), resolve(fixture, 'node_modules'))
       const generatorPath = resolve(fixture, 'scripts/generate-symbols.mjs')
       const generator = await readFile(resolve(packageRoot, 'scripts/generate-symbols.mjs'), 'utf8')
       await writeFile(generatorPath, generator)
-      const run = () => spawnSync(process.execPath, [generatorPath], { encoding: 'utf8' })
-      expect(run().status).toBe(0)
+      const run = () => promisify(execFile)(process.execPath, [generatorPath], { encoding: 'utf8' })
+      await run()
       const cataloguePath = resolve(fixture, 'src/symbols/catalogue.ts')
       const generated = await readFile(cataloguePath, 'utf8')
       expect(generated).not.toMatch(/logo[._]apple|APPLE_LOGO/)
       await writeFile(generatorPath, generator.replace('hourglass', 'hourglass logo.apple'))
-      const restored = run()
-      expect(restored.status).not.toBe(0)
-      expect(restored.stderr).toContain('Excluded Apple logo')
+      await expect(run()).rejects.toMatchObject({
+        code: 1,
+        stderr: expect.stringContaining('Excluded Apple logo'),
+      })
       expect(await readFile(cataloguePath, 'utf8')).toBe(generated)
     } finally {
       await rm(fixture, { recursive: true, force: true })

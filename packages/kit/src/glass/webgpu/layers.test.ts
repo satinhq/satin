@@ -190,3 +190,32 @@ it('does not reconstruct a device returned while re-backgrounded until foregroun
   await vi.waitFor(() => expect(owner.report().restores).toBe(1))
   owner.stop()
 })
+
+it('updates shared layer depth for both presenters without changing their scroll-edge attachment', async () => {
+  const f = fixture()
+  const owner = new LayerDevice()
+  const layer = {
+    id: 'shared',
+    depth: 0,
+    attachment: { kind: 'scroll' as const, scrollId: 'list' },
+  }
+  const presenter = {
+    layerId: layer.id,
+    regionIds: ['card'],
+    origin: { x: 0, y: 0 },
+    width: 100,
+    height: 100,
+    resolution: 1,
+  }
+  await owner.attach(layer, f.canvas().value, { ...presenter, id: 'material' })
+  await owner.attach(layer, f.canvas().value, { ...presenter, id: 'lift' })
+  owner.updateDepth({ ...layer, depth: 9 })
+  expect(owner.report().layers).toEqual([{ ...layer, depth: 9 }])
+  await owner.attach({ ...layer, depth: 9 }, f.canvas().value, { ...presenter, id: 'sibling' })
+  expect(owner.report().activeCanvases).toBe(3)
+  expect(() => owner.updateDepth({ ...layer, depth: 10, attachment: { kind: 'fixed' } })).toThrow(
+    'fresh presenter',
+  )
+  expect(owner.report().layers.every(layer => layer.depth === 9)).toBe(true)
+  owner.stop()
+})

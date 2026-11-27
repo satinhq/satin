@@ -1676,3 +1676,816 @@ it('retains independent field envelopes while their shared container moves', asy
     bridge.unbind()
   }
 })
+
+it('replaces scroll presenters in their new DOM layer and retains old pixels until presentation', async () => {
+  const { registry, source, element, canvas } = registeredCapsule('moving-layer')
+  const scroller = document.createElement('div')
+  scroller.dataset.satinScroll = 'list'
+  source.append(scroller)
+  scroller.append(element)
+  const fixed = document.createElement('div')
+  fixed.style.position = 'fixed'
+  fixed.style.zIndex = '9'
+  source.append(fixed)
+  const { WebGPURaster } = await import('./raster.ts')
+  const { Backdrop } = await import('./backdrop.ts')
+  const owner = {
+    subscribe: () => () => {},
+    attach: async () => ({}),
+  } as unknown as import('./layers.ts').LayerDevice
+  const backdrop = Backdrop.for(owner)
+  backdrop.setLayers([])
+  let raster: InstanceType<typeof WebGPURaster> | undefined
+  const checkEdges = (expected: boolean) => {
+    backdrop.setEdges([
+      { rect: [0, 0, 100, 60], solid: 40, sigma: 5.5, tint: [1, 1, 1, 0.7], strength: 1 },
+    ])
+    expect(raster!.backdropStale()).toBe(expected)
+  }
+  const pending = new Map<string, Extract<GlassRendererOperation, { type: 'attach-presenter' }>>()
+  const requests: GlassRendererOperation[] = []
+  let confirm: ((receipt: unknown) => void) | undefined
+  let delay = false
+  const client = {
+    documentOwned: true,
+    request: async ({ request }: { request: GlassRendererOperation }) => {
+      requests.push(request)
+      if (request.type === 'attach-presenter') pending.set(request.presenter.id, request)
+      if (request.type === 'scene') {
+        for (const [id, attach] of pending) {
+          const layer = request.snapshot.layers.find(layer => layer.id === attach.presenter.layerId)
+          if (!layer) continue
+          raster = new WebGPURaster()
+          // Stop at the GPU allocation boundary; retain the real attachment and backdrop policy.
+          Object.assign(raster, { bindDevice() {} })
+          await raster.init(attach.canvas, owner, layer, attach.presenter)
+          backdrop.setEdges([])
+          Object.assign(raster, {
+            setup: {
+              spec: {
+                frameX: 0,
+                frameY: 0,
+                sampleInsetX: 0,
+                sampleInsetY: 0,
+                sampleWidth: 100,
+                sampleHeight: 60,
+              },
+            },
+            lastBackdropKey: backdrop.keyFor([0, 0, 100, 60]),
+          })
+          pending.delete(id)
+        }
+        if (delay)
+          return new Promise(resolve => {
+            confirm = resolve
+          })
+        return {
+          presented: ['moving-layer'],
+          presenters: [
+            requests.findLast(request => request.type === 'attach-presenter')!.presenter.id,
+          ],
+        }
+      }
+    },
+    onEvent: () => () => {},
+  } as unknown as WebGPUClient
+  const bridge = new RegionBridge(client, 'light')
+  try {
+    bridge.bind(registry, source)
+    await bridge.refresh()
+    checkEdges(false)
+    const original = requests.find(request => request.type === 'attach-presenter')!
+    expect(original.type === 'attach-presenter' && original.canvas).toBe(canvas)
+    canvas.dataset.satinGlassShow = 'menu-show'
+    fixed.append(element)
+    Object.assign(registry.values()[0].descriptor, {
+      layer: { id: 'menu', depth: 9, attachment: { kind: 'fixed' } },
+    })
+    delay = true
+    const refreshing = bridge.refresh()
+    await vi.waitFor(() => expect(confirm).toBeDefined())
+    const replacement = requests.findLast(request => request.type === 'attach-presenter')!
+    if (replacement.type !== 'attach-presenter' || original.type !== 'attach-presenter')
+      throw Error('Missing presenter')
+    const newCanvas = replacement.canvas as HTMLCanvasElement
+    expect(newCanvas).not.toBe(canvas)
+    expect(newCanvas.parentElement).toBe(element)
+    expect(newCanvas.closest('[data-satin-scroll]')).toBeNull()
+    expect(newCanvas.style.zIndex).toBe('-1')
+    expect(fixed.style.zIndex).toBe('9')
+    expect(canvas.hidden).toBe(false)
+    expect(
+      requests.some(
+        request => request.type === 'detach-presenter' && request.id === original.presenter.id,
+      ),
+    ).toBe(false)
+    confirm!({ presented: ['moving-layer'], presenters: [replacement.presenter.id] })
+    await refreshing
+    await vi.waitFor(() => expect(canvas.hidden).toBe(true))
+    expect(newCanvas.dataset.satinGlassPresentedShow).toBe('menu-show')
+    checkEdges(true)
+    expect(
+      requests.some(
+        request => request.type === 'detach-presenter' && request.id === original.presenter.id,
+      ),
+    ).toBe(true)
+    delay = false
+    scroller.append(element)
+    delete registry.values()[0].descriptor.layer
+    await bridge.refresh()
+    const returned = requests.findLast(request => request.type === 'attach-presenter')!
+    if (returned.type !== 'attach-presenter') throw Error('Missing returned presenter')
+    expect((returned.canvas as HTMLCanvasElement).closest('[data-satin-scroll]')).toBe(scroller)
+    await vi.waitFor(() => expect(newCanvas.isConnected).toBe(false))
+    checkEdges(false)
+  } finally {
+    bridge.unbind()
+  }
+})
+
+async function swapFixture() {
+  const fixture = registeredCapsule('swap')
+  fixture.canvas.setAttribute('data-satin-glass-region-canvas', 'true')
+  fixture.canvas.dataset.satinGlassShow = 'stable-show'
+  const requests: GlassRendererOperation[] = []
+  const active = new Set<string>()
+  const control = {
+    receipt: undefined as ((request: GlassRendererOperation) => unknown) | undefined,
+    attached: undefined as
+      | ((request: Extract<GlassRendererOperation, { type: 'attach-presenter' }>) => void)
+      | undefined,
+  }
+  const client = {
+    documentOwned: true,
+    request: async ({ request }: { request: GlassRendererOperation }) => {
+      requests.push(request)
+      if (request.type === 'attach-presenter') {
+        active.add(request.presenter.id)
+        if (request.replaces) active.delete(request.replaces)
+        control.attached?.(request)
+      }
+      if (request.type === 'detach-presenter') active.delete(request.id)
+      if (request.type === 'scene')
+        return control.receipt?.(request) ?? { presented: ['swap'], presenters: [...active] }
+    },
+    onEvent: () => () => {},
+  } as unknown as WebGPUClient
+  const bridge = new RegionBridge(client, 'light')
+  bridge.bind(fixture.registry, fixture.source)
+  await bridge.refresh()
+  const original = requests.find(request => request.type === 'attach-presenter')!
+  if (original.type !== 'attach-presenter') throw Error('Missing initial presenter')
+  return {
+    ...fixture,
+    bridge,
+    requests,
+    control,
+    original,
+    move: async (layerId = 'moved') => {
+      const host = document.createElement('div')
+      host.style.position = 'fixed'
+      fixture.source.append(host)
+      host.append(fixture.element)
+      Object.assign(fixture.registry.values()[0].descriptor, {
+        layer: { id: layerId, depth: 9, attachment: { kind: 'fixed' } },
+      })
+      await bridge.refresh()
+    },
+  }
+}
+
+it('owns retirement across stale receipts, parked owners, navigation and unbind', async () => {
+  vi.useFakeTimers()
+  try {
+    for (const outcome of [
+      'superseded',
+      'stale',
+      'missing',
+      'parked',
+      'hidden',
+      'emerged',
+      'unbind',
+      'navigation',
+    ]) {
+      const fixture = await swapFixture()
+      try {
+        fixture.control.receipt = () => {
+          if (outcome === 'stale') fixture.bridge.invalidateSources()
+          return { presented: [], presenters: [], superseded: outcome === 'superseded' }
+        }
+        await fixture.move()
+        expect(fixture.canvas.hidden, outcome).toBe(false)
+        const replacement = fixture.requests.findLast(
+          request => request.type === 'attach-presenter',
+        )!
+        if (replacement.type !== 'attach-presenter') throw Error('Missing replacement')
+        if (outcome === 'unbind') fixture.bridge.unbind()
+        else if (outcome === 'navigation') {
+          await expect(fixture.bridge.admitNavigation('test-navigation')).rejects.toThrow()
+        } else if (outcome === 'hidden' || outcome === 'emerged') {
+          if (outcome === 'hidden') fixture.element.hidden = true
+          else {
+            fixture.registry.registerContainer(
+              'unused',
+              fixture.source,
+              document.createElement('canvas'),
+            )
+            Object.assign(fixture.registry.values()[0].descriptor, {
+              container: { id: 'unused', spacing: 8 },
+            })
+            fixture.element.dataset.satinMenuEmerged = 'true'
+            await fixture.bridge.refresh()
+          }
+          await vi.advanceTimersByTimeAsync(250)
+        } else {
+          // A physical endpoint can have drawn even when none of its member ids is ready.
+          fixture.control.receipt = () =>
+            outcome === 'parked'
+              ? { presented: [], inactivePresenters: [replacement.presenter.id] }
+              : { presented: [], presenters: [replacement.presenter.id] }
+          await fixture.bridge.refresh()
+        }
+        const retained = ['parked', 'hidden', 'emerged', 'navigation'].includes(outcome)
+        expect(fixture.canvas.hidden, outcome).toBe(outcome !== 'navigation')
+        expect(
+          fixture.requests.some(
+            request =>
+              request.type === 'detach-presenter' && request.id === fixture.original.presenter.id,
+          ),
+          outcome,
+        ).toBe(!retained)
+        if (retained) {
+          fixture.control.receipt = () => ({
+            presented: [],
+            presenters: [replacement.presenter.id],
+          })
+          await fixture.bridge.refresh()
+          expect(
+            fixture.requests.some(
+              request =>
+                request.type === 'detach-presenter' && request.id === fixture.original.presenter.id,
+            ),
+            outcome,
+          ).toBe(true)
+        }
+      } finally {
+        fixture.bridge.unbind()
+      }
+    }
+  } finally {
+    vi.useRealTimers()
+  }
+})
+
+it('keeps the shared container canvas for resident members when either leader leaves', async () => {
+  for (const moving of [0, 1]) {
+    const registry = new GlassRegionRegistry()
+    const source = document.createElement('div')
+    const container = document.createElement('div')
+    const shared = document.createElement('canvas')
+    container.append(shared)
+    source.append(container)
+    document.body.append(source)
+    vi.spyOn(container, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 0, 300, 100))
+    registry.registerContainer('field', container, shared)
+    const members = ['a', 'z'].map((id, index) => {
+      const element = document.createElement('div')
+      const canvas = document.createElement('canvas')
+      element.append(canvas)
+      container.append(element)
+      vi.spyOn(element, 'getBoundingClientRect').mockReturnValue(
+        new DOMRect(index * 120, 0, 100, 60),
+      )
+      registry.register({
+        id,
+        element,
+        canvas,
+        descriptor: {
+          id,
+          material: Glass.regular.material,
+          shape: 'capsule',
+          container: { id: 'field', spacing: 8 },
+        },
+      })
+      return element
+    })
+    const requests: GlassRendererOperation[] = []
+    const client = {
+      documentOwned: true,
+      request: async ({ request }: { request: GlassRendererOperation }) => {
+        requests.push(request)
+        return { presented: ['a', 'z'] }
+      },
+      onEvent: () => () => {},
+    } as unknown as WebGPUClient
+    const bridge = new RegionBridge(client, 'light')
+    try {
+      bridge.bind(registry, source)
+      await bridge.refresh()
+      const initial = requests.find(request => request.type === 'attach-presenter')!
+      if (initial.type !== 'attach-presenter') throw Error('Missing shared presenter')
+      const fixed = document.createElement('div')
+      fixed.style.position = 'fixed'
+      source.append(fixed)
+      fixed.append(members[moving])
+      await bridge.refresh()
+      expect(shared.parentElement).toBe(container)
+      expect(shared.hidden).toBe(false)
+      expect(
+        requests.some(
+          request => request.type === 'detach-presenter' && request.id === initial.presenter.id,
+        ),
+      ).toBe(false)
+      const resident = requests.findLast(
+        request =>
+          request.type === 'update-presenter' && request.presenter.id === initial.presenter.id,
+      )
+      expect(resident?.type === 'update-presenter' && resident.presenter.regionIds).toEqual([
+        moving === 0 ? 'z' : 'a',
+      ])
+      const outside = requests.findLast(request => request.type === 'attach-presenter')
+      expect(
+        outside?.type === 'attach-presenter' && (outside.canvas as HTMLCanvasElement).parentElement,
+      ).toBe(members[moving])
+      fixed.append(members[moving === 0 ? 1 : 0])
+      await bridge.refresh()
+      const outsideSlots = requests.filter(
+        request =>
+          request.type === 'attach-presenter' && request.presenter.id !== initial.presenter.id,
+      )
+      expect(outsideSlots).toHaveLength(2)
+      for (const request of outsideSlots) {
+        if (request.type !== 'attach-presenter') throw Error('Missing outside presenter')
+        expect(request.presenter.regionIds).toHaveLength(1)
+        expect(members).toContain((request.canvas as HTMLCanvasElement).parentElement)
+      }
+      expect(shared.hidden).toBe(true)
+    } finally {
+      bridge.unbind()
+    }
+  }
+})
+
+it('does not copy an admitted presentation show onto a new endpoint before its pixels exist', async () => {
+  const fixture = await swapFixture()
+  let inherited: string[] = []
+  fixture.control.attached = request => {
+    const canvas = request.canvas as HTMLCanvasElement
+    inherited = [
+      'data-satin-glass-show',
+      'data-satin-glass-presented',
+      'data-satin-glass-presented-show',
+    ].filter(name => canvas.hasAttribute(name))
+  }
+  try {
+    await fixture.move()
+    expect(inherited).toEqual([])
+  } finally {
+    fixture.bridge.unbind()
+  }
+})
+
+it('drops retiring viewport demand and ignores a sample released after the swap', async () => {
+  const viewports = await import('./presenterViewport.ts')
+  const callbacks = new Map<
+    HTMLCanvasElement,
+    Parameters<typeof viewports.observePresenterViewport>[1]
+  >()
+  vi.spyOn(viewports, 'observePresenterViewport').mockImplementation((canvas, callback) => {
+    callbacks.set(canvas, callback)
+    return { sample() {}, dispose() {} }
+  })
+  const fixture = await swapFixture()
+  let release!: () => void
+  const cover = new Promise<void>(resolve => {
+    release = resolve
+  })
+  try {
+    fixture.bridge.coverage = () => cover
+    callbacks.get(fixture.canvas)!(
+      { x: 9000, y: 9000, scaleX: 1, scaleY: 1 },
+      [9000, 9000, 100, 60],
+    )
+    fixture.bridge.coverage = undefined
+    fixture.control.receipt = () => ({ presented: [], presenters: [] })
+    await fixture.move()
+    expect(fixture.bridge.sampleRects().some(rect => rect[0] === 9000)).toBe(false)
+    release()
+    await Promise.resolve()
+    callbacks.get(fixture.canvas)!(
+      { x: 9100, y: 9100, scaleX: 1, scaleY: 1 },
+      [9100, 9100, 100, 60],
+    )
+    await Promise.resolve()
+    expect(
+      fixture.requests.some(
+        request =>
+          request.type === 'presenter-viewport' && request.id === fixture.original.presenter.id,
+      ),
+    ).toBe(false)
+  } finally {
+    release()
+    fixture.bridge.unbind()
+  }
+})
+
+it('retains undrawn replacements through navigation and hidden states until presentation or teardown', async () => {
+  vi.useFakeTimers()
+  try {
+    for (const outcome of ['navigation', 'document', 'bridge', 'parked']) {
+      const fixture = await swapFixture()
+      try {
+        fixture.control.receipt = () => ({ presented: [], presenters: [] })
+        await fixture.move()
+        const replacement = fixture.requests.findLast(
+          request => request.type === 'attach-presenter',
+        )!
+        if (replacement.type !== 'attach-presenter') throw Error('Missing replacement')
+        let restoreVisibility: (() => void) | undefined
+        if (outcome === 'navigation') {
+          const release = fixture.bridge.holdNavigation()
+          release()
+          await expect(fixture.bridge.admitNavigation('undrawn')).rejects.toThrow()
+        } else if (outcome === 'document') {
+          const visibility = vi.spyOn(document, 'hidden', 'get').mockReturnValue(true)
+          restoreVisibility = () => visibility.mockRestore()
+          document.dispatchEvent(new Event('visibilitychange'))
+        } else if (outcome === 'bridge') {
+          ;(replacement.canvas as HTMLCanvasElement).hidden = true
+        } else {
+          fixture.control.receipt = () => ({
+            presented: [],
+            inactivePresenters: [replacement.presenter.id],
+          })
+          await fixture.bridge.refresh()
+        }
+        if (outcome === 'bridge')
+          (fixture.bridge as unknown as { resolveRetirements(): void }).resolveRetirements()
+        await vi.advanceTimersByTimeAsync(2500)
+        expect(
+          fixture.requests.some(
+            request =>
+              request.type === 'detach-presenter' && request.id === fixture.original.presenter.id,
+          ),
+          outcome,
+        ).toBe(false)
+        if (outcome !== 'navigation') expect(fixture.canvas.hidden, outcome).toBe(true)
+        restoreVisibility?.()
+        ;(replacement.canvas as HTMLCanvasElement).hidden = false
+        document.dispatchEvent(new Event('visibilitychange'))
+        fixture.control.receipt = () => ({
+          superseded: true,
+          presenters: [],
+          inactivePresenters: [],
+        })
+        await fixture.bridge.refresh()
+        expect(fixture.canvas.hidden, outcome + ' awaiting active receipt').toBe(
+          outcome !== 'navigation',
+        )
+        fixture.control.receipt = () => ({ presented: [], presenters: [], inactivePresenters: [] })
+        await fixture.bridge.refresh()
+        expect(fixture.canvas.hidden, outcome + ' resume').toBe(false)
+        fixture.control.receipt = () => ({ presented: [], presenters: [replacement.presenter.id] })
+        await fixture.bridge.refresh()
+        expect(
+          fixture.requests.some(
+            request =>
+              request.type === 'detach-presenter' && request.id === fixture.original.presenter.id,
+          ),
+          outcome,
+        ).toBe(true)
+      } finally {
+        fixture.bridge.unbind()
+      }
+    }
+  } finally {
+    vi.useRealTimers()
+  }
+})
+
+it('stops polling an undrawn visible replacement and retains its last frame until teardown', async () => {
+  vi.useFakeTimers()
+  const fixture = await swapFixture()
+  try {
+    fixture.control.receipt = () => ({ presented: [], presenters: [] })
+    await fixture.move()
+    await vi.advanceTimersByTimeAsync(2500)
+    const state = fixture.bridge as unknown as {
+      retired: Map<string, { status: string }>
+      retirementTimer?: unknown
+    }
+    expect(state.retired.get(fixture.original.presenter.id)?.status).toBe('retained')
+    expect(state.retirementTimer).toBeUndefined()
+    const sent = fixture.requests.length
+    await vi.advanceTimersByTimeAsync(2500)
+    expect(fixture.requests).toHaveLength(sent)
+    expect(fixture.canvas.hidden).toBe(false)
+    fixture.bridge.unbind()
+    expect(state.retired.size).toBe(0)
+    expect(
+      fixture.requests.some(
+        request =>
+          request.type === 'detach-presenter' && request.id === fixture.original.presenter.id,
+      ),
+    ).toBe(true)
+  } finally {
+    fixture.bridge.unbind()
+    vi.useRealTimers()
+  }
+})
+
+it('holds the previous field sweep until the membership spring settles, then shrinks', async () => {
+  const fixture = registeredCapsule('resident')
+  const shared = document.createElement('canvas')
+  fixture.source.prepend(shared)
+  fixture.registry.registerContainer('field', fixture.source, shared)
+  Object.assign(fixture.registry.values()[0].descriptor, { container: { id: 'field', spacing: 8 } })
+  const outside = document.createElement('div')
+  const canvas = document.createElement('canvas')
+  outside.append(canvas)
+  fixture.source.append(outside)
+  vi.spyOn(fixture.source, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 0, 1000, 500))
+  vi.spyOn(outside, 'getBoundingClientRect').mockReturnValue(new DOMRect(700, 0, 100, 60))
+  const unregister = fixture.registry.register({
+    id: 'departing',
+    element: outside,
+    canvas,
+    descriptor: {
+      id: 'departing',
+      material: Glass.regular.material,
+      shape: 'capsule',
+      container: { id: 'field', spacing: 8 },
+    },
+  })
+  const operations: GlassRendererOperation[] = []
+  let notify!: (event: import('../rendererContract.ts').GlassRegionEvent) => void
+  const bridge = new RegionBridge(
+    {
+      documentOwned: true,
+      request: async ({ request }: { request: GlassRendererOperation }) => {
+        operations.push(request)
+        return { presented: ['resident', 'departing'] }
+      },
+      onEvent: (listener: typeof notify) => {
+        notify = listener
+        return () => {}
+      },
+    } as unknown as WebGPUClient,
+    'light',
+  )
+  try {
+    bridge.bind(fixture.registry, fixture.source)
+    await bridge.refresh()
+    expect(bridge.sampleRects().some(rect => rect[2] > 700)).toBe(true)
+    document.body.append(outside)
+    unregister()
+    // The departed member remains a registered glass region, with its own DOM presenter.
+    fixture.registry.register({
+      id: 'departing',
+      element: outside,
+      canvas,
+      descriptor: {
+        id: 'departing',
+        material: Glass.regular.material,
+        shape: 'capsule',
+        container: { id: 'field', spacing: 8 },
+      },
+    })
+    await bridge.refresh()
+    const presenter = operations.findLast(request => request.type === 'update-presenter')
+    expect(presenter?.type === 'update-presenter' && presenter.presenter.width).toBeGreaterThan(700)
+    if (presenter?.type !== 'update-presenter') throw Error('Missing field presenter')
+    const outsidePresenter = operations.findLast(request => request.type === 'attach-presenter')
+    if (outsidePresenter?.type !== 'attach-presenter') throw Error('Missing outside presenter')
+    notify({
+      type: 'field-settled',
+      presenterId: outsidePresenter.presenter.id,
+      regionIds: ['departing'],
+    })
+    notify({
+      type: 'field-settled',
+      presenterId: presenter.presenter.id,
+      regionIds: ['departing'],
+    })
+    await bridge.refresh()
+    expect(
+      (
+        bridge as unknown as {
+          canvases: Map<HTMLCanvasElement, { descriptor?: { width: number } }>
+        }
+      ).canvases.get(shared)?.descriptor?.width,
+    ).toBeGreaterThan(700)
+    notify({
+      type: 'field-settled',
+      presenterId: presenter.presenter.id,
+      regionIds: ['resident'],
+    })
+    bridge.sampleRects()
+    await bridge.refresh()
+    const resident = (
+      bridge as unknown as { canvases: Map<HTMLCanvasElement, { descriptor?: { width: number } }> }
+    ).canvases.get(shared)
+    expect(resident?.descriptor?.width).toBeLessThan(300)
+  } finally {
+    bridge.unbind()
+  }
+})
+
+it('keeps the newest presented canvas when a replacement chain stalls', async () => {
+  vi.useFakeTimers()
+  const fixture = await swapFixture()
+  try {
+    fixture.control.receipt = () => ({ presented: [], presenters: [] })
+    await fixture.move('intermediate')
+    const intermediate = fixture.requests.findLast(request => request.type === 'attach-presenter')!
+    if (intermediate.type !== 'attach-presenter') throw Error('Missing intermediate')
+    let acknowledge!: (receipt: unknown) => void
+    fixture.control.receipt = () =>
+      new Promise(resolve => {
+        acknowledge = resolve
+      })
+    const scene = fixture.requests.findLast(request => request.type === 'scene')!
+    // Scroll scenes are posted without blocking the next reparent.
+    ;(fixture.bridge as unknown as { postScene(scene: GlassRendererOperation): void }).postScene(
+      scene,
+    )
+    fixture.control.receipt = () => ({ presented: [], presenters: [] })
+    await fixture.move('undrawn')
+    await fixture.move('latest-undrawn')
+    let acknowledgeLatest!: (receipt: unknown) => void
+    fixture.control.receipt = () =>
+      new Promise(resolve => {
+        acknowledgeLatest = resolve
+      })
+    const latestScene = fixture.requests.findLast(request => request.type === 'scene')!
+    ;(fixture.bridge as unknown as { postScene(scene: GlassRendererOperation): void }).postScene(
+      latestScene,
+    )
+    fixture.control.receipt = () => ({ presented: [], presenters: [] })
+    const state = fixture.bridge as unknown as { retired: Map<string, unknown> }
+    expect(state.retired.size).toBe(3)
+    await vi.advanceTimersByTimeAsync(2500)
+    // The intermediate's scene reply can arrive after retargeting and the polling cap.
+    acknowledge({ presented: [], presenters: [intermediate.presenter.id] })
+    await vi.advanceTimersByTimeAsync(0)
+    expect([...state.retired.keys()]).toEqual([intermediate.presenter.id])
+    acknowledgeLatest({ presented: [], presenters: [] })
+    await vi.advanceTimersByTimeAsync(0)
+    await fixture.move('layer-after-cap')
+    expect([...state.retired.keys()]).toEqual([intermediate.presenter.id])
+    const detached = fixture.requests.filter(request => request.type === 'detach-presenter')
+    expect(detached).toHaveLength(3)
+    expect((intermediate.canvas as HTMLCanvasElement).isConnected).toBe(true)
+    expect((intermediate.canvas as HTMLCanvasElement).hidden).toBe(false)
+  } finally {
+    fixture.bridge.unbind()
+    vi.useRealTimers()
+  }
+})
+
+function holdPresenterScene(fixture: Awaited<ReturnType<typeof swapFixture>>) {
+  const scene = { ...fixture.requests.findLast(request => request.type === 'scene')! }
+  let acknowledge!: (receipt: unknown) => void
+  const receipt = new Promise(resolve => {
+    acknowledge = resolve
+  })
+  const previous = fixture.control.receipt
+  fixture.control.receipt = request => (request === scene ? receipt : previous?.(request))
+  ;(fixture.bridge as unknown as { postScene(scene: GlassRendererOperation): void }).postScene(
+    scene,
+  )
+  return acknowledge
+}
+
+it('shows only the newest confirmed retiree beneath the live replacement while a reply waits', async () => {
+  vi.useFakeTimers()
+  const fixture = await swapFixture()
+  try {
+    fixture.control.receipt = () => ({ presenters: [], inactivePresenters: [] })
+    await fixture.move('intermediate')
+    const intermediate = fixture.requests.findLast(request => request.type === 'attach-presenter')!
+    if (intermediate.type !== 'attach-presenter') throw Error('Missing intermediate')
+    const acknowledge = holdPresenterScene(fixture)
+    await fixture.move('undrawn')
+    fixture.control.receipt = () => ({
+      presenters: [fixture.original.presenter.id, intermediate.presenter.id],
+      inactivePresenters: [],
+    })
+    await fixture.bridge.refresh()
+    await vi.advanceTimersByTimeAsync(2500)
+    fixture.control.receipt = () => ({ presenters: [], inactivePresenters: [] })
+    await fixture.bridge.refresh()
+    const state = fixture.bridge as unknown as {
+      retired: Map<string, { canvas: HTMLCanvasElement }>
+    }
+    expect(
+      [...state.retired].filter(([, value]) => !value.canvas.hidden).map(([id]) => id),
+    ).toEqual([intermediate.presenter.id])
+    const live = fixture.requests.findLast(request => request.type === 'attach-presenter')!
+    if (live.type !== 'attach-presenter') throw Error('Missing live replacement')
+    expect(
+      (intermediate.canvas as HTMLCanvasElement).compareDocumentPosition(
+        live.canvas as HTMLCanvasElement,
+      ) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+    acknowledge({ presenters: [], inactivePresenters: [] })
+    await vi.advanceTimersByTimeAsync(0)
+  } finally {
+    fixture.bridge.unbind()
+    vi.useRealTimers()
+  }
+})
+
+it('bounds reparents behind a never-settling scene and expires the wait keeping the newest confirmed frame', async () => {
+  vi.useFakeTimers()
+  const fixture = await swapFixture()
+  try {
+    fixture.control.receipt = () => ({ presenters: [], inactivePresenters: [] })
+    await fixture.move('intermediate')
+    const intermediate = fixture.requests.findLast(request => request.type === 'attach-presenter')!
+    if (intermediate.type !== 'attach-presenter') throw Error('Missing intermediate')
+    holdPresenterScene(fixture)
+    await fixture.move('undrawn')
+    fixture.control.receipt = () => ({
+      presenters: [intermediate.presenter.id],
+      inactivePresenters: [],
+    })
+    await fixture.bridge.refresh()
+    fixture.control.receipt = () => ({ presenters: [], inactivePresenters: [] })
+    const state = fixture.bridge as unknown as {
+      retired: Map<string, { canvas: HTMLCanvasElement }>
+    }
+    for (let index = 0; index < 12; index++) {
+      await fixture.move(`overflow-${index}`)
+      expect(state.retired.size).toBeLessThanOrEqual(4)
+      expect(state.retired.has(intermediate.presenter.id)).toBe(true)
+    }
+    await vi.advanceTimersByTimeAsync(5000)
+    expect([...state.retired.keys()]).toEqual([intermediate.presenter.id])
+    expect((intermediate.canvas as HTMLCanvasElement).hidden).toBe(false)
+  } finally {
+    fixture.bridge.unbind()
+    vi.useRealTimers()
+  }
+})
+
+it('retains an intermediate for its queued scene after the cap until that scene can acknowledge it', async () => {
+  vi.useFakeTimers()
+  const fixture = await swapFixture()
+  try {
+    fixture.control.receipt = () => ({ presenters: [], inactivePresenters: [] })
+    await fixture.move('intermediate')
+    const intermediate = fixture.requests.findLast(request => request.type === 'attach-presenter')!
+    if (intermediate.type !== 'attach-presenter') throw Error('Missing intermediate')
+    const first = holdPresenterScene(fixture)
+    const second = holdPresenterScene(fixture)
+    const queued = holdPresenterScene(fixture)
+    await fixture.move('undrawn')
+    await vi.advanceTimersByTimeAsync(2500)
+    first({ presenters: [], inactivePresenters: [] })
+    second({ presenters: [], inactivePresenters: [] })
+    await vi.advanceTimersByTimeAsync(0)
+    expect((intermediate.canvas as HTMLCanvasElement).isConnected).toBe(true)
+    queued({ presenters: [intermediate.presenter.id], inactivePresenters: [] })
+    await vi.advanceTimersByTimeAsync(0)
+    const state = fixture.bridge as unknown as {
+      retired: Map<string, { canvas: HTMLCanvasElement }>
+    }
+    expect([...state.retired.keys()]).toEqual([intermediate.presenter.id])
+    expect((intermediate.canvas as HTMLCanvasElement).hidden).toBe(false)
+  } finally {
+    fixture.bridge.unbind()
+    vi.useRealTimers()
+  }
+})
+
+it('retains an intermediate when its queued confirmation coalesces after retirement', async () => {
+  vi.useFakeTimers()
+  const fixture = await swapFixture()
+  try {
+    fixture.control.receipt = () => ({ presenters: [], inactivePresenters: [] })
+    await fixture.move('intermediate')
+    const intermediate = fixture.requests.findLast(request => request.type === 'attach-presenter')!
+    if (intermediate.type !== 'attach-presenter') throw Error('Missing intermediate')
+    const first = holdPresenterScene(fixture)
+    const second = holdPresenterScene(fixture)
+    holdPresenterScene(fixture)
+    await fixture.move('undrawn')
+    const queued = holdPresenterScene(fixture)
+    await vi.advanceTimersByTimeAsync(2500)
+    first({ presenters: [], inactivePresenters: [] })
+    second({ presenters: [], inactivePresenters: [] })
+    await vi.advanceTimersByTimeAsync(0)
+    expect((intermediate.canvas as HTMLCanvasElement).isConnected).toBe(true)
+    queued({ presenters: [intermediate.presenter.id], inactivePresenters: [] })
+    await vi.advanceTimersByTimeAsync(0)
+    const state = fixture.bridge as unknown as {
+      retired: Map<string, { canvas: HTMLCanvasElement }>
+    }
+    expect([...state.retired.keys()]).toEqual([intermediate.presenter.id])
+    expect((intermediate.canvas as HTMLCanvasElement).hidden).toBe(false)
+  } finally {
+    fixture.bridge.unbind()
+    vi.useRealTimers()
+  }
+})

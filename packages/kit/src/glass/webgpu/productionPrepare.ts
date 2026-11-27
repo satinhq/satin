@@ -8,7 +8,13 @@ import type { RuntimeGeometry, RuntimeOptions, SurfaceRenderSpec } from '../rend
 import type { WebGPURequest as Request } from '../worker/protocol.ts'
 import { cssColor, discoverBackdropHosts } from './backdropLayers.ts'
 import { confirmHeldSources, heldPresentations } from '../presentationFrame.ts'
-import { captureIncomplete, captureProductionGlyphs, rasterProductionSource } from './capture.ts'
+import {
+  captureIncomplete,
+  captureMissingPhotos,
+  reportUnavailablePhotos,
+  captureProductionGlyphs,
+  rasterProductionSource,
+} from './capture.ts'
 import { CAPTURE_CONTEXT } from './captureContext.ts'
 import {
   releaseCaptureCanvas,
@@ -276,13 +282,23 @@ async function prepareRevision(
       ))!
     if (!current()) return dropped(runtime, revision)
     if (!visibleContent) planes.push(contentPlane)
+    runtime.photoRecovery.retain(new Set(planes.map(plane => plane.id)))
     const captures = new Map<string, PlaneCapture>()
     const reused = new Set<string>()
+    const pendingPhotos = new Set<string>()
     let capture: { context: MaterialContext } | undefined
     const overlay = contextBackdrop(scene.ownerDocument)
     const overlayKey = JSON.stringify(overlay ?? null)
-    const contextKey = planeSetContextKey(planes, contentPlane, geometry, page) + overlayKey
+    let contextKey = planeSetContextKey(planes, contentPlane, geometry, page) + overlayKey
     for (const plane of planes) {
+      if (
+        runtime.photoRecovery.pending(plane.id, 'main') &&
+        !runtime.photoRecovery.ready(plane.id)
+      ) {
+        pendingPhotos.add(plane.id)
+        keepPendingPlane(runtime, plane)
+        continue
+      }
       if (
         !runtime.damaged.has(plane.id) &&
         runtime.planes.get(plane.id)?.signature === plane.signature &&
@@ -296,6 +312,13 @@ async function prepareRevision(
       }
       const domStarted = glassNow()
       const source = await rasterPlane(runtime, plane, resolution, dark)
+      if (!current()) return dropped(runtime, revision, opened)
+      if (!source) {
+        pendingPhotos.add(plane.id)
+        keepPendingPlane(runtime, plane)
+        continue
+      }
+      if (runtime.photoRecovery.pending(plane.id, 'main')) pendingPhotos.add(plane.id)
       const bitmap = await planeImage(
         runtime,
         source,
@@ -304,24 +327,7 @@ async function prepareRevision(
       opened.push(bitmap)
       runtime.planeBytes.set(plane.id, imageBytes(bitmap))
       glassTiming('dom-source', domStarted, plane.id)
-      // A photo that has not drawn yet: this capture is used, but it is not current (its signature
-      // never matches), and another preparation follows until the photo is in.
-      if (captureIncomplete(source)) {
-        const attempts = (runtime.incompleteCaptures.get(plane.id) ?? 0) + 1
-        runtime.incompleteCaptures.set(plane.id, attempts)
-        if (attempts > 20)
-          throw Error(
-            `Glass capture: a photo in ${plane.id} did not draw into the backdrop in 20 captures`,
-          )
-        runtime.prepareAgain = true
-        captures.set(plane.id, {
-          bitmap,
-          signature: `incomplete:${attempts}:${plane.signature}`,
-        })
-      } else {
-        runtime.incompleteCaptures.delete(plane.id)
-        captures.set(plane.id, { bitmap, signature: plane.signature })
-      }
+      captures.set(plane.id, { bitmap, signature: runtime.planeCanvases.get(plane.id)!.signature! })
       if (!current()) return dropped(runtime, revision, opened)
     }
     if (reused.size) glassTiming('planes-retained', started, () => [...reused].join(','))
@@ -333,8 +339,10 @@ async function prepareRevision(
       frame,
       text,
       damageGenerations,
+      pendingPhotos,
     )
     for (const entry of pinned.images) if (entry.image) opened.push(entry.image)
+    contextKey = planeSetContextKey(planes, contentPlane, geometry, page) + overlayKey
     if (!current()) return dropped(runtime, revision, opened)
     // The context is also rebuilt when only the visible plane SET changed (a popped page's plane
     // leaving): reusing it kept the popped page's context and tab ink regime. Geometry alone (a
@@ -357,9 +365,17 @@ async function prepareRevision(
       // A plane whose canvas no longer holds its capture (it shared storage, or it returned from
       // retention) is re-rastered for this readback only; the worker keeps its upload.
       for (const plane of planes)
-        if (!plane.hidden && runtime.planeCanvases.get(plane.id)?.signature !== plane.signature) {
-          await rasterPlane(runtime, plane, resolution, dark)
+        if (
+          !plane.hidden &&
+          !pendingPhotos.has(plane.id) &&
+          runtime.planeCanvases.get(plane.id)?.signature !== plane.signature
+        ) {
+          const source = await rasterPlane(runtime, plane, resolution, dark)
           if (!current()) return dropped(runtime, revision, opened)
+          if (!source || runtime.photoRecovery.pending(plane.id, 'main')) {
+            pendingPhotos.add(plane.id)
+            keepPendingPlane(runtime, plane)
+          }
         }
       const composed = composeMaterialContext(
         runtime.contextCanvas,
@@ -374,6 +390,9 @@ async function prepareRevision(
       capture = { context: composed.context }
       contextBytes = composed.bytes
     }
+    contextKey = planeSetContextKey(planes, contentPlane, geometry, page) + overlayKey
+    for (const plane of planes)
+      if (!pendingPhotos.has(plane.id)) runtime.photoRecovery.complete(plane.id)
     if (capture && contextBytes)
       runtime.resident.storeContext(contextKey, capture.context, contextBytes)
     const context = capture?.context ?? runtime.context!
@@ -511,7 +530,11 @@ async function prepareRevision(
     if (fontGeneration !== (runtime.fontGeneration ?? 0)) runtime.prepareAgain = true
     // Measurement and readback awaited while Search (or any glass) could move. Never
     // install obsolete bands and rely on a later coverage acknowledgement to repair them.
-    const uncovered = uncoveredCapturePlane(planes, sampleDemand(runtime), resolution)
+    const uncovered = uncoveredCapturePlane(
+      planes.filter(plane => !pendingPhotos.has(plane.id)),
+      sampleDemand(runtime),
+      resolution,
+    )
     if (uncovered) {
       runtime.prepareAgain = true
       runtime.pendingRecentre = true
@@ -813,28 +836,62 @@ function imageBytes(image: ImageBitmap) {
     : image.width * image.height * 4
 }
 
-/** Raster a plane into its reusable main-thread canvas. */
+/** Preserve the captured window while its replacement is pending. */
+function keepPendingPlane(runtime: ProductionGlassRuntime, plane: Plane) {
+  const installed = runtime.planes.get(plane.id)
+  if (!installed) return
+  plane.signature = installed.signature
+  plane.window = installed.window
+  plane.bands = installed.bands
+  plane.width = installed.width
+  plane.height = installed.height
+}
+
+/** Photo rasters use a second reusable canvas; pending pixels never overwrite the last complete one. */
 async function rasterPlane(
   runtime: ProductionGlassRuntime,
   plane: Plane,
   resolution: number,
   dark: boolean,
 ) {
-  let entry = runtime.planeCanvases.get(plane.id)
-  if (!entry) {
-    entry = { canvas: document.createElement('canvas') }
-    runtime.planeCanvases.set(plane.id, entry)
-  }
-  const canvas = await rasterProductionSource(
-    entry.canvas,
-    plane.measured,
-    plane.width,
-    plane.height,
-    resolution,
-    dark,
-    cssColor(plane.fill),
+  const entry = runtime.planeCanvases.get(plane.id)
+  const photos = plane.measured.layout.nodes.some(
+    node => node.kind === 'image' && !node.regionId && node.imageSource,
   )
-  entry.signature = plane.signature
+  const canvas = photos
+    ? runtime.photoRecovery.canvas(plane.id)
+    : (entry?.canvas ?? document.createElement('canvas'))
+  const raster = (unavailable: ReadonlySet<string>) =>
+    rasterProductionSource(
+      canvas,
+      plane.measured,
+      plane.width,
+      plane.height,
+      resolution,
+      dark,
+      cssColor(plane.fill),
+      unavailable,
+    )
+  await raster(runtime.photoRecovery.unavailable(plane.id))
+  if (!runtime.attached) return undefined
+  if (!captureIncomplete(canvas)) runtime.photoRecovery.complete(plane.id)
+  else {
+    const missing = captureMissingPhotos(canvas)
+    const settled = runtime.photoRecovery.defer(plane.id, missing)
+    reportUnavailablePhotos(plane.measured, settled)
+    runtime.damaged.add(plane.id)
+    if (runtime.photoRecovery.pending(plane.id, 'main')) {
+      if (entry) return undefined
+      // A first capture has no previous pixels. Publish silent material until readiness settles.
+      await raster(new Set([...runtime.photoRecovery.unavailable(plane.id), ...missing]))
+    } else await raster(runtime.photoRecovery.unavailable(plane.id))
+    if (!runtime.attached) return undefined
+  }
+  const signature = runtime.photoRecovery.pending(plane.id, 'main')
+    ? `pending:${plane.signature}`
+    : plane.signature
+  if (photos) runtime.photoRecovery.swap(plane.id, entry?.canvas)
+  runtime.planeCanvases.set(plane.id, { canvas, signature })
   return canvas
 }
 

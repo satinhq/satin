@@ -177,7 +177,7 @@ it('does not acknowledge material when a scene has no transmitted backdrop', asy
     type: 'scene',
     snapshot: { revision: 1, layers: [region.layer], regions: [region], scrolls: [] },
   })
-  expect(receipt).toEqual({ presented: [] })
+  expect(receipt).toMatchObject({ presented: [] })
 })
 it('projects sampling through scroll coordinates while drawing in the local presenter', () => {
   const scene = {
@@ -231,7 +231,7 @@ it('rejects unknown layers and accepts container geometry before allocating GPU 
         regions: [{ ...region, container: { id: 'union', spacing: 20 } }],
       },
     }),
-  ).resolves.toEqual({ presented: [] })
+  ).resolves.toMatchObject({ presented: [] })
   await expect(
     scene.request({
       type: 'interaction',
@@ -340,7 +340,7 @@ it('keeps named presentation optics while accepting the new clear and tinted reg
           regions: [presentation],
         },
       }),
-    ).resolves.toEqual({ presented: [] })
+    ).resolves.toMatchObject({ presented: [] })
     expect(
       regionSpec(
         presentation,
@@ -394,7 +394,7 @@ it('keeps named presentation optics while accepting the new clear and tinted reg
       type: 'scene',
       snapshot: { revision: 5, layers: [region.layer], scrolls: [], regions: [clear] },
     }),
-  ).resolves.toEqual({ presented: [] })
+  ).resolves.toMatchObject({ presented: [] })
   expect(
     regionSpec(
       clear,
@@ -416,7 +416,7 @@ it('keeps named presentation optics while accepting the new clear and tinted reg
       type: 'scene',
       snapshot: { revision: 6, layers: [region.layer], scrolls: [], regions: [tinted] },
     }),
-  ).resolves.toEqual({ presented: [] })
+  ).resolves.toMatchObject({ presented: [] })
   expect(
     regionSpec(
       tinted,
@@ -679,7 +679,9 @@ it('keeps context isolation separate from refracting glass', async () => {
       ],
       regions: [value],
     }
-    await expect(scene.request({ type: 'scene', snapshot })).resolves.toEqual({ presented: [] })
+    await expect(scene.request({ type: 'scene', snapshot })).resolves.toMatchObject({
+      presented: [],
+    })
     const spec = regionSpec(
       value,
       {
@@ -1000,7 +1002,7 @@ it('submits a released prewarm before acknowledging an unchanged scene key', asy
     },
   })
   expect(draws.length).toBeGreaterThan(0)
-  expect(receipt).toEqual({ presented: ['card'] })
+  expect(receipt).toMatchObject({ presented: ['card'] })
   const drawsAtReceipt = draws.length
   await scene.request({
     type: 'scene',
@@ -1018,7 +1020,7 @@ it('submits a released prewarm before acknowledging an unchanged scene key', asy
       type: 'scene',
       snapshot: { revision: 4, layers: [fixed.layer], regions: [fixed], scrolls: [] },
     }),
-  ).resolves.toEqual({ presented: [] })
+  ).resolves.toMatchObject({ presented: [] })
 })
 
 it('draws the menu as a two-member field and hands its rows to the page only once settled', async () => {
@@ -1529,7 +1531,8 @@ it('keeps late preview-source glass on the same clock as an already-presented bu
 
 it('keeps each glass member at its own position when the field declaration order changes', async () => {
   const owner = { liveDevice: undefined, subscribe: () => () => {} } as unknown as LayerDevice
-  const scene = await initializedScene(owner)
+  const events: import('../rendererContract.ts').GlassRegionEvent[] = []
+  const scene = await initializedScene(owner, event => events.push(event))
   const members = [0, 1].map(index => ({
     ...region,
     id: `member-${index}`,
@@ -1654,11 +1657,39 @@ it('keeps each glass member at its own position when the field declaration order
       230,
       moving[0],
     ])
+    events.length = 0
     clock.mockReturnValue(at + 101)
     scene.sample(performance.timeOrigin + at + 101)
     // The moving member keeps its velocity; the new one cannot inherit it.
     expect(raster.spec.shape.members![2]!.centerX).toBeGreaterThan(moving[0]!)
     expect(raster.spec.shape.members![1]!.centerX).toBe(230)
+    expect(events.some(event => event.type === 'field-settled')).toBe(false)
+    clock.mockReturnValue(at + 1200)
+    scene.sample(performance.timeOrigin + at + 1200)
+    expect(events).toContainEqual({
+      type: 'field-settled',
+      presenterId: 'slot',
+      regionIds: [moved[1]!.id, added.id, moved[0]!.id],
+    })
+    events.length = 0
+    await scene.request({
+      type: 'scene',
+      snapshot: snapshot(5, [
+        moved[1]!,
+        added,
+        { ...moved[0]!, frame: { ...moved[0]!.frame, x: 100 } },
+      ]),
+    })
+    const parked = (
+      scene as unknown as { presenters: Map<string, { parked?: boolean }> }
+    ).presenters.get('slot')!
+    parked.parked = true
+    scene.sample(performance.timeOrigin + at + 1201)
+    expect(events).toContainEqual({
+      type: 'field-settled',
+      presenterId: 'slot',
+      regionIds: [moved[1]!.id, added.id, moved[0]!.id],
+    })
   } finally {
     clock.mockRestore()
   }
@@ -2034,7 +2065,7 @@ it('does not expose an outgoing dialog plane between its close scene and source 
   scene.beginSourceChange(2)
   backdrop.setLayers([])
   const settled = await scene.request({ type: 'scene', snapshot: snapshot(3, 2, []) })
-  expect(settled).toEqual({ presented: [] })
+  expect(settled).toMatchObject({ presented: [] })
   expect(
     (scene as unknown as { scene: { regions: GlassRegion[] } }).scene.regions[0]!
       .backdropExclusions,
@@ -2070,14 +2101,18 @@ it('admits reparented exclusions but waits for captured dialog order on a reorde
   })
   await scene.request({ type: 'scene', snapshot: snapshot(1, ['a', 'b'], ['a', 'b']) })
   // A control reparented into a can sample a immediately: the captured order is coherent.
-  expect(await scene.request({ type: 'scene', snapshot: snapshot(2, ['a', 'b'], ['b']) })).toEqual({
+  expect(
+    await scene.request({ type: 'scene', snapshot: snapshot(2, ['a', 'b'], ['b']) }),
+  ).toMatchObject({
     presented: [],
   })
   expect(
     await scene.request({ type: 'scene', snapshot: snapshot(3, ['b', 'a'], ['a']) }),
   ).toMatchObject({ superseded: true })
   backdrop.setLayers([plane('b'), plane('a')])
-  expect(await scene.request({ type: 'scene', snapshot: snapshot(4, ['b', 'a'], ['a']) })).toEqual({
+  expect(
+    await scene.request({ type: 'scene', snapshot: snapshot(4, ['b', 'a'], ['a']) }),
+  ).toMatchObject({
     presented: [],
   })
 })
@@ -2340,4 +2375,192 @@ it('keeps a field whose first member has left its container mid-navigation', asy
   scene.sample(150)
   expect(raster.updateSpec).toHaveBeenCalledTimes(1)
   expect(raster.updateSpec.mock.calls[0]![0].shape.members).toHaveLength(2)
+})
+
+it('replaces a zoom-route presenter without carrying its old atlas route into the fixed layer', async () => {
+  const owner = { liveDevice: undefined, subscribe: () => () => {} } as unknown as LayerDevice
+  const scene = await initializedScene(owner)
+  const bitmap = { width: 440, height: 956, close() {} } as ImageBitmap
+  FrameGraph.for(owner).image('production:1:front', bitmap)
+  const setups: Record<string, unknown>[] = []
+  const raster = {
+    spec: { sampleWidth: 140, sampleHeight: 100 },
+    setSubmissionGate() {},
+    leavePresentation() {},
+    setCovered() {},
+    clear() {},
+    draw() {},
+    updateSpec() {},
+    installRetained(setup: Record<string, unknown>) {
+      setups.push(setup)
+    },
+    async settled() {},
+    setSourceOrigin() {},
+    setViewportOrigin() {},
+    backdropStale: () => false,
+    setVisible() {},
+    setNavigation() {},
+  }
+  installFixedPresenter(scene, raster, bitmap)
+  const internals = scene as unknown as {
+    presenters: Map<
+      string,
+      {
+        descriptor: import('../rendererContract.ts').GlassPresenter
+        raster?: unknown
+        zoomRoute?: number
+      }
+    >
+  }
+  const previous = internals.presenters.get('slot')!
+  previous.zoomRoute = 1
+  const fixed = {
+    ...region,
+    layer: { id: 'fixed', depth: 0, attachment: { kind: 'fixed' as const } },
+    zoomRoute: 1,
+  }
+  const descriptor = { ...rootBackdrop(1), layerId: 'fixed' }
+  await scene.shareSource(descriptor, bitmap, 'production:1:front')
+  await scene.request({
+    type: 'scene',
+    snapshot: { revision: 1, layers: [fixed.layer], regions: [fixed], scrolls: [] },
+  })
+  await scene.navigationSource({
+    key: 'navigation:7',
+    lease: { key: 'navigation:7:front', value: bitmap, release() {} } as never,
+    routes: 2,
+    contentLayer: 'plane-4',
+    width: 440,
+    height: 956,
+  })
+  expect(setups.at(-1)).toMatchObject({ navigationAtlas: 2 })
+  const nextLayer = { id: 'menu', depth: 9, attachment: { kind: 'fixed' as const } }
+  // A dedicated plane keeps this fixed layer outside the still-active navigation atlas.
+  await scene.shareSource(
+    { ...descriptor, id: 'menu-backdrop', layerId: 'menu' },
+    bitmap,
+    'production:1:front',
+  )
+  await scene.request({
+    type: 'attach-presenter',
+    replaces: 'slot',
+    presenter: { ...previous.descriptor, id: 'replacement', layerId: 'menu' },
+    canvas: {} as OffscreenCanvas,
+  })
+  internals.presenters.get('replacement')!.raster = raster
+  await scene.request({
+    type: 'scene',
+    snapshot: {
+      revision: 2,
+      layers: [nextLayer],
+      regions: [{ ...fixed, layer: nextLayer, zoomRoute: undefined }],
+      scrolls: [],
+    },
+  })
+  expect(scene.navigationActive).toBe(true)
+  expect(setups.at(-1)).toMatchObject({ navigationAtlas: 1 })
+  expect(internals.presenters.get('replacement')!.zoomRoute).toBeUndefined()
+})
+
+it('receipts the drawn endpoint independently of member epochs and freezes the retired raster', async () => {
+  const owner = { liveDevice: undefined, subscribe: () => () => {} } as unknown as LayerDevice
+  const scene = await initializedScene(owner)
+  const bitmap = { width: 440, height: 956, close() {} } as ImageBitmap
+  FrameGraph.for(owner).image('production:1:front', bitmap)
+  const raster = {
+    spec: { sampleWidth: 140, sampleHeight: 100 },
+    setSubmissionGate: vi.fn((_gate: () => boolean) => {}),
+    leavePresentation: vi.fn(),
+    setCovered() {},
+    clear() {},
+    draw: vi.fn(),
+    updateSpec() {},
+    installRetained() {},
+    async settled() {},
+    setSourceOrigin() {},
+    setViewportOrigin() {},
+    backdropStale: () => true,
+    setVisible() {},
+    setNavigation() {},
+    setViewport: vi.fn(),
+  }
+  installFixedPresenter(scene, raster, bitmap)
+  const internals = scene as unknown as {
+    presenters: Map<string, { descriptor: import('../rendererContract.ts').GlassPresenter }>
+  }
+  const previous = internals.presenters.get('slot')!
+  previous.descriptor = { ...previous.descriptor, regionIds: ['card', 'other'] }
+  const fixed = {
+    ...region,
+    layer: { id: 'fixed', depth: 0, attachment: { kind: 'fixed' as const } },
+  }
+  await scene.shareSource(rootBackdrop(1), bitmap, 'production:1:front')
+  const receipt = await scene.request({
+    type: 'scene',
+    snapshot: {
+      revision: 1,
+      layers: [fixed.layer],
+      regions: [fixed, { ...fixed, id: 'other', presentationContentEpoch: 42 }],
+      scrolls: [],
+    },
+  })
+  expect(receipt).toMatchObject({ presented: ['card'], presenters: ['slot'] })
+  await scene.request({
+    type: 'attach-presenter',
+    replaces: 'slot',
+    presenter: { ...previous.descriptor, id: 'next' },
+    canvas: {} as OffscreenCanvas,
+  })
+  raster.draw.mockClear()
+  await scene.request({
+    type: 'presenter-viewport',
+    id: 'slot',
+    viewport: { x: 9000, y: 9000, scaleX: 1, scaleY: 1 },
+  })
+  scene.sample(100)
+  expect(raster.setViewport).not.toHaveBeenCalled()
+  expect(raster.draw).not.toHaveBeenCalled()
+  expect(raster.setSubmissionGate.mock.calls.at(-1)![0]()).toBe(false)
+})
+
+it('never reallocates or draws a retiring member on gated resume and releases parked targets', async () => {
+  const owner = { liveDevice: undefined, subscribe: () => () => {} } as unknown as LayerDevice
+  const scene = await initializedScene(
+    owner,
+    () => {},
+    () => false,
+  )
+  const bitmap = { width: 440, height: 956, close() {} } as ImageBitmap
+  const raster = {
+    spec: { sampleWidth: 140, sampleHeight: 100 },
+    setSubmissionGate: vi.fn(),
+    leavePresentation: vi.fn(),
+    setVisible: vi.fn(),
+    draw: vi.fn(),
+  }
+  installFixedPresenter(scene, raster, bitmap)
+  const state = scene as unknown as {
+    presenters: Map<
+      string,
+      { descriptor: import('../rendererContract.ts').GlassPresenter; parked?: boolean }
+    >
+    presentationReceipt(): unknown
+  }
+  const old = state.presenters.get('slot')!
+  await scene.request({
+    type: 'attach-presenter',
+    replaces: 'slot',
+    presenter: { ...old.descriptor, id: 'undrawn' },
+    canvas: {} as OffscreenCanvas,
+  })
+  expect(raster.leavePresentation).toHaveBeenCalledOnce()
+  state.presenters.get('undrawn')!.parked = true
+  state.presentationReceipt()
+  expect(raster.setVisible).toHaveBeenCalledWith(false)
+  await scene.request({ type: 'visibility', visible: false })
+  raster.setVisible.mockClear()
+  await scene.request({ type: 'visibility', visible: true })
+  expect(raster.setVisible).not.toHaveBeenCalledWith(true, true)
+  expect(raster.draw).not.toHaveBeenCalled()
+  expect(raster.setSubmissionGate.mock.calls.at(-1)![0]()).toBe(false)
 })

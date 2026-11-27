@@ -407,6 +407,17 @@ export {
   type DatabaseRecord,
 } from './data/database.ts'
 export { storageQuota } from './public/storage.ts'
+export {
+  defineFileStore,
+  useFiles,
+  useFileInfo,
+  useFileURL,
+  type FileStore,
+  type FileMetadata,
+  type FileWriteOptions,
+  type FileWriteFailure,
+  type FileURL,
+} from './data/file-store.ts'
 
 // Tasks, media and connectivity
 export {

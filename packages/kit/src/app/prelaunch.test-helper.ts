@@ -15,7 +15,7 @@ export function capturePrelaunch() {
     return root
   })
 }
-export function setupPrelaunch(cover = true) {
+export function setupPrelaunch(cover = true, diagnostics = true) {
   capturePrelaunch()
   document.head.querySelector('[data-test-framework-styles]')?.remove()
   const style = document.createElement('style')
@@ -31,5 +31,6 @@ export function setupPrelaunch(cover = true) {
     darkBackground: '#000000',
     darkInk: '#ffffff',
     cover,
+    diagnostics,
   })
 }

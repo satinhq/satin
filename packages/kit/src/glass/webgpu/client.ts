@@ -16,6 +16,32 @@ import { PageFrameHost } from './frameClock.ts'
 import type { Envelope, Request } from '../worker/protocol.ts'
 import { readDarkAppearance } from '../../app/appearance.ts'
 
+/** Apply the DOM policy before a presenter acquires its rendering context. */
+export function prepareGlassPresenter(
+  canvas: HTMLCanvasElement,
+  layer: GlassLayer,
+  scroll?: HTMLElement | null,
+  embedded = false,
+) {
+  if (layer.attachment.kind === 'scroll') {
+    const container = canvas.closest('[data-satin-scroll], [data-satin-scroll-container]')
+    if (
+      scroll
+        ? container !== scroll
+        : container?.getAttribute('data-satin-scroll-container') !== layer.attachment.scrollId
+    )
+      throw Error('Scroll glass canvas must be mounted inside its declared scroll container')
+  }
+  canvas.style.position = 'absolute'
+  canvas.style.pointerEvents = 'none'
+  // Embedded material sits behind its live label; GlassLayer owns the outer depth.
+  canvas.style.zIndex = embedded ? '-1' : String(layer.depth)
+  if (!embedded) {
+    canvas.dataset.satinGlassLayer = layer.id
+    canvas.dataset.satinGlassAttachment = layer.attachment.kind
+  }
+}
+
 export class WebGPUClient {
   private transport?: {
     postMessage: (data: Envelope, transfer?: Transferable[]) => void
@@ -334,16 +360,7 @@ export class WebGPUClient {
   }
   async attachLayer(canvas: HTMLCanvasElement, layer: GlassLayer) {
     if (!this.webgpu) throw Error('Additional presentation canvases require WebGPU')
-    canvas.style.position = 'absolute'
-    canvas.style.pointerEvents = 'none'
-    canvas.style.zIndex = String(layer.depth)
-    canvas.dataset.satinGlassLayer = layer.id
-    canvas.dataset.satinGlassAttachment = layer.attachment.kind
-    if (layer.attachment.kind === 'scroll') {
-      const container = canvas.closest('[data-satin-scroll-container]')
-      if (container?.getAttribute('data-satin-scroll-container') !== layer.attachment.scrollId)
-        throw Error('Scroll glass canvas must be mounted inside its declared scroll container')
-    }
+    prepareGlassPresenter(canvas, layer)
     const offscreen = this.local ? canvas : canvas.transferControlToOffscreen()
     return this.request(
       { type: 'attach-layer', layer, canvas: offscreen },

@@ -212,8 +212,8 @@ export function NavigatorHost<Registry extends ScreenRegistry>({
   const activeTitle = resolveNavigationTitle(activeNavigation, inputEntry?.params)
   const ownsSheetTitle = tabActive && activeNavigation?.display !== 'none' && Boolean(activeTitle)
   useLayoutEffect(
-    () => (ownsSheetTitle ? registerSheetChrome?.() : undefined),
-    [registerSheetChrome, ownsSheetTitle],
+    () => (tabActive ? registerSheetChrome?.(ownsSheetTitle) : undefined),
+    [registerSheetChrome, tabActive, ownsSheetTitle],
   )
   const retainedReadyAt = inputEntry && glass?.preparedSources?.get(inputEntry.key)
   const sourcePending =

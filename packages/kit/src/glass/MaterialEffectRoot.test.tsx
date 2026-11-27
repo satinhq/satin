@@ -4,7 +4,9 @@ import { createRoot } from 'react-dom/client'
 import { beforeEach, expect, it, vi } from 'vitest'
 import { MaterialEffectRoot } from './MaterialEffectRoot.tsx'
 import { MaterialEffectContext } from './liquidContext.ts'
-import { setupPrelaunch } from '../app/prelaunch.test-helper.ts'
+import { installLaunchWatchdog } from '../app/launchWatchdog.ts'
+import { prelaunchController } from '../app/launchScreenRuntime.ts'
+import { setupPrelaunch, prelaunchDOM } from '../app/prelaunch.test-helper.ts'
 const state = vi.hoisted(() => ({
   consumer: undefined as
     | undefined
@@ -215,5 +217,42 @@ it('renders the five-tab shape accepted by the public model and waits for paint 
     act(() => root.unmount())
     mount.remove()
     chrome.remove()
+  }
+})
+
+it.each([false, true])('keeps the stylesheet recovery panel, watchdog=%s', async watchdog => {
+  Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
+  setupPrelaunch(true, false)
+  document.head.querySelector('[data-test-framework-styles]')!.remove()
+  if (watchdog) installLaunchWatchdog(10000)
+  const controller = prelaunchController()
+  const error = vi.spyOn(controller, 'error')
+  const link = document.createElement('link')
+  link.rel = 'stylesheet'
+  link.dataset.satinStyle = 'all'
+  link.href = 'https://example.test/app.css'
+  const mount = document.createElement('div')
+  const scene = createRef<HTMLDivElement>()
+  document.body.append(link, mount)
+  const root = createRoot(mount)
+  try {
+    await act(async () =>
+      root.render(
+        <div ref={scene}>
+          <MaterialEffectRoot scene={scene} chrome={null} enabled capabilitySettled />
+        </div>,
+      ),
+    )
+    link.dispatchEvent(new Event('error'))
+    await act(() => new Promise<void>(resolve => setTimeout(resolve, 40)))
+    expect(prelaunchDOM.textContent).toContain('App stylesheet failed to load. Retry.')
+    expect(error).toHaveBeenCalledOnce()
+    expect(prelaunchDOM.textContent).not.toContain('https://example.test')
+  } finally {
+    act(() => root.unmount())
+    window.dispatchEvent(new Event('satin-launch-revealed'))
+    link.remove()
+    mount.remove()
+    error.mockRestore()
   }
 })

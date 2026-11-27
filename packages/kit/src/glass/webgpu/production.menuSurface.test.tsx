@@ -24,6 +24,10 @@ const boundary = vi.hoisted(() => ({
   holdMenuAck: false,
   deferMenuAck: false,
   menuAcks: [] as (() => void)[],
+  photoSource: 'photo.png',
+  pendingHost: undefined as HTMLElement | undefined,
+  rasters: [] as { canvas: HTMLCanvasElement; host: HTMLElement; unavailable: boolean }[],
+  incompletePhoto: false,
   hangCapture: false,
   requests: [] as { type: string; layerId?: string; request?: { type: string } }[],
 }))
@@ -93,15 +97,56 @@ vi.mock('./capture.ts', async original => {
   const canvas = () => document.createElement('canvas')
   return {
     ...actual,
-    measureProductionSource: async () => ({
-      layout: { contentHeight: 800, nodes: [] },
+    measureProductionSource: async (host: HTMLElement) => ({
+      testHost: host,
+      layout: {
+        contentHeight: 800,
+        nodes:
+          host === content
+            ? [
+                {
+                  kind: 'image',
+                  id: 'photo',
+                  imageSource: boundary.photoSource,
+                  x: 0,
+                  y: 0,
+                  width: 100,
+                  height: 100,
+                  color: 'transparent',
+                },
+              ]
+            : [],
+      },
       top: 0,
       left: 0,
     }),
-    rasterProductionSource: (target: HTMLCanvasElement) =>
-      boundary.hangCapture ? new Promise(() => {}) : Promise.resolve(target),
+    rasterProductionSource: (
+      target: HTMLCanvasElement,
+      measured: { testHost: HTMLElement },
+      _width: number,
+      _height: number,
+      _resolution: number,
+      _dark: boolean,
+      _fill: string,
+      unavailable?: ReadonlySet<string>,
+    ) => {
+      boundary.rasters.push({
+        canvas: target,
+        host: measured.testHost,
+        unavailable: unavailable?.has(boundary.photoSource) ?? false,
+      })
+      return boundary.hangCapture ? new Promise(() => {}) : Promise.resolve(target)
+    },
     captureProductionGlyphs: async () => canvas(),
-    captureIncomplete: () => false,
+    captureIncomplete: (canvas: HTMLCanvasElement) => {
+      const raster = boundary.rasters.findLast(entry => entry.canvas === canvas)
+      return (
+        boundary.incompletePhoto &&
+        !raster?.unavailable &&
+        (!boundary.pendingHost || raster?.host === boundary.pendingHost)
+      )
+    },
+    captureMissingPhotos: () => [boundary.photoSource],
   }
 })
 // The menu surface's own capture (its trigger ink) is the preparation step a newly enabled menu runs.
@@ -163,6 +208,10 @@ beforeEach(async () => {
     holdMenuAck: false,
     deferMenuAck: false,
     menuAcks: [],
+    photoSource: 'photo.png',
+    pendingHost: undefined,
+    rasters: [],
+    incompletePhoto: false,
     hangCapture: false,
     requests: [],
   })
@@ -363,4 +412,101 @@ it('replaces a failed retained transport before making a reopened presenter draw
   expect(boundary.closed).toBe(1)
   expect(boundary.initialized).toBe(2)
   expect(boundary.visible).toBe(true)
+})
+
+// Readiness changes without load, mutation, or damage: the runtime must own the retry.
+it('retains the last backdrop through late photo pixels and recovers on page callbacks', async () => {
+  const runtime = await (
+    ProductionGlassRuntime as unknown as { shared: Promise<ProductionGlassRuntime> }
+  ).shared
+  for (const id of runtime.planes.keys()) runtime.damaged.add(id)
+  const installed = runtime.preparedSignature
+  const start = boundary.requests.length
+  boundary.incompletePhoto = true
+  await (runtime as unknown as { prepare: () => Promise<void> }).prepare()
+  await flush(2200)
+  expect(errors).toEqual([])
+  expect(runtime.preparedSignature).toBe(installed)
+  expect(boundary.requests.slice(start).some(request => request.type === 'source-images')).toBe(
+    false,
+  )
+  boundary.incompletePhoto = false
+  await flush(600)
+  expect(boundary.requests.slice(start).some(request => request.type === 'source-images')).toBe(
+    true,
+  )
+  expect(errors).toEqual([])
+  const captured = boundary.rasters.length
+  await flush(1000)
+  expect(boundary.rasters.length).toBe(captured)
+})
+
+it('settles a decoded photo that never paints and stops raster work until one real source event', async () => {
+  const runtime = await (
+    ProductionGlassRuntime as unknown as { shared: Promise<ProductionGlassRuntime> }
+  ).shared
+  const prepare = () => (runtime as unknown as { prepare: () => Promise<void> }).prepare()
+  const image = document.createElement('img')
+  image.src = 'photo.png'
+  boundary.photoSource = image.src
+  content.append(image)
+  for (const id of runtime.planes.keys()) runtime.damaged.add(id)
+  boundary.incompletePhoto = true
+  await prepare()
+  await flush(12000)
+  expect(errors).toMatchObject([{ reason: 'image-raster-unavailable', fallback: true }])
+  const captures = boundary.rasters.length
+  await flush(3000)
+  expect(boundary.rasters.length).toBe(captures)
+  expect(document.querySelector('[data-satin-glass-error]')).toBeNull()
+  image.dispatchEvent(new Event('load'))
+  await flush(12000)
+  expect(boundary.rasters.length).toBeGreaterThan(captures)
+  const rearmed = boundary.rasters.length
+  await flush(3000)
+  expect(boundary.rasters.length).toBe(rearmed)
+  const photoRasters = boundary.rasters.filter(raster => !raster.unavailable).length
+  image.dispatchEvent(new Event('load'))
+  await flush(3000)
+  expect(boundary.rasters.filter(raster => !raster.unavailable).length).toBe(photoRasters)
+  expect(errors).toHaveLength(1)
+})
+
+it('installs another plane update while keeping only the incomplete plane on its last backdrop', async () => {
+  const runtime = await (
+    ProductionGlassRuntime as unknown as { shared: Promise<ProductionGlassRuntime> }
+  ).shared
+  const prepare = () => (runtime as unknown as { prepare: () => Promise<void> }).prepare()
+  const scene = document.createElement('div')
+  scene.dataset.satinScenePaintLayer = ''
+  scroller.before(scene)
+  scene.append(scroller)
+  vi.spyOn(scene, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 0, 440, 800))
+  vi.spyOn(content, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 0, 440, 800))
+  const other = document.createElement('div')
+  other.dataset.satinScroll = ''
+  other.style.backgroundColor = 'rgb(255, 255, 255)'
+  vi.spyOn(other, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 0, 200, 200))
+  Object.defineProperties(other, {
+    clientWidth: { value: 200 },
+    clientHeight: { value: 200 },
+    scrollHeight: { value: 800 },
+  })
+  scene.append(other)
+  await prepare()
+  const photoId = [...runtime.planes].find(([, plane]) => plane.host === content)![0]
+  const otherId = [...runtime.planes].find(([, plane]) => plane.host === other)![0]
+  const photoKey = runtime.planes.get(photoId)!.key
+  const otherKey = runtime.planes.get(otherId)!.key
+  const canvas = runtime.planeCanvases.get(photoId)!.canvas
+  boundary.pendingHost = content
+  boundary.incompletePhoto = true
+  other.style.backgroundColor = 'rgb(255, 0, 0)'
+  runtime.damaged.add(photoId)
+  runtime.damaged.add(otherId)
+  await prepare()
+  expect(runtime.planes.get(otherId)!.key).not.toBe(otherKey)
+  expect(runtime.planes.get(photoId)!.key).toBe(photoKey)
+  expect(runtime.planeCanvases.get(photoId)!.canvas).toBe(canvas)
+  expect(errors).toEqual([])
 })

@@ -38,9 +38,10 @@ describe('offline launch barrier', () => {
         },
       },
     })
-    await expect(prepareOfflineBundle('/')).rejects.toThrow(
-      'Check your connection and try again. Resource: https://example.com/sw.js',
-    )
+    await expect(prepareOfflineBundle('/')).rejects.toMatchObject({
+      message: 'Check your connection and try again. Resource: https://example.com/sw.js',
+      satinLaunchReason: 'Check your connection and try again.',
+    })
   })
   it('launches connected-only when the origin has no service worker API', async () => {
     vi.stubGlobal('navigator', {})
@@ -423,7 +424,9 @@ it('fails a stuck required first mount at the launch deadline and cancels dispos
   })
   const decode = vi.spyOn(HTMLImageElement.prototype, 'decode').mockResolvedValue()
   try {
-    const deadline = expect(prepareLaunchContent(host)).rejects.toThrow('Please retry')
+    const deadline = expect(prepareLaunchContent(host)).rejects.toMatchObject({
+      satinLaunchReason: 'Artwork did not finish preparing. Please retry.',
+    })
     await vi.advanceTimersByTimeAsync(5000)
     await deadline
     const controller = new AbortController()
@@ -435,5 +438,39 @@ it('fails a stuck required first mount at the launch deadline and cancels dispos
     await expect(prepareLaunchContent(host)).resolves.toBeUndefined()
   } finally {
     decode.mockRestore()
+  }
+})
+
+it('marks safe worker install reasons while retaining resource diagnostics', async () => {
+  const cases = [
+    { stalled: true, networkFailure: true, reason: 'The server stopped responding. Please retry.' },
+    { networkFailure: true, reason: 'Check your connection and try again.' },
+    { reason: 'The app could not be installed. Please try again later.' },
+  ]
+  for (const failure of cases) {
+    const worker = Object.assign(new EventTarget(), { state: 'installing', postMessage: vi.fn() })
+    const registration = Object.assign(new EventTarget(), { installing: worker })
+    const workers = Object.assign(new EventTarget(), { getRegistration: async () => registration })
+    vi.stubGlobal('navigator', { serviceWorker: workers })
+    const error = prepareOfflineBundle('/app/').catch(error => error)
+    await vi.waitFor(() => expect(worker.postMessage).toHaveBeenCalled())
+    workers.dispatchEvent(
+      Object.assign(new Event('message'), {
+        source: worker,
+        data: {
+          type: 'SATIN_INSTALL_FAILURE',
+          url: 'https://example.test/private.js',
+          reason: 'Internal fetch stage: raw exception',
+          stalled: failure.stalled,
+          networkFailure: failure.networkFailure,
+        },
+      }),
+    )
+    const rejected = await error
+    expect(rejected.satinLaunchReason).toBe(failure.reason)
+    expect(rejected.satinLaunchReason).not.toMatch(/https:|Internal fetch stage|raw exception/)
+    expect(rejected.message).toContain('https://example.test/private.js')
+    if (!failure.stalled && !failure.networkFailure)
+      expect(rejected.message).toContain('Internal fetch stage: raw exception')
   }
 })

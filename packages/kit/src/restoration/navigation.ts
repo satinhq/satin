@@ -43,7 +43,13 @@ export function readNavigation(
             item[0],
             item[1].atEnd === true
               ? { x: item[1].x, y: item[1].y, atEnd: true }
-              : { x: item[1].x, y: item[1].y },
+              : {
+                  x: item[1].x,
+                  y: item[1].y,
+                  ...(typeof item[1].anchor?.id === 'string' && Number.isFinite(item[1].anchor.top)
+                    ? { anchor: { id: item[1].anchor.id, top: item[1].anchor.top } }
+                    : {}),
+                },
           )
       }
     entries.push({

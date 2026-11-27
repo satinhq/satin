@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.2.0
+
+### Added
+
+- A file store for photos, video and documents. `defineFileStore` keeps files in the browser's origin private file system (OPFS), with streaming writes, backup and restore, and reads that stay valid while a file is replaced. `useFiles`, `useFileInfo` and `useFileURL` observe the store from React. It requires OPFS; without Web Locks, only one window can use a store at a time.
+- Scroll views keep your place. They remember the first visible row and its offset, and return to it after resume, resize and cold launch.
+- Sheets show the scroll indicator, and a finger held on a scroll view keeps the indicator visible until it lifts.
+- A Satin Glass playground at [satin.build/glass](https://satin.build/glass/): a lens over artwork, a glass menu, glass shapes that join and separate, and a tab bar that minimizes over a scrolling feed.
+
+### Fixed
+
+- Menus no longer fail with "Unsupported glass presenter layer reassignment" when a glass canvas moves to another layer, for example a menu opened right after switching a segment.
+- Replacing a glass surface no longer leaves a gap, a stale frame or hidden glass, including when the replacement never draws.
+- A photo under glass that loads late waits for its pixels instead of failing. If it never paints, the glass shows its material and reports a fallback once.
+- When an installed app can't launch, release builds show a plain sentence and a Retry button. Stages, URLs and raw errors appear only in development builds.
+- Opening a conversation no longer replays a 96 pt jump when the first layout arrives.
+
 ## 0.1.2
 
 ### Fixed

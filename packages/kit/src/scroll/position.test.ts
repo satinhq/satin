@@ -1,9 +1,11 @@
 // @vitest-environment happy-dom
 import { afterEach, expect, it, vi } from 'vitest'
+import { createScrollSurfaceRegistry } from './registry.ts'
 import { insertionMotion } from './insertionMotion.ts'
 import { createBottomInsetGeometry } from '../safe-area/bottomInsetGeometry.ts'
 import { createScrollPositionController, type ScrollPositionOptions } from './position.ts'
 
+let deliverLayout: (elements?: Element[]) => void
 const cleanup: (() => void)[] = []
 afterEach(() => {
   cleanup.splice(0).forEach(stop => stop())
@@ -20,21 +22,52 @@ function fixture(
   const surface = document.createElement('div')
   const content = document.createElement('div')
   surface.append(content)
-  document.body.append(surface)
+  const owner = document.createElement('div')
+  owner.dataset.satinSafeAreaInset = 'bottom'
+  const accessory = document.createElement('div')
+  accessory.dataset.satinInsetAccessory = 'true'
+  owner.append(surface, accessory)
+  document.body.append(owner)
+  let width = 100
   let viewport = 100
   let extent = 300
   let shift = 0
   let offset = 0
+  let unclampedOffset = false
+  let synchronousScroll = false
+  let writingScroll = false
+  let frameId = 0
+  const frames = new Map<number, FrameRequestCallback>()
+  vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+    frames.set(++frameId, callback)
+    return frameId
+  })
+  vi.stubGlobal('cancelAnimationFrame', (id: number) => frames.delete(id))
+  const advanceFrame = () => {
+    const pending = [...frames.values()]
+    frames.clear()
+    pending.forEach(callback => callback(performance.now()))
+  }
   const targets = new Map<string, HTMLElement>()
   const scrollHeight = () =>
     extent + (Number.parseFloat(surface.style.getPropertyValue('--satin-scroll-inset-bottom')) || 0)
   Object.defineProperties(surface, {
     scrollTop: {
-      get: () => Math.max(0, Math.min(scrollHeight() - viewport, offset)),
+      get: () => {
+        if (!unclampedOffset) offset = Math.max(0, Math.min(scrollHeight() - viewport, offset))
+        return offset
+      },
       set: value => {
+        const changed = offset !== value
         offset = value
+        if (synchronousScroll && changed) {
+          writingScroll = true
+          surface.dispatchEvent(new Event('scroll'))
+          writingScroll = false
+        }
       },
     },
+    clientWidth: { get: () => width },
     clientHeight: { get: () => viewport },
     scrollHeight: { get: scrollHeight },
   })
@@ -54,6 +87,20 @@ function fixture(
   }
   for (let index = 0; index < 6; index++) add(String(index), index * 50)
   surface.scrollTop = options.defaultScrollAnchor === 'bottom' ? extent - viewport : 0
+  const NativeResizeObserver = ResizeObserver
+  vi.stubGlobal(
+    'ResizeObserver',
+    class extends NativeResizeObserver {
+      constructor(callback: ResizeObserverCallback) {
+        super(callback)
+        deliverLayout = (elements = [surface, content, owner, accessory]) =>
+          callback(
+            elements.map(target => ({ target }) as unknown as ResizeObserverEntry),
+            this,
+          )
+      }
+    },
+  )
   const controller = createScrollPositionController(
     surface,
     content,
@@ -66,11 +113,48 @@ function fixture(
     surface,
     controller,
     add,
+    frame: advanceFrame,
+    layout: (elements?: Element[]) => deliverLayout(elements),
+    settleLayout() {
+      deliverLayout()
+      advanceFrame()
+      advanceFrame()
+    },
+    writingScroll: () => writingScroll,
+    unclampedOffset(value: number) {
+      unclampedOffset = true
+      offset = value
+    },
+    clampOffset() {
+      unclampedOffset = false
+      controller.reconcile()
+    },
+    moveRows(amount: number) {
+      shift += amount
+      controller.reconcile()
+    },
+    synchronousScroll() {
+      synchronousScroll = true
+    },
+    remove(id: string, height: number) {
+      targets.get(id)?.remove()
+      targets.delete(id)
+      shift -= height
+      extent -= height
+      controller.targetsChanged()
+      controller.reconcile()
+    },
     grow(amount: number, notify = true) {
       extent += amount
       if (notify) controller.reconcile()
     },
     prepend(amount: number) {
+      shift += amount
+      extent += amount
+      controller.reconcile()
+    },
+    reflow(amount: number) {
+      width += 100
       shift += amount
       extent += amount
       controller.reconcile()
@@ -82,6 +166,7 @@ function fixture(
     read(offset: number) {
       surface.scrollTop = offset
       surface.dispatchEvent(new Event('scroll'))
+      surface.dispatchEvent(new Event('scrollend'))
     },
   }
 }
@@ -303,12 +388,40 @@ it('hands an in-flight insertion to native scrolling without pulling the reader 
   run.grow(50)
   expect(run.surface.scrollTop).toBe(250)
   run.surface.dispatchEvent(new Event('pointerdown'))
-  expect(run.surface.scrollTop).toBeCloseTo(200, 0)
+  expect(run.surface.scrollTop).toBe(250)
   const reading = run.surface.scrollTop
   run.add('next-message', 350)
   run.controller.targetsChanged()
   run.grow(50)
   expect(run.surface.scrollTop).toBe(reading)
+  window.dispatchEvent(new Event('pointerup'))
+  run.surface.dispatchEvent(new Event('scrollend'))
+  expect(run.surface.scrollTop).toBeCloseTo(200, 0)
+})
+
+it('keeps a following bottom when idle arrives during insertion presentation without input', () => {
+  const run = fixture()
+  animatePresentedContent(run.surface)
+  let visibility: DocumentVisibilityState = 'visible'
+  Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => visibility })
+  cleanup.push(() => delete (document as { visibilityState?: unknown }).visibilityState)
+  visibility = 'hidden'
+  document.dispatchEvent(new Event('visibilitychange'))
+  run.add('new-message', 300)
+  run.grow(50)
+  run.resize(200)
+  run.resize(100)
+  visibility = 'visible'
+  document.dispatchEvent(new Event('visibilitychange'))
+  expect(run.surface.scrollTop).toBe(250)
+  expect(insertionMotion(run.surface)).toBeDefined()
+  run.surface.dispatchEvent(new Event('scrollend'))
+  expect(run.surface.scrollTop).toBe(250)
+  expect(run.controller.followsEnd()).toBe(true)
+  // A composer or inset delivered after resume must still extend the pinned bottom.
+  run.grow(65)
+  expect(run.surface.scrollTop).toBe(315)
+  expect(run.controller.followsEnd()).toBe(true)
 })
 
 function animatePresentedContent(surface: HTMLElement) {
@@ -347,6 +460,7 @@ it('combines a pending send with the presented composer collapse', () => {
   run.surface.style.paddingBottom = '66px'
   inset.publish(66)
   const animate = animatePresentedContent(run.surface)
+  run.settleLayout()
   run.controller.scrollTo('sent', 'bottom')
   run.surface.style.paddingBottom = '22px'
   inset.publish(22)
@@ -361,6 +475,163 @@ it('combines a pending send with the presented composer collapse', () => {
   expect(animate.mock.calls[1]![0][0]!.translate).toBe('0 6px')
   run.controller.reconcile()
   expect(animate).toHaveBeenCalledTimes(2)
+})
+
+it('opens at the first composer inset, then animates composer growth and a new message', () => {
+  vi.spyOn(performance, 'now').mockReturnValue(100)
+  const run = fixture()
+  const inset = createBottomInsetGeometry()
+  cleanup.push(inset.attach(run.surface))
+  const animate = animatePresentedContent(run.surface)
+  inset.publish(0)
+  run.frame()
+  run.surface.style.paddingBottom = '96px'
+  inset.publish(96)
+  expect(run.surface.scrollTop).toBe(296)
+  expect(animate).not.toHaveBeenCalled()
+  run.settleLayout()
+  run.surface.style.paddingBottom = '118px'
+  inset.publish(118)
+  expect(animate.mock.calls[0]![0][0]!.translate).toBe('0 22px')
+  run.add('sent', 300)
+  run.grow(50)
+  expect(animate.mock.calls[1]![0][0]!.translate).toBe('0 72px')
+})
+
+it('settles a positive inner inset and the later parent contribution without insertion', () => {
+  const run = fixture()
+  const outer = createBottomInsetGeometry()
+  const inner = createBottomInsetGeometry()
+  cleanup.push(inner.attach(run.surface))
+  let accessoryHeight = 0
+  cleanup.push(
+    outer.attach(
+      document.createElement('div'),
+      () => inner.publish(accessoryHeight + outer.value),
+      inner,
+    ),
+  )
+  const animate = animatePresentedContent(run.surface)
+  accessoryHeight = 70
+  run.surface.style.paddingBottom = '70px'
+  inner.publish(accessoryHeight)
+  run.frame()
+  run.surface.style.paddingBottom = '96px'
+  outer.publish(26)
+  expect(run.surface.scrollTop).toBe(296)
+  expect(animate).not.toHaveBeenCalled()
+})
+
+it('animates a message added by a reentrant scroll geometry callback during the initial inset', () => {
+  vi.spyOn(performance, 'now').mockReturnValue(100)
+  let append = false
+  const run = fixture({
+    defaultScrollAnchor: 'bottom',
+    onScrollGeometryChange() {
+      if (!append) return
+      append = false
+      run.add('sent', 300)
+      run.grow(50)
+    },
+  })
+  const inset = createBottomInsetGeometry()
+  cleanup.push(inset.attach(run.surface))
+  const animate = animatePresentedContent(run.surface)
+  run.synchronousScroll()
+  append = true
+  run.surface.style.paddingBottom = '96px'
+  inset.publish(96)
+  expect(animate.mock.calls[0]?.[0][0]?.translate).toBe('0 50px')
+})
+
+it.each([true, false])('baselines the first inset before a pending target, present=%s', present => {
+  const binding = { id: null as string | null, anchor: 'bottom' as const, onChange() {} }
+  const run = fixture({ defaultScrollAnchor: 'bottom', scrollPosition: binding })
+  const inset = createBottomInsetGeometry()
+  cleanup.push(inset.attach(run.surface))
+  const animate = animatePresentedContent(run.surface)
+  binding.id = present ? '5' : 'later'
+  run.surface.style.paddingBottom = '96px'
+  inset.publish(96)
+  run.controller.reconcile()
+  expect(animate).not.toHaveBeenCalled()
+})
+
+it.each([false, true])('animates the first inset after zero has settled, appended=%s', appended => {
+  vi.spyOn(performance, 'now').mockReturnValue(100)
+  const run = fixture()
+  const inset = createBottomInsetGeometry()
+  cleanup.push(inset.attach(run.surface))
+  run.settleLayout()
+  const animate = animatePresentedContent(run.surface)
+  if (appended) {
+    run.add('sent', 300)
+    run.grow(50, false)
+  }
+  run.surface.style.paddingBottom = '52px'
+  inset.publish(52)
+  expect(animate.mock.calls[0]?.[0][0]?.translate).toBe(appended ? '0 102px' : '0 52px')
+})
+
+it('animates an actual append while the initial inset layout is still settling', () => {
+  vi.spyOn(performance, 'now').mockReturnValue(100)
+  const run = fixture()
+  const inset = createBottomInsetGeometry()
+  cleanup.push(inset.attach(run.surface))
+  const animate = animatePresentedContent(run.surface)
+  run.add('sent', 300)
+  run.grow(50, false)
+  run.surface.style.paddingBottom = '52px'
+  inset.publish(52)
+  expect(animate.mock.calls[0]?.[0][0]?.translate).toBe('0 50px')
+  run.surface.style.paddingBottom = '78px'
+  inset.publish(78)
+  expect(animate).toHaveBeenCalledOnce()
+  expect(run.surface.style.clipPath).toBe('inset(0 0 78px 0)')
+})
+
+it('does not insert a fitting transcript while its initial inset settles', () => {
+  const run = fixture()
+  run.resize(500)
+  const inset = createBottomInsetGeometry()
+  cleanup.push(inset.attach(run.surface))
+  const animate = animatePresentedContent(run.surface)
+  run.surface.style.paddingBottom = '52px'
+  inset.publish(52)
+  expect(run.surface.scrollTop).toBe(0)
+  expect(animate).not.toHaveBeenCalled()
+})
+
+it('cancels a same-height synchronous scroll before publishing its completed geometry', () => {
+  const seen: { translate: string; writing: boolean }[] = []
+  let record = false
+  const options = {
+    defaultScrollAnchor: 'bottom' as 'top' | 'bottom',
+    maintainVisibleContentPosition: true,
+    onScrollGeometryChange() {
+      if (record)
+        seen.push({
+          translate: run.surface.firstElementChild!.getAttribute('style') ?? '',
+          writing: run.writingScroll(),
+        })
+    },
+  }
+  const run = fixture(options)
+  run.settleLayout()
+  animatePresentedContent(run.surface)
+  run.add('sent', 300)
+  run.grow(50)
+  expect(insertionMotion(run.surface)).toBeDefined()
+  options.defaultScrollAnchor = 'top'
+  run.surface.dispatchEvent(new Event('scrollend'))
+  run.synchronousScroll()
+  record = true
+  run.moveRows(-20)
+  expect(run.surface.scrollTop).toBe(230)
+  expect(insertionMotion(run.surface)).toBeUndefined()
+  expect(seen).toHaveLength(1)
+  expect(seen[0]?.writing).toBe(false)
+  expect(seen[0]?.translate).not.toContain('50px')
 })
 
 it('adopts an explicit jump from a scrolled-up position without replaying an append', () => {
@@ -389,4 +660,192 @@ it('sees a queued typing replacement before a React layout-effect reconciliation
   expect(content.animate).toHaveBeenCalledOnce()
   run.controller.reconcile()
   expect(content.animate).toHaveBeenCalledOnce()
+})
+
+it('waits for the inset owner layout delivery rather than elapsed frames', () => {
+  const run = fixture()
+  const inset = createBottomInsetGeometry()
+  cleanup.push(inset.attach(run.surface))
+  const animate = animatePresentedContent(run.surface)
+  run.frame()
+  run.frame()
+  run.surface.style.paddingBottom = '96px'
+  inset.publish(96)
+  expect(animate).not.toHaveBeenCalled()
+  run.settleLayout()
+  run.surface.style.paddingBottom = '118px'
+  inset.publish(118)
+  expect(animate.mock.calls[0]?.[0][0]?.translate).toBe('0 22px')
+})
+
+it.each([false, true])('keeps a hidden initial inset pending, delivered=%s', delivered => {
+  const run = fixture()
+  const inset = createBottomInsetGeometry()
+  cleanup.push(inset.attach(run.surface))
+  const animate = animatePresentedContent(run.surface)
+  if (delivered) run.layout()
+  run.resize(0)
+  run.surface.style.paddingBottom = '96px'
+  inset.publish(96)
+  run.layout()
+  run.frame()
+  run.frame()
+  run.resize(100)
+  expect(run.surface.scrollTop).toBe(296)
+  expect(animate).not.toHaveBeenCalled()
+  run.settleLayout()
+  run.surface.style.paddingBottom = '118px'
+  inset.publish(118)
+  expect(animate.mock.calls[0]?.[0][0]?.translate).toBe('0 22px')
+})
+
+it.each([20, 50, 80])(
+  'animates the append independently of an initial inset shrink of %s',
+  shrink => {
+    const run = fixture()
+    const inset = createBottomInsetGeometry()
+    cleanup.push(inset.attach(run.surface))
+    run.surface.style.paddingBottom = '96px'
+    inset.publish(96)
+    const animate = animatePresentedContent(run.surface)
+    run.add('sent', 300)
+    run.grow(50, false)
+    run.surface.style.paddingBottom = `${96 - shrink}px`
+    inset.publish(96 - shrink)
+    expect(animate.mock.calls[0]?.[0][0]?.translate).toBe('0 50px')
+  },
+)
+
+it('keeps a nonzero subpixel append when an initial inset shrinks', () => {
+  const run = fixture()
+  const inset = createBottomInsetGeometry()
+  cleanup.push(inset.attach(run.surface))
+  run.surface.style.paddingBottom = '96px'
+  inset.publish(96)
+  const animate = animatePresentedContent(run.surface)
+  run.add('sent', 300)
+  run.grow(0.25, false)
+  run.surface.style.paddingBottom = '16px'
+  inset.publish(16)
+  expect(animate.mock.calls[0]?.[0][0]?.translate).toBe('0 0.25px')
+})
+
+it('waits for separately delivered inset owners before closing initial layout', () => {
+  const run = fixture()
+  const inset = createBottomInsetGeometry()
+  cleanup.push(inset.attach(run.surface))
+  const animate = animatePresentedContent(run.surface)
+  run.layout([run.surface, run.surface.firstElementChild!])
+  run.frame()
+  run.frame()
+  run.surface.style.paddingBottom = '96px'
+  inset.publish(96)
+  expect(animate).not.toHaveBeenCalled()
+  run.settleLayout()
+  run.surface.style.paddingBottom = '118px'
+  inset.publish(118)
+  expect(animate.mock.calls[0]?.[0][0]?.translate).toBe('0 22px')
+})
+
+it('keeps initial layout open when its closing reconcile cannot adopt the inset', () => {
+  const run = fixture()
+  const inset = createBottomInsetGeometry()
+  cleanup.push(inset.attach(run.surface))
+  const animate = animatePresentedContent(run.surface)
+  run.layout()
+  // WebKit can leave the old offset beyond the shrunken range until it clamps.
+  run.unclampedOffset(400)
+  run.surface.style.paddingBottom = '96px'
+  inset.publish(96)
+  run.frame()
+  expect(animate).not.toHaveBeenCalled()
+  run.clampOffset()
+  expect(run.surface.scrollTop).toBe(296)
+  expect(animate).not.toHaveBeenCalled()
+  // Successful adoption closes the window without another owner delivery.
+  run.surface.style.paddingBottom = '118px'
+  inset.publish(118)
+  expect(animate.mock.calls[0]?.[0][0]?.translate).toBe('0 22px')
+})
+
+it('keeps a plain reader and its checkpoint through hidden reflow and a changed resume width', () => {
+  const run = fixture({})
+  run.read(113)
+  let visibility: DocumentVisibilityState = 'visible'
+  Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => visibility })
+  cleanup.push(() => delete (document as { visibilityState?: unknown }).visibilityState)
+  const registry = createScrollSurfaceRegistry({ development: false })
+  cleanup.push(
+    registry.register({
+      id: 'reader',
+      axis: 'vertical',
+      primary: true,
+      element: run.surface,
+      captureReadingPosition: () => run.controller.captureReadingPosition(),
+      canRestoreReadingPosition: () => run.controller.canRestoreReadingPosition(),
+      restoreReadingAnchor: anchor => run.controller.restoreReadingAnchor(anchor),
+    }),
+  )
+  visibility = 'hidden'
+  document.dispatchEvent(new Event('visibilitychange'))
+  run.surface.scrollTop = 0
+  run.reflow(80)
+  run.surface.dispatchEvent(new Event('scroll'))
+  const saved = registry.capture().get('reader')!
+  expect(saved.anchor).toEqual({ id: '2', top: -13 })
+  run.reflow(40)
+  visibility = 'visible'
+  document.dispatchEvent(new Event('visibilitychange'))
+  expect(run.surface.scrollTop).toBe(233)
+  run.surface.scrollTop = 0
+  run.controller.adoptRestoredOffset()
+  run.surface.scrollTo = options => {
+    run.surface.scrollTop = (options as ScrollToOptions).top ?? 0
+  }
+  registry.restore(new Map([['reader', saved]]))
+  expect(run.surface.scrollTop).toBe(233)
+  run.read(150)
+  run.controller.scrollTo('4', 'top')
+  run.surface.dispatchEvent(new Event('scrollend'))
+  expect(run.controller.readingAnchor()?.id).toBe('4')
+  visibility = 'hidden'
+  document.dispatchEvent(new Event('visibilitychange'))
+  run.prepend(50)
+  run.add('earlier', -100)
+  run.remove('0', 50)
+  visibility = 'visible'
+  document.dispatchEvent(new Event('visibilitychange'))
+  expect(run.controller.readingAnchor()).toEqual({ id: '4', top: 0 })
+  visibility = 'hidden'
+  document.dispatchEvent(new Event('visibilitychange'))
+  run.controller.scrollTo('3', 'top')
+  visibility = 'visible'
+  document.dispatchEvent(new Event('visibilitychange'))
+  run.surface.dispatchEvent(new Event('scrollend'))
+  expect(run.controller.readingAnchor()).toEqual({ id: '3', top: 0 })
+})
+it('keeps a plain reader through visible width reflow without following appended rows', () => {
+  const run = fixture({})
+  run.read(113)
+  run.reflow(80)
+  expect(run.surface.scrollTop).toBe(193)
+  run.prepend(50)
+  expect(run.surface.scrollTop).toBe(193)
+  run.grow(100)
+  expect(run.surface.scrollTop).toBe(193)
+})
+
+it('reference adopts an append baseline while a finger holds a pinned chat', () => {
+  const run = fixture()
+  const animate = animatePresentedContent(run.surface)
+  run.surface.dispatchEvent(new Event('pointerdown'))
+  run.add('held-message', 300)
+  run.grow(50)
+  expect(run.surface.scrollTop).toBe(200)
+  expect(animate).not.toHaveBeenCalled()
+  window.dispatchEvent(new Event('pointerup'))
+  run.surface.dispatchEvent(new Event('scrollend'))
+  expect(run.surface.scrollTop).toBe(250)
+  expect(run.controller.followsEnd()).toBe(true)
+  expect(animate).not.toHaveBeenCalled()
 })

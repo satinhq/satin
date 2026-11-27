@@ -30,7 +30,7 @@ import type {
   GlassRendererOperation,
   GlassViewport,
 } from '../rendererContract.ts'
-import type { WebGPUClient } from './client.ts'
+import { prepareGlassPresenter, type WebGPUClient } from './client.ts'
 import { reportGlassError } from '../errors.ts'
 import { glassFailureCode } from './errorCode.ts'
 import { atRest, presentationTravel } from '../presentationFrame.ts'
@@ -208,7 +208,10 @@ export class RegionBridge {
   /** Scenes posted and not yet answered. A scene is the whole region state, so when the worker
    * falls behind, superseded scenes are merged: only the newest waits for a free slot. */
   private scenesInFlight = 0
+  private nextSceneReply = 0
+  private sceneReplies = new Set<number>()
   private pendingScene?: GlassRendererRequest
+  private pendingSceneReply?: number
   private sceneValidity = new WeakMap<GlassRendererRequest, () => boolean>()
   private scenePresented = new WeakMap<GlassRendererRequest, (receipt: unknown) => void>()
   private readiness = new Map<HTMLCanvasElement, RegionReadiness>()
@@ -291,36 +294,60 @@ export class RegionBridge {
     }
   }
   private static readonly SCENES_IN_FLIGHT = 2
+  // One confirmed frame plus the two sent scenes and one queued scene.
+  private static readonly RETIRED_PER_CHAIN = 4
+  private static readonly RETIREMENT_WAIT_CHECKS = 16
   private flushPendingScene() {
     if (this.batch || this.scenesInFlight >= RegionBridge.SCENES_IN_FLIGHT) return
     const next = this.pendingScene
+    const reply = this.pendingSceneReply
     this.pendingScene = undefined
-    if (next) this.postScene(next)
+    this.pendingSceneReply = undefined
+    if (next) this.postScene(next, reply)
   }
-  private sceneDone = () => {
+  private forgetSceneReply(reply: number) {
+    this.sceneReplies.delete(reply)
+    for (const retired of this.retired.values()) retired.sceneReplies.delete(reply)
+  }
+  private sceneDone = (reply: number) => {
     this.scenesInFlight--
+    this.forgetSceneReply(reply)
     this.flushPendingScene()
+    this.resolveRetirements()
   }
-  private postScene(scene: GlassRendererRequest) {
-    if (this.sceneValidity.get(scene)?.() === false) return
+  private postScene(scene: GlassRendererRequest, reply = ++this.nextSceneReply) {
+    if (this.sceneValidity.get(scene)?.() === false) {
+      this.forgetSceneReply(reply)
+      return
+    }
+    this.sceneReplies.add(reply)
     if (this.scenesInFlight >= RegionBridge.SCENES_IN_FLIGHT) {
       if (this.pendingScene) glassTiming('region-scene-merged')
+      if (this.pendingSceneReply !== undefined) {
+        // Coalescing replaces the scene, not its outstanding confirmation for retirees.
+        this.sceneReplies.delete(this.pendingSceneReply)
+        for (const retired of this.retired.values())
+          if (retired.sceneReplies.delete(this.pendingSceneReply)) retired.sceneReplies.add(reply)
+      }
       this.pendingScene = scene
+      this.pendingSceneReply = reply
       return
     }
     this.scenesInFlight++
     void this.send(scene)
       .then(receipt => this.scenePresented.get(scene)?.(receipt))
       .catch(this.fail)
-      .finally(this.sceneDone)
+      .finally(() => this.sceneDone(reply))
   }
   /** A scene whose reply the caller needs (new presenters): sent now, superseding any queued scene. */
   private async sendScene(scene: GlassRendererRequest) {
     this.scenesInFlight++
+    const reply = ++this.nextSceneReply
+    this.sceneReplies.add(reply)
     try {
       return await this.send(scene)
     } finally {
-      this.sceneDone()
+      this.sceneDone(reply)
     }
   }
   /** Foreground source revisions. Unique per capture: a refresh superseded between its
@@ -331,8 +358,142 @@ export class RegionBridge {
   private serial = Promise.resolve()
   private canvases = new Map<
     HTMLCanvasElement,
-    { id: string; layerId: string; descriptor?: GlassPresenter }
+    {
+      id: string
+      layerId: string
+      canvas: HTMLCanvasElement
+      descriptor?: GlassPresenter
+      presented?: boolean
+    }
   >()
+  private retired = new Map<
+    string,
+    {
+      canvas: HTMLCanvasElement
+      replacement: string
+      owned: boolean
+      rechecks: number
+      status: 'pending' | 'retained'
+      inactive?: boolean
+      presented: boolean
+      hidden: boolean
+      sceneReplies: Set<number>
+    }
+  >()
+  private retirementTimer?: ReturnType<typeof setTimeout>
+  private resolveRetirements(receipt?: unknown, teardown = false) {
+    const accepted = receipt as
+      { superseded?: boolean; presenters?: string[]; inactivePresenters?: string[] } | undefined
+    const activeReceipt = !accepted?.superseded && !!accepted?.inactivePresenters
+    if (!accepted?.superseded) {
+      for (const value of this.canvases.values())
+        if (accepted?.presenters?.includes(value.id)) value.presented = true
+      for (const [id, value] of this.retired)
+        if (accepted?.presenters?.includes(id)) value.presented = true
+    }
+    const kept = new Map<string, string>()
+    for (const [id, value] of this.retired) if (value.presented) kept.set(value.replacement, id)
+    for (const [id, retired] of this.retired) {
+      const replacement = [...this.canvases.values()].find(
+        value => value.id === retired.replacement,
+      )
+      const canvas = replacement?.canvas
+      if (
+        teardown ||
+        (!accepted?.superseded && accepted?.presenters?.includes(retired.replacement))
+      ) {
+        void this.detachPresenter(id, retired.canvas, retired.owned).catch(this.fail)
+        continue
+      }
+      if (!accepted?.superseded && (accepted?.presenters || accepted?.inactivePresenters))
+        retired.inactive = !!accepted.inactivePresenters?.includes(retired.replacement)
+      // Restore only a confirmed frame after the worker reports current activity.
+      // DOM visibility alone cannot establish that a parked owner has resumed.
+      retired.hidden =
+        (retired.hidden && !activeReceipt) ||
+        !canvas ||
+        !canvas.isConnected ||
+        !!canvas.hidden ||
+        document.hidden ||
+        !!canvas.closest(
+          `${INACTIVE_TAB}, [hidden], [data-satin-covered="true"], [data-satin-menu-emerged="true"]`,
+        ) ||
+        getComputedStyle(canvas).visibility === 'hidden' ||
+        getComputedStyle(canvas).display === 'none' ||
+        !!retired.inactive
+      retired.canvas.hidden = retired.hidden || kept.get(retired.replacement) !== id
+    }
+    // Once polling stops, keep the newest confirmed frame in each chain. Receipt
+    // arrival order can differ from reparent order, so choose by retirement order.
+    const retained = new Set(
+      [...this.retired.values()]
+        .filter(value => value.status === 'retained')
+        .map(value => value.replacement),
+    )
+    const expired = new Set(
+      [...this.retired.values()]
+        .filter(value => value.rechecks >= RegionBridge.RETIREMENT_WAIT_CHECKS)
+        .map(value => value.replacement),
+    )
+    const waiting = new Set(
+      [...this.retired.values()]
+        .filter(value => value.sceneReplies.size && !expired.has(value.replacement))
+        .map(value => value.replacement),
+    )
+    const candidates = new Map<string, string[]>()
+    for (const [id, value] of this.retired) {
+      if (kept.get(value.replacement) === id) continue
+      const chain = candidates.get(value.replacement) ?? []
+      chain.push(id)
+      candidates.set(value.replacement, chain)
+    }
+    const allowed = new Set(kept.values())
+    for (const [replacement, chain] of candidates) {
+      if (retained.has(replacement) && !waiting.has(replacement)) continue
+      const slots = RegionBridge.RETIRED_PER_CHAIN - (kept.has(replacement) ? 1 : 0)
+      for (const id of chain.slice(-slots)) allowed.add(id)
+    }
+    for (const [id, value] of this.retired) {
+      if (!allowed.has(id))
+        void this.detachPresenter(id, value.canvas, value.owned).catch(this.fail)
+    }
+    const pending = [...this.retired.values()].some(
+      value => value.status === 'pending' || waiting.has(value.replacement),
+    )
+    if (!pending) {
+      clearTimeout(this.retirementTimer)
+      this.retirementTimer = undefined
+    } else if (this.retirementTimer === undefined) {
+      this.retirementTimer = setTimeout(() => {
+        this.retirementTimer = undefined
+        for (const retired of this.retired.values()) {
+          if (retired.rechecks >= RegionBridge.RETIREMENT_WAIT_CHECKS) continue
+          // Stop scene polling after eight checks. Pending replies get at most eight
+          // more checks; a stalled worker must not retain intermediate canvases forever.
+          if (++retired.rechecks >= 8) retired.status = 'retained'
+        }
+        this.resolveRetirements()
+        if ([...this.retired.values()].some(retired => retired.status === 'pending'))
+          this.invalidate()
+      }, 250)
+    }
+  }
+  private retirementVisibility = () => this.resolveRetirements()
+  private clearPresenterSamples(id: string) {
+    this.viewportPending.delete(id)
+    this.viewportSamples.delete(id)
+    this.presenterExtents.delete(id)
+    this.viewportInFlight.delete(id)
+  }
+  private async detachPresenter(id: string, canvas: HTMLCanvasElement, owned: boolean) {
+    this.viewportObservers.get(canvas)?.dispose()
+    this.viewportObservers.delete(canvas)
+    this.clearPresenterSamples(id)
+    this.retired.delete(id)
+    canvas.hidden = true
+    if (owned) canvas.remove()
+    await this.send({ type: 'detach-presenter', id })
+  }
   private nextPresenter = 0
   private foregrounds = new WeakMap<HTMLElement, string>()
   private dirtyForegrounds = new WeakSet<HTMLElement>()
@@ -412,6 +573,27 @@ export class RegionBridge {
     this.releaseHeldRegions()
     await this.sourceChanged(appearance)
   }
+  private layerFor(entry: GlassRegionRegistration) {
+    const requested = entry.descriptor.layer
+    const scroll =
+      requested?.attachment.kind === 'fixed'
+        ? null
+        : entry.element.closest<HTMLElement>('[data-satin-scroll]')
+    let scrollId = scroll ? this.scrolls.get(scroll) : undefined
+    if (scroll && !scrollId) {
+      scrollId = `webgpu-scroll-${++this.nextScroll}`
+      this.scrolls.set(scroll, scrollId)
+    }
+    return {
+      scroll,
+      scrollId,
+      layer: {
+        id: requested ? `${requested.id}:${scrollId ?? 'fixed'}` : (scrollId ?? 'glass-fixed'),
+        depth: requested?.depth ?? 0,
+        attachment: scrollId ? { kind: 'scroll' as const, scrollId } : { kind: 'fixed' as const },
+      },
+    }
+  }
   private scrolls = new WeakMap<HTMLElement, string>()
   private nextScroll = 0
 
@@ -436,7 +618,7 @@ export class RegionBridge {
       this.batch.transfer.push(...transfer)
       return
     }
-    return this.client.request({ type: 'canonical', request }, transfer, () => {
+    const receipt = await this.client.request({ type: 'canonical', request }, transfer, () => {
       // The client reports admission separately from acknowledgement: postMessage
       // exceptions become rejected promises and must not retire the parked scene.
       const scenes = request.type === 'transaction' ? request.requests : [request]
@@ -447,9 +629,14 @@ export class RegionBridge {
           operation =>
             operation.type === 'scene' && operation.snapshot.revision >= pending.snapshot.revision,
         )
-      )
+      ) {
+        if (this.pendingSceneReply !== undefined) this.forgetSceneReply(this.pendingSceneReply)
         this.pendingScene = undefined
+        this.pendingSceneReply = undefined
+      }
     })
+    this.resolveRetirements(receipt)
+    return receipt
   }
 
   bind(registry: GlassRegionRegistry | undefined, source: HTMLElement) {
@@ -507,8 +694,30 @@ export class RegionBridge {
       } else if (event.type === 'emerge-settled')
         registry?.emergeSettled(event.regionId, event.generation)
       else if (event.type === 'field-motion') registry?.fieldMotion(event)
-      else registry?.emergeInk(event)
+      else if (event.type === 'field-settled') {
+        const presenter = [...this.canvases.values()].find(value => value.id === event.presenterId)
+        if (
+          JSON.stringify(presenter?.descriptor?.regionIds.slice().sort()) !==
+          JSON.stringify(event.regionIds.slice().sort())
+        )
+          return
+        const entry = registry?.values().find(value => value.id === event.regionIds[0])
+        const container =
+          entry?.descriptor.container && registry?.containers.get(entry.descriptor.container.id)
+        if (!entry || !container?.element.contains(entry.element)) return
+        const key = JSON.stringify([glassFieldKey(entry.descriptor), this.layerFor(entry).layer.id])
+        const envelopes = this.fieldEnvelopes.get(container.element)
+        const envelope = envelopes?.get(key)
+        if (
+          !envelope?.pendingShrink ||
+          envelope.members !== JSON.stringify(event.regionIds.slice().sort())
+        )
+          return
+        envelopes?.delete(key)
+        this.invalidate()
+      } else registry?.emergeInk(event)
     })
+    document.addEventListener('visibilitychange', this.retirementVisibility)
     document.addEventListener('scroll', this.scrollInvalidated, true)
     document.addEventListener('touchstart', this.rowContact, { capture: true, passive: true })
     window.addEventListener('resize', this.invalidate)
@@ -574,6 +783,8 @@ export class RegionBridge {
     rect: SampleRect,
     keyboard?: KeyboardTranslation,
   ) {
+    if (this.retired.has(id) || ![...this.canvases.values()].some(presenter => presenter.id === id))
+      return
     this.viewportPending.set(id, { viewport, rect, keyboard })
     if (this.viewportSending.has(id)) return
     this.viewportSending.add(id)
@@ -586,7 +797,7 @@ export class RegionBridge {
         // envelope before this request, which can draw immediately in the renderer.
         const covering = this.coverage?.(() => this.sampleRects())
         if (covering) await covering
-        if (epoch !== this.epoch) return
+        if (epoch !== this.epoch || this.retired.has(id)) return
         if (this.viewportPending.get(id) !== next) continue
         // This request can reach the worker even if a tab rebinds before its reply.
         // Its sample belongs to the retained presenter, not the source binding.
@@ -597,6 +808,11 @@ export class RegionBridge {
           viewport: next.viewport,
           keyboard: next.keyboard,
         })
+        if (
+          this.retired.has(id) ||
+          ![...this.canvases.values()].some(presenter => presenter.id === id)
+        )
+          return
         this.viewportSamples.set(id, next)
         this.viewportInFlight.delete(id)
         if (epoch !== this.epoch) return
@@ -612,6 +828,7 @@ export class RegionBridge {
     }
   }
   unbind() {
+    this.resolveRetirements(undefined, true)
     this.epoch++
     this.unsubscribe?.()
     this.unsubscribeContent?.()
@@ -631,6 +848,7 @@ export class RegionBridge {
     // only when detach-presenter retires them, or a newer viewport replaces it.
     cancelAnimationFrame(this.frame)
     this.frame = 0
+    document.removeEventListener('visibilitychange', this.retirementVisibility)
     document.removeEventListener('scroll', this.scrollInvalidated, true)
     document.removeEventListener('touchstart', this.rowContact, true)
     window.removeEventListener('resize', this.invalidate)
@@ -748,7 +966,9 @@ export class RegionBridge {
     const groups = new Map<string, typeof entries>()
     for (const entry of entries) {
       if (!entry.descriptor.container || entry.element.dataset.satinMenuEmerged === 'true') continue
-      const key = glassFieldKey(entry.descriptor)
+      const container = registry.containers.get(entry.descriptor.container.id)
+      if (!container?.element.contains(entry.element)) continue
+      const key = JSON.stringify([glassFieldKey(entry.descriptor), this.layerFor(entry).layer.id])
       const group = groups.get(key) ?? []
       group.push(entry)
       groups.set(key, group)
@@ -785,6 +1005,7 @@ export class RegionBridge {
     }
     for (const samples of [this.viewportSamples, this.viewportInFlight, this.viewportPending]) {
       for (const [id, { viewport, rect }] of samples) {
+        if (this.retired.has(id)) continue
         rects.push(rect)
         const extent = this.presenterExtents.get(id)
         if (extent)
@@ -907,6 +1128,7 @@ export class RegionBridge {
   private navigationEpoch = 0
   private navigationHold?: { promise: Promise<void>; release: () => void }
   holdNavigation() {
+    this.resolveRetirements()
     this.navigationEpoch++
     this.navigationHold?.release()
     let release!: () => void
@@ -946,6 +1168,7 @@ export class RegionBridge {
         }
         throw Error(`Navigation ${key} region registrations did not stabilize`)
       } finally {
+        this.resolveRetirements()
         this.navigationReceipt = undefined
       }
     })
@@ -1169,7 +1392,17 @@ export class RegionBridge {
   }
   private fieldEnvelopes = new WeakMap<
     HTMLElement,
-    Map<string, { x: number; y: number; width: number; height: number }>
+    Map<
+      string,
+      {
+        x: number
+        y: number
+        width: number
+        height: number
+        members: string
+        pendingShrink: boolean
+      }
+    >
   >()
   private fieldEnvelope(
     container: HTMLElement,
@@ -1186,7 +1419,11 @@ export class RegionBridge {
     const top = Math.min(...frames.map(frame => frame.y)) - holder.y - support
     const right = Math.max(...frames.map(frame => frame.x + frame.width)) - holder.x + support
     const bottom = Math.max(...frames.map(frame => frame.y + frame.height)) - holder.y + support
-    const key = glassFieldKey(entries[0]!.descriptor)
+    const key = JSON.stringify([
+      glassFieldKey(entries[0]!.descriptor),
+      this.layerFor(entries[0]!).layer.id,
+    ])
+    const members = JSON.stringify(entries.map(entry => entry.id).sort())
     let envelopes = this.fieldEnvelopes.get(container)
     if (!envelopes) {
       envelopes = new Map()
@@ -1195,6 +1432,7 @@ export class RegionBridge {
     // A container can own independent fields, such as top and bottom toolbar groups.
     // Retaining their combined bounds would rasterize the empty space between them.
     const previous = envelopes.get(key)
+    const pendingShrink = !!previous && (previous.pendingShrink || previous.members !== members)
     // Grow in whole steps: members following a live layout transition move every frame, and
     // each envelope change reallocates the presenter's sampling storage.
     const step = FIELD_ENVELOPE_STEP
@@ -1215,7 +1453,7 @@ export class RegionBridge {
         ) - y,
     }
     // Retain the observed sweep, rather than resize an attachment on every spring sample.
-    envelopes.set(key, envelope)
+    envelopes.set(key, { ...envelope, members, pendingShrink })
     return { ...envelope, x: holder.x + x, y: holder.y + y }
   }
   private async refreshNow(epoch: number, waitForCoverage = true) {
@@ -1314,7 +1552,12 @@ export class RegionBridge {
     for (const entry of drawableEntries) {
       if (!entry.descriptor.container) continue
       const d = entry.descriptor,
-        key = glassFieldKey(d)
+        container = registry.containers.get(d.container!.id),
+        key = JSON.stringify([
+          glassFieldKey(d),
+          this.layerFor(entry).layer.id,
+          container?.element.contains(entry.element) ? true : entry.id,
+        ])
       const group = groups.get(key) ?? []
       group.push(entry)
       groups.set(key, group)
@@ -1336,8 +1579,9 @@ export class RegionBridge {
     for (const group of groups.values()) {
       const token = group[0].descriptor.container!.id,
         container = registry.containers.get(token)
-      const canvas = container && !containerUse.has(token) ? container.canvas : group[0].canvas
-      containerUse.add(token)
+      const inside = container && group.every(member => container.element.contains(member.element))
+      const canvas = inside && !containerUse.has(token) ? container.canvas : group[0].canvas
+      if (inside && canvas === container.canvas) containerUse.add(token)
       groupCanvases.set(group[0].id, canvas)
     }
     const active = new Set([
@@ -1362,13 +1606,10 @@ export class RegionBridge {
     }
     for (const [canvas, presenter] of this.canvases)
       if (!registered.has(canvas)) {
-        this.viewportObservers.get(canvas)?.dispose()
-        this.viewportObservers.delete(canvas)
-        this.viewportPending.delete(presenter.id)
-        await this.send({ type: 'detach-presenter', id: presenter.id })
-        this.viewportSamples.delete(presenter.id)
-        this.presenterExtents.delete(presenter.id)
-        this.viewportInFlight.delete(presenter.id)
+        await this.detachPresenter(presenter.id, presenter.canvas, presenter.canvas !== canvas)
+        for (const [id, retired] of this.retired)
+          if (retired.replacement === presenter.id)
+            await this.detachPresenter(id, retired.canvas, retired.canvas !== canvas)
         this.canvases.delete(canvas)
       }
     const generations = new Map(
@@ -1378,7 +1619,7 @@ export class RegionBridge {
       ? new Map(entries.map(entry => [entry, entry.descriptor]))
       : undefined
     const presented: ((receipt: unknown) => void)[] = []
-    let presenting = !!this.navigationReceipt
+    let presenting = !!this.navigationReceipt || this.retired.size > 0
     // One top-layer order for every region in this scene.
     const topLayerDialogs = orderedTopLayerDialogs(document)
     for (const entry of entries) {
@@ -1425,20 +1666,18 @@ export class RegionBridge {
           else this.accessoryAdmissions.delete(entry.canvas)
           if (sheetMotion && sheetTrack) sheetMotion.acknowledge(sheetTrack)
           if (generation !== undefined) entry.canvas.dataset.satinGlassPresentedShow = generation
+          // Presentation holds also see a replacement mounted inside their panel. Both the
+          // registration and its physical endpoint were drawn by this same receipt.
+          for (const presenter of this.canvases.values()) {
+            if (!presenter.descriptor?.regionIds.includes(entry.id)) continue
+            presenter.canvas.dataset.satinGlassPresented = 'true'
+            if (generation !== undefined)
+              presenter.canvas.dataset.satinGlassPresentedShow = generation
+          }
         }
       })
-      const requested = entry.descriptor.layer,
-        scroll =
-          requested?.attachment.kind === 'fixed'
-            ? null
-            : entry.element.closest<HTMLElement>('[data-satin-scroll]')
-      let scrollId: string | undefined
-      if (scroll) {
-        scrollId = this.scrolls.get(scroll)
-        if (!scrollId) {
-          scrollId = `webgpu-scroll-${++this.nextScroll}`
-          this.scrolls.set(scroll, scrollId)
-        }
+      const { scroll, scrollId, layer } = this.layerFor(entry)
+      if (scroll && scrollId) {
         const bounds =
           zoomRestRect(scroll) ?? atRest(scroll.getBoundingClientRect(), presentationTravel(scroll))
         scrolls.set(scrollId, {
@@ -1450,11 +1689,6 @@ export class RegionBridge {
           width: bounds.width,
           height: bounds.height,
         })
-      }
-      const layer = {
-        id: requested ? `${requested.id}:${scrollId ?? 'fixed'}` : (scrollId ?? 'glass-fixed'),
-        depth: requested?.depth ?? 0,
-        attachment: scrollId ? { kind: 'scroll' as const, scrollId } : { kind: 'fixed' as const },
       }
       const owner = scrollId ? scrolls.get(scrollId) : undefined
       if (entry.descriptor.emerge && scrollId) throw Error('Glass emerge requires a fixed layer')
@@ -1517,8 +1751,11 @@ export class RegionBridge {
       // A region that emerges from a trigger presents over both rectangles (fixed layer: viewport points).
       const group = grouped.get(entry.id)
       if (group && group[0] !== entry) continue
-      const container = entry.descriptor.container
+      const registeredContainer = entry.descriptor.container
         ? registry.containers.get(entry.descriptor.container.id)
+        : undefined
+      const container = registeredContainer?.element.contains(entry.element)
+        ? registeredContainer
         : undefined
       const groupCanvas = groupCanvases.get(entry.id)
       const holder = container ? layoutRect(container.element) : rect
@@ -1539,15 +1776,33 @@ export class RegionBridge {
         entry.descriptor.emerge,
       )
       const regionIds = group?.map(e => e.id) ?? [entry.id]
-      for (const [canvas, role] of [
+      for (const [slot, role] of [
         [groupCanvas ?? entry.canvas, 'material'],
         [group ? undefined : entry.overlay, 'lift'],
       ] as const) {
-        if (!canvas) continue
-        let known = this.canvases.get(canvas)
-        if (known && known.layerId !== layer.id)
-          throw Error('Unsupported glass presenter layer reassignment')
+        if (!slot) continue
+        let known = this.canvases.get(slot)
+        let canvas = known?.canvas ?? slot
+        const holderElement =
+          container && groupCanvas === container.canvas ? container.element : entry.element
+        const replacing =
+          known && (known.layerId !== layer.id || canvas.parentElement !== holderElement)
+        const previous = replacing ? known : undefined
+        if (replacing || (!known && canvas.parentElement !== holderElement)) {
+          canvas = slot.cloneNode(false) as HTMLCanvasElement
+          canvas.removeAttribute('id')
+          canvas.removeAttribute('data-satin-glass-show')
+          canvas.removeAttribute('data-satin-glass-presented')
+          canvas.removeAttribute('data-satin-glass-presented-show')
+          // An empty canvas is transparent; staging must not look like a hidden owner.
+          canvas.hidden = false
+          // Equal-z-index canvases paint in DOM order: the live endpoint must be above its last frame.
+          if (previous?.canvas.parentElement === holderElement) previous.canvas.after(canvas)
+          else holderElement.prepend(canvas)
+          known = undefined
+        }
         if (!known) {
+          prepareGlassPresenter(canvas, layer, scroll, true)
           const id = `app-presenter-${++this.nextPresenter}`,
             presenter: GlassPresenter = {
               id,
@@ -1561,14 +1816,33 @@ export class RegionBridge {
               resolution: devicePixelRatio,
             }
           const offscreen = this.client.documentOwned ? canvas : canvas.transferControlToOffscreen()
-          known = { id, layerId: layer.id, descriptor: presenter }
-          this.canvases.set(canvas, known)
+          known = { id, layerId: layer.id, canvas, descriptor: presenter }
+          this.canvases.set(slot, known)
+          if (previous) {
+            this.viewportObservers.get(previous.canvas)?.dispose()
+            this.viewportObservers.delete(previous.canvas)
+            this.clearPresenterSamples(previous.id)
+            this.retired.set(previous.id, {
+              canvas: previous.canvas,
+              replacement: id,
+              owned: previous.canvas !== slot,
+              rechecks: 0,
+              status: 'pending',
+              presented: !!previous.presented,
+              hidden: !!previous.canvas.hidden,
+              sceneReplies: new Set(this.sceneReplies),
+            })
+            for (const retired of this.retired.values())
+              if (retired.replacement === previous.id) retired.replacement = id
+            this.resolveRetirements()
+          }
+          presenting = true
           this.viewportSamples.set(id, {
             viewport: { x: bounds.x, y: bounds.y, scaleX: 1, scaleY: 1 },
             rect: [bounds.x, bounds.y, bounds.width, bounds.height],
           })
           await this.send(
-            { type: 'attach-presenter', presenter, canvas: offscreen },
+            { type: 'attach-presenter', presenter, canvas: offscreen, replaces: previous?.id },
             this.client.documentOwned ? [] : [offscreen as OffscreenCanvas],
           )
         } else if (group) {
@@ -1591,8 +1865,6 @@ export class RegionBridge {
           }
         }
         this.retainPresenterExtent(known.id, bounds)
-        const holderElement =
-          container && groupCanvas === container.canvas ? container.element : entry.element
         const followsHolder =
           !accessoryGlassMotion(entry.element) &&
           canvas.parentElement === holderElement &&
@@ -1619,7 +1891,7 @@ export class RegionBridge {
           })
         canvas.hidden = false
         if (!this.viewportObservers.has(canvas)) {
-          const id = this.canvases.get(canvas)!.id
+          const id = known.id
           this.viewportObservers.set(
             canvas,
             observePresenterViewport(canvas, (viewport, sampleRect, keyboard) => {
@@ -1741,7 +2013,7 @@ export class RegionBridge {
     }
     for (const [canvas, known] of this.canvases) {
       if (active.has(canvas)) continue
-      canvas.hidden = true
+      known.canvas.hidden = true
       // The renderer can resize an unused presenter before it is reused (a toolbar field
       // that dissolves after a split returns for the merge). Admit its descriptor again then.
       known.descriptor = undefined

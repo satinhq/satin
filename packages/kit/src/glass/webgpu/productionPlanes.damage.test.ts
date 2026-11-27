@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, expect, it, vi } from 'vitest'
 import { measureProductionSource } from './capture.ts'
+import { PhotoRecovery } from './photoRecovery.ts'
 import { ProductionGlassRuntime } from './production.ts'
 import { measurePlane, type PlaneEntry } from './productionPlanes.ts'
 
@@ -37,6 +38,7 @@ function damagedList(viewport: number, installed = false) {
   }
   const runtime = Object.create(ProductionGlassRuntime.prototype) as ProductionGlassRuntime
   Object.assign(runtime, {
+    photoRecovery: new PhotoRecovery(() => {}),
     resident: { damage: vi.fn(), usable: () => undefined },
     planes: new Map(installed ? [['list', previous]] : []),
     preparingPlaneHosts: new Map([['list', scroller]]),

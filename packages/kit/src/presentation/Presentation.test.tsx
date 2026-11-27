@@ -3096,6 +3096,10 @@ it('a ScrollView inside a Sheet belongs to the sheet and becomes its primary scr
   const scroller = element.querySelector<HTMLElement>('[data-satin-scroll="tracks"]')
   expect(scroller?.textContent).toBe('Track 1')
   expect(scroller?.dataset.satinPrimary).toBe('true')
+  const frame = scroller?.closest('.satin-sheet-content-scale')
+  expect(frame?.querySelectorAll('[data-satin-scroll-indicator-track]')).toHaveLength(1)
+  render(null)
+  expect(element.querySelector('[data-satin-scroll-indicator-track]')).toBeNull()
 })
 
 it('a control contact belongs to the control while ordinary sheet content still pans', () => {
@@ -3166,3 +3170,47 @@ it('centres alert action labels without changing ordinary pressables', () => {
     style.remove()
   }
 })
+
+it.each([
+  { transform: 'none', title: 'Sheet' },
+  { transform: 'translateZ(0)', title: 'Sheet' },
+  { transform: 'none', title: '' },
+  { transform: 'translateZ(0)', title: '' },
+])(
+  'delegates a full-size sheet navigator indicator with transform $transform and title "$title"',
+  ({ transform, title }) => {
+    const registry = createScreenRegistry(
+      defineScreen('sheet', {
+        component: () => (
+          <ScrollSurface id="navigation-primary" axis="vertical">
+            <p>Navigation content</p>
+          </ScrollSurface>
+        ),
+        navigation: { title },
+      }),
+    )
+    const navigator = createNavigator({ registry, initial: { id: 'sheet' } })
+    const sheet = (navigation: boolean) => (
+      <Sheet title="Sheet" isPresented onPresentedChange={() => {}}>
+        <ScrollSurface id="sheet-primary" axis="vertical">
+          <p>Sheet content</p>
+        </ScrollSurface>
+        {navigation && <NavigatorHost navigator={navigator} />}
+      </Sheet>
+    )
+    render(sheet(true))
+    const frame = element.querySelector<HTMLElement>('.satin-sheet-content-scale')!
+    const host = frame.querySelector<HTMLElement>('[data-satin-navigator-host]')!
+    host.style.transform = transform
+    const direct = frame.querySelector<HTMLElement>('[data-satin-scroll="sheet-primary"]')!
+    const primary = host.querySelector<HTMLElement>('[data-satin-scroll="navigation-primary"]')!
+    expect(frame.dataset.satinScrollIndicatorOwner).toBe('none')
+    expect(direct.dataset.satinScrollIndicatorOwned).toBeUndefined()
+    expect(primary.dataset.satinScrollIndicatorOwned).toBe('true')
+    expect(host.style.zIndex).toBe('')
+    render(sheet(false))
+    expect(frame.querySelector('[data-satin-navigator-host]')).toBeNull()
+    expect(frame.dataset.satinScrollIndicatorOwner).toBe('primary')
+    expect(direct.dataset.satinScrollIndicatorOwned).toBe('true')
+  },
+)

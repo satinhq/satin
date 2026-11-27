@@ -1,3 +1,4 @@
+import { internalDatabasePrefix } from './file-index.ts'
 import { valueEqual } from './value-equal.ts'
 import { useLayoutEffect, useMemo, useRef, useSyncExternalStore } from 'react'
 import {
@@ -328,6 +329,8 @@ export function defineDatabase<const S extends CollectionSchema>(config: {
 } {
   if (!config.name || !Number.isSafeInteger(config.version) || config.version < 1)
     throw new TypeError('Database name and positive integer version are required')
+  if (config.name.startsWith(internalDatabasePrefix))
+    throw new TypeError('Database name uses a reserved Satin namespace')
   const names = Object.keys(config.collections)
   if (names.length === 0) throw new TypeError('A database needs at least one collection')
   let connection: IDBDatabase | undefined

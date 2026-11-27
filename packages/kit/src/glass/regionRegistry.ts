@@ -30,6 +30,14 @@ export class GlassRegionRegistry {
   }
   private contentChanged(entry: GlassRegionRegistration, records: MutationRecord[]) {
     const changed = records.some(record => {
+      // Presenter replacement changes only rendering endpoints, never captured application ink.
+      if (
+        record.type === 'childList' &&
+        [...record.addedNodes, ...record.removedNodes].every(
+          node => node instanceof Element && node.hasAttribute('data-satin-glass-region-canvas'),
+        )
+      )
+        return false
       const target = record.target instanceof Element ? record.target : record.target.parentElement
       // Presenter sizing/visibility belongs to the renderer, not the captured content.
       return (

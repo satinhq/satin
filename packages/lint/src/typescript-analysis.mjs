@@ -1306,7 +1306,32 @@ class AstContext {
         this.staticStrings(node.argumentExpression).some(item =>
           ['localStorage', 'indexedDB'].includes(item.value),
         )
-      if (isDirectName || isGlobalProperty || isGlobalElement)
+      const isPrivateFiles =
+        ((ts.isPropertyAccessExpression(node) && node.name.text === 'getDirectory') ||
+          (ts.isElementAccessExpression(node) &&
+            node.argumentExpression &&
+            this.staticStrings(node.argumentExpression).some(
+              item => item.value === 'getDirectory',
+            ))) &&
+        this.resolveExpressions(node.expression).some(receiver => {
+          if (!ts.isPropertyAccessExpression(receiver) && !ts.isElementAccessExpression(receiver))
+            return false
+          const property = ts.isPropertyAccessExpression(receiver)
+            ? receiver.name.text
+            : receiver.argumentExpression &&
+              this.staticStrings(receiver.argumentExpression)[0]?.value
+          if (property !== 'storage') return false
+          return this.resolveExpressions(receiver.expression).some(owner => {
+            if (ts.isIdentifier(owner) && owner.text === 'navigator') return true
+            return (
+              ts.isPropertyAccessExpression(owner) &&
+              owner.name.text === 'navigator' &&
+              ts.isIdentifier(owner.expression) &&
+              ['window', 'globalThis', 'self'].includes(owner.expression.text)
+            )
+          })
+        })
+      if (isDirectName || isGlobalProperty || isGlobalElement || isPrivateFiles)
         this.addViolation(rules['no-raw-persistent-storage'], node)
     }
     this.inspectAppOwnership(node)

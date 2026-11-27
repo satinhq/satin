@@ -559,6 +559,9 @@ export class RegionScene {
     {
       descriptor: GlassPresenter
       canvas: GlassCanvas
+      retiring?: boolean
+      replacement?: string
+      firstPresented?: boolean
       raster?: WebGPURaster
       viewport?: GlassViewport
       keyboard?: KeyboardTranslation
@@ -691,7 +694,7 @@ export class RegionScene {
    * composed backdrop differs (scroll-attached glass over its own plane does not). */
   backdropMoved() {
     for (const p of this.presenters.values())
-      if (p.raster?.spec && !p.covered && !p.suspended && p.raster.backdropStale())
+      if (!p.retiring && p.raster?.spec && !p.covered && !p.suspended && p.raster.backdropStale())
         this.moved.add(p)
   }
   /** The plane set is about to be replaced by another tab's (a source preparation committed).
@@ -718,7 +721,7 @@ export class RegionScene {
       this.presentMotion(id, state)
     }
     for (const p of this.presenters.values()) {
-      if (!held.has(p.descriptor.regionIds[0]) || p.parked) continue
+      if (p.retiring || !held.has(p.descriptor.regionIds[0]) || p.parked) continue
       p.suspended = true
       this.moved.delete(p)
       // Repainted while nothing could be submitted (an appearance change waiting to be presented):
@@ -732,6 +735,11 @@ export class RegionScene {
           p.raster.updateSpec(field.to)
           p.raster.draw(0)
         }
+        this.notify({
+          type: 'field-settled',
+          presenterId: p.descriptor.id,
+          regionIds: field.memberIds,
+        })
       }
       // Never drawn (it mounted while its tab was hidden): nothing to keep, nothing to sample.
       if (!p.raster || !p.materialKey) {
@@ -888,7 +896,7 @@ export class RegionScene {
       state = this.emerges.get(id)
     if (!region || !state) return
     const presenters = [...this.presenters.values()].filter(
-      p => p.descriptor.regionIds[0] === id && p.raster?.spec,
+      p => !p.retiring && p.descriptor.regionIds[0] === id && p.raster?.spec,
     )
     if (!presenters.length) return
     // The trigger's press highlight continues in the field until the drop leaves (native).
@@ -1024,9 +1032,12 @@ export class RegionScene {
     if (!this.navigation || (key !== undefined && key !== this.navigation.key)) return
     this.navigation.pose = pose
     for (const p of this.presenters.values())
-      if (p.navigation === this.navigation.key && p.raster?.spec && !p.covered) {
+      if (!p.retiring && p.navigation === this.navigation.key && p.raster?.spec && !p.covered) {
         p.raster.setNavigation(this.presenterNavigationPose(pose, p.zoomRoute))
-        if (draw && this.visible && !this.deferred) p.raster.draw(0)
+        if (draw && this.visible && !this.deferred) {
+          p.raster.draw(0)
+          if (this.submissionAllowed()) p.firstPresented = true
+        }
       }
   }
   private presenterNavigationPose(pose: NavigationPose, route?: number): NavigationPose {
@@ -1039,7 +1050,8 @@ export class RegionScene {
   /** Glass changing size inside a still canvas: draw each frame's shape at its presentation time. */
   private presentShapeTracks(at: number) {
     for (const p of this.presenters.values()) {
-      if (!p.raster?.spec || p.parked || p.suspended || p.descriptor.role === 'lift') continue
+      if (p.retiring || !p.raster?.spec || p.parked || p.suspended || p.descriptor.role === 'lift')
+        continue
       const members = p.descriptor.regionIds
         .map(id => this.scene.regions.find(region => region.id === id))
         .filter((region): region is GlassRegion => region !== undefined)
@@ -1075,6 +1087,7 @@ export class RegionScene {
       const foreground = this.sources.get(`foreground:${region.id}`)
       for (const p of this.presenters.values()) {
         if (
+          p.retiring ||
           !p.descriptor.regionIds.includes(region.id) ||
           !p.raster?.spec ||
           p.parked ||
@@ -1191,7 +1204,7 @@ export class RegionScene {
     // carrier clock, including its endpoint hold while the document is stalled.
     this.keyboardSampledAt = at
     for (const p of this.presenters.values()) {
-      if (!p.keyboard || !p.viewport || !p.raster || p.parked || p.suspended) continue
+      if (p.retiring || !p.keyboard || !p.viewport || !p.raster || p.parked || p.suspended) continue
       p.viewport = { ...p.viewport, y: sampleKeyboardTranslation(p.keyboard, at) }
       p.raster.setViewport(p.viewport)
       if (p.raster.backdropStale()) this.moved.add(p)
@@ -1206,8 +1219,10 @@ export class RegionScene {
     for (const [id, motion] of this.fields) {
       const p = this.presenters.get(id)
       // A parked presenter has no setup to move: its field ended when it was held.
-      if (!p?.raster || p.parked) {
+      if (!p?.raster || p.retiring || p.parked) {
         this.fields.delete(id)
+        if (p && !p.retiring)
+          this.notify({ type: 'field-settled', presenterId: id, regionIds: motion.memberIds })
         continue
       }
       const elapsed = at - motion.start
@@ -1226,7 +1241,10 @@ export class RegionScene {
         shape: { ...motion.to.shape, first: members[0], members },
       })
       if (this.visible && !this.deferred) p.raster.draw(0)
-      if (this.reducedMotion || elapsed >= FIELD_MOTION_DURATION) this.fields.delete(id)
+      if (this.reducedMotion || elapsed >= FIELD_MOTION_DURATION) {
+        this.fields.delete(id)
+        this.notify({ type: 'field-settled', presenterId: id, regionIds: motion.memberIds })
+      }
     }
     if (this.visible && !this.deferred && this.moved.size) {
       // A presenter is marked when its plane scrolls. Scroll-attached glass is marked then too,
@@ -1320,7 +1338,7 @@ export class RegionScene {
     thumb.sample(at, this.reducedMotion, this.appearance)
     for (const p of this.presenters.values()) {
       if (!p.descriptor.regionIds.includes(id) || p.descriptor.regionIds.length !== 1) continue
-      if (!p.raster?.spec || p.parked) continue
+      if (p.retiring || !p.raster?.spec || p.parked) continue
       const base = selectionInk(
         regionSpec(region, p.descriptor, this.scene),
         this.sources.get(`foreground:${id}`)?.descriptor,
@@ -1398,6 +1416,7 @@ export class RegionScene {
       // bands, exterior shadow); the material presenter stays transparent under it.
       for (const p of this.presenters.values())
         if (
+          !p.retiring &&
           p.descriptor.role === 'lift' &&
           p.descriptor.regionIds.includes(id) &&
           p.raster?.spec &&
@@ -1429,7 +1448,7 @@ export class RegionScene {
     const pose = contact?.pose(at, this.reducedMotion) ?? GLASS_CONTACT_REST
     const light = contact?.light.sample(this.appearance, at)
     for (const p of this.presenters.values())
-      if (p.descriptor.regionIds.includes(id) && p.raster?.spec && !p.parked) {
+      if (!p.retiring && p.descriptor.regionIds.includes(id) && p.raster?.spec && !p.parked) {
         const members = p.descriptor.regionIds
           .map(memberId => this.scene.regions.find(candidate => candidate.id === memberId))
           .filter((member): member is GlassRegion => member !== undefined)
@@ -1582,6 +1601,8 @@ export class RegionScene {
       case 'update-presenter': {
         const p = this.presenters.get(request.presenter.id)
         if (!p) throw Error('Missing glass presenter')
+        if (p.descriptor.layerId !== request.presenter.layerId)
+          throw Error('Glass presenter cannot change its DOM layer')
         // Rebase retained shapes only when the envelope moves within its container.
         // Scrolling translates both origins together; rebasing that translation makes
         // the next scene start a false spring and redraw the entire union every frame.
@@ -1643,7 +1664,7 @@ export class RegionScene {
       case 'presenter-viewport': {
         const presenter = this.presenters.get(request.id)
         // A queued geometry read can outlive its presenter during close/navigation.
-        if (!presenter) return
+        if (!presenter || presenter.retiring) return
         const viewport = request.viewport
         if (
           !Object.values(viewport).every(Number.isFinite) ||
@@ -1686,6 +1707,18 @@ export class RegionScene {
           request.presenter.resolution <= 0
         )
           throw Error('Invalid glass presenter dimensions')
+        if (request.replaces) {
+          const previous = this.presenters.get(request.replaces)
+          if (!previous) throw Error('Missing replaced glass presenter')
+          previous.retiring = true
+          previous.replacement = request.presenter.id
+          for (const retired of this.presenters.values())
+            if (retired.replacement === request.replaces) retired.replacement = request.presenter.id
+          previous.raster?.setSubmissionGate(() => false)
+          previous.raster?.leavePresentation()
+          this.moved.delete(previous)
+          this.fields.delete(request.replaces)
+        }
         this.presenters.set(request.presenter.id, {
           descriptor: request.presenter,
           canvas: request.canvas,
@@ -1786,6 +1819,10 @@ export class RegionScene {
         for (const previous of this.scene.regions) {
           if (!request.snapshot.regions.some(region => region.id === previous.id))
             this.shapeTracks.delete(previous.id)
+        }
+        for (const layer of request.snapshot.layers) {
+          const previous = this.scene.layers.find(value => value.id === layer.id)
+          if (previous && previous.depth !== layer.depth) this.owner.updateDepth(layer)
         }
         this.scene = {
           ...request.snapshot,
@@ -2108,12 +2145,30 @@ export class RegionScene {
   }
   /** New source images (uploads) since the last install: only those need a completion fence. */
   private presentationReceipt() {
+    for (const p of this.presenters.values()) {
+      if (!p.retiring) continue
+      const replacement = this.presenters.get(p.replacement!)
+      if (!this.visible || replacement?.parked || replacement?.suspended || replacement?.covered)
+        p.raster?.setVisible(false)
+    }
     if (this.topologyPending) return { superseded: true, presented: [] }
     return {
       navigation: this.navigation?.key,
+      // Endpoint identity is independent of each member's content-epoch readiness.
+      presenters: [...this.presenters.values()]
+        .filter(p => !p.retiring && p.firstPresented)
+        .map(p => p.descriptor.id),
+      inactivePresenters: [...this.presenters.values()]
+        .filter(p => !p.retiring && (!this.visible || p.covered || p.parked || p.suspended))
+        .map(p => p.descriptor.id),
       presented: (this.submissionAllowed() ? [...this.presenters.values()] : [])
         .filter(
-          p => p.descriptor.role === 'material' && p.raster?.spec && !p.covered && this.visible,
+          p =>
+            !p.retiring &&
+            p.descriptor.role === 'material' &&
+            p.raster?.spec &&
+            !p.covered &&
+            this.visible,
         )
         .flatMap(p =>
           p.descriptor.regionIds.filter(id => {
@@ -2135,7 +2190,10 @@ export class RegionScene {
     let fence = force || this.sourcesChanged
     this.sourcesChanged = false
     const installed: NonNullable<ReturnType<typeof this.presenters.get>>[] = []
+    const presented: typeof installed = []
     for (const p of this.presenters.values()) {
+      // Its replacement owns the new scene; keep these pixels until that draw is acknowledged.
+      if (p.retiring) continue
       const members = this.scene.regions.filter(r => p.descriptor.regionIds.includes(r.id))
       const region = this.scene.regions.find(r => r.id === p.descriptor.regionIds[0])
       if (!region) {
@@ -2319,7 +2377,13 @@ export class RegionScene {
           }
         } else if (running) spec = { ...spec, shape: previous.shape }
       }
-      if (memberIds) p.fieldMemberIds = memberIds
+      if (memberIds) {
+        const changed = JSON.stringify(p.fieldMemberIds) !== JSON.stringify(memberIds)
+        p.fieldMemberIds = memberIds
+        // Without an active spring there is no previous sweep to preserve.
+        if (changed && !this.fields.has(p.descriptor.id))
+          this.notify({ type: 'field-settled', presenterId: p.descriptor.id, regionIds: memberIds })
+      }
       const sourceScroll =
         source.descriptor.layerId === 'chrome'
           ? this.scene.scrolls.find(s => s.id === 'webgpu-source-root')
@@ -2558,6 +2622,7 @@ export class RegionScene {
       }
       const submitted = this.submissionAllowed()
       if (submitted && this.visible && !navigation?.deferPresent) {
+        presented.push(p)
         p.presentationContentEpoch = region.presentationContentEpoch
         p.accessoryContentEpoch = region.accessoryViewportTrack?.epoch
       }
@@ -2572,9 +2637,13 @@ export class RegionScene {
     // transaction that uploaded sources or created presenters; a geometry-only update (a
     // presentation moving or resizing) is not fenced, so it never blocks the worker's queue
     // behind GPU completion. Its GPU errors still surface through the draw scopes.
-    if (!fence) return
+    if (!fence) {
+      for (const p of presented) p.firstPresented = true
+      return
+    }
     try {
       await installed.at(-1)?.raster?.settled()
+      for (const p of presented) p.firstPresented = true
     } catch (error) {
       // The draws of this install are not known to have completed: none of it counts as drawn.
       for (const p of installed) {
@@ -2595,7 +2664,7 @@ export class RegionScene {
     this.sampledAt = undefined
     this.presentTrackedViewport(performance.timeOrigin + performance.now())
     this.visible = true
-    for (const p of this.presenters.values()) p.raster?.setVisible(true, true)
+    for (const p of this.presenters.values()) if (!p.retiring) p.raster?.setVisible(true, true)
     // After an app resume or a device restore (the page's fresh appearance reply arrives here for
     // both): a parked presenter of a region that is on screen has nothing to draw its pixels from,
     // so it is installed again. A hidden tab's parked presenter stays parked: the only planes
@@ -2606,8 +2675,10 @@ export class RegionScene {
     if (!this.visible || this.sourcePending) return
     // A parked presenter holds pixels only: it has nothing to draw until it is installed again.
     for (const p of this.presenters.values()) {
-      if (p.parked) continue
+      if (p.retiring || p.parked) continue
       p.raster?.draw(0)
+      if (p.raster?.spec && !p.covered && !p.suspended && this.submissionAllowed())
+        p.firstPresented = true
       // Held, and repainted while nothing could be submitted: drawn now, it holds pixels again.
       if (p.parkAfterPresent && this.submissionAllowed()) this.park(p)
     }
@@ -2616,7 +2687,11 @@ export class RegionScene {
     return [...this.presenters.values()]
       .filter(
         p =>
-          p.navigation === this.navigation?.key && !!p.navigation && p.raster?.spec && !p.covered,
+          !p.retiring &&
+          p.navigation === this.navigation?.key &&
+          !!p.navigation &&
+          p.raster?.spec &&
+          !p.covered,
       )
       .map(p => p.raster!)
   }

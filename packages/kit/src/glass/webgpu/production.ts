@@ -1,3 +1,4 @@
+import { PhotoRecovery } from './photoRecovery.ts'
 import { PadSearchBarMotion } from '../../search/padSearchBarMotion.ts'
 import { toolbarMaterialOwner } from '../toolbarMaterialContext.ts'
 import { SCROLL_INSERTION_MOTION } from '../../scroll/insertionMotion.ts'
@@ -319,7 +320,7 @@ export class ProductionGlassRuntime {
   /** Everything the last committed preparation sent; equal means nothing to send. */
   preparedSignature = ''
   contextGeometry = ''
-  incompleteCaptures = new Map<string, number>()
+  photoRecovery = new PhotoRecovery(() => this.schedulePrepare())
   private menuTracks = new Map<string, RegionTrack>()
   preparing?: Promise<void>
   prepareAgain = false
@@ -1324,7 +1325,10 @@ export class ProductionGlassRuntime {
         pins.add(id)
       }
     }
-    for (const id of affected) this.markPlaneDamaged(id)
+    for (const id of affected) {
+      this.photoRecovery.damage(id, target)
+      this.markPlaneDamaged(id)
+    }
     // The frame batch detaches each affected pin once, including provisional pins.
     if (!pendingPins && pins.size) this.invalidatePinnedTops([...pins])
     return affected.size > 0
@@ -2024,6 +2028,7 @@ export class ProductionGlassRuntime {
     cancelAnimationFrame(this.resumeFrame)
     this.resumeFrame = 0
     this.preparedSignature = ''
+    this.photoRecovery.dispose()
     this.revision++
     this.navigationRevision++
     this.menuCancel()

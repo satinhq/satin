@@ -12,6 +12,30 @@ afterEach(() => {
   document.body.replaceChildren()
 })
 
+it.each([
+  'This icon opens the install page instead of the app. Reinstall from Safari.',
+  'Check your connection and try again.',
+  'The install page failed to load. Please retry.',
+])('keeps the user instruction "%s" while retaining diagnostics and Retry', reason => {
+  const detail = 'Last stage: satin-document-head https://example.test/app/sw.js'
+  for (const diagnostics of [false, true]) {
+    setupPrelaunch(false, diagnostics)
+    const retry = vi.fn()
+    const controller = prelaunchController()
+    controller.error(reason, 'Unable to Open App', retry, detail)
+    const failure = prelaunchDOM.getElementById('satin-launch-error')!
+    expect(failure.textContent).toBe(
+      diagnostics
+        ? `Unable to Open App${reason}${detail}Retry`
+        : `Unable to Open App${reason}Retry`,
+    )
+    expect(controller.snapshot().error).toContain(reason)
+    expect(controller.snapshot().error).toContain(detail)
+    failure.querySelector('button')!.click()
+    expect(retry).toHaveBeenCalledOnce()
+  }
+})
+
 it('has one versioned instance and a closed root outside app-owned body descendants', () => {
   const controller = prelaunchController()
   expect(controller.version).toBe(1)

@@ -32,5 +32,9 @@ export function mountSatin(
  * above the launch cover, with the same presentation as a failed launch. */
 export function showAppFailure(error: unknown) {
   performance.mark('satin-app-failed')
-  showLaunchFailure(error instanceof Error ? error.message : String(error), 'App Failed to Start')
+  showLaunchFailure(
+    'The app could not start. Please retry.',
+    'App Failed to Start',
+    error instanceof Error ? error.message : String(error),
+  )
 }

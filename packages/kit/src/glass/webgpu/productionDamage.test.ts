@@ -2,6 +2,7 @@
 import { afterEach, expect, it, vi } from 'vitest'
 import type { MirrorNode } from '../lens/Scene.tsx'
 import { measureProductionSource } from './capture.ts'
+import { PhotoRecovery } from './photoRecovery.ts'
 import { ProductionGlassRuntime } from './production.ts'
 import { measurePlane } from './productionPlanes.ts'
 
@@ -48,6 +49,7 @@ function fixture(contentTop = 50, pinned = false) {
   const fire = vi.fn()
   const runtime = Object.create(ProductionGlassRuntime.prototype) as ProductionGlassRuntime
   Object.assign(runtime, {
+    photoRecovery: new PhotoRecovery(() => {}),
     resident: { damage: vi.fn() },
     pendingDamage: new Map(),
     planes: new Map([

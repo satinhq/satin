@@ -91,18 +91,23 @@ export async function installPageCheck(
     : unverified
       ? 'Check your connection and try again.'
       : wrongBase
-        ? `Built for ${expected.base} but served at ${servedBase}. Serve this build at ${expected.base}, or rebuild with Vite base ${servedBase}.`
-        : 'Required app files are missing or do not match this build. ' + failures[0]!.fix
+        ? 'This install link is not working. Please open the original install link.'
+        : 'This app is not ready to install. Please try again later.'
   const detail = standalone
     ? location.href
     : unverified
       ? undefined
-      : failures
-          .map(failure => {
+      : [
+          wrongBase
+            ? `Built for ${expected.base} but served at ${servedBase}. Serve this build at ${expected.base}, or rebuild with Vite base ${servedBase}.`
+            : failures[0]?.fix,
+          ...failures.map(failure => {
             const url = new URL(failure.url, location.href)
             const address = url.origin === location.origin ? url.pathname + url.search : url.href
             return `${failure.check ?? 'Configuration'} → ${address} → ${failure.status ?? failure.reason}`
-          })
+          }),
+        ]
+          .filter(Boolean)
           .join('\n')
   let retrying = false
   environment.error(
@@ -117,4 +122,35 @@ export async function installPageCheck(
     },
     detail,
   )
+}
+
+/** The inline bootstrap may fail before it can provide its isolated failure panel. */
+export function showInstallFailure(error: unknown) {
+  const reason = 'The install page could not open. Please retry.'
+  const title = 'This app is misconfigured'
+  const environment = (
+    window as Window & {
+      __SATIN_PRELAUNCH__?: {
+        error(reason: string, title: string, retry?: () => void, detail?: string): void
+      }
+    }
+  ).__SATIN_PRELAUNCH__
+  const guide = document.getElementById('satin-install-guide')
+  if (guide) guide.hidden = true
+  if (environment) {
+    environment.error(reason, title, undefined, String(error))
+    return
+  }
+  document.querySelector('satin-prelaunch')?.remove()
+  const failure = document.createElement('main')
+  failure.setAttribute('role', 'alert')
+  const heading = document.createElement('h1')
+  heading.textContent = title
+  const message = document.createElement('p')
+  message.textContent = reason
+  const retry = document.createElement('button')
+  retry.textContent = 'Retry'
+  retry.onclick = () => location.reload()
+  failure.append(heading, message, retry)
+  document.body.replaceChildren(failure)
 }

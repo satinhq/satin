@@ -1,3 +1,4 @@
+import { launchFailureReason } from '../app/launchFailure.ts'
 import { MediaPlayerRoot } from '../media/react.tsx'
 import { useDisplayCornerRadius } from '../safe-area/displayCorners.ts'
 import { installStatusBand } from '../app/statusBand.ts'
@@ -285,7 +286,7 @@ export function SatinRoot({
     return subscribeGlassErrors(error => {
       // A renderer failure owns its visible error alert, never the app's
       // content/launch state. In particular, loss during resume cannot blank it.
-      setGlassFailed(true)
+      if (!error.fallback) setGlassFailed(true)
       onGlassError?.(error)
     })
   }, [onGlassError])
@@ -391,7 +392,11 @@ export function SatinRoot({
       } catch (error) {
         if (!cancelled) {
           performance.mark('satin-launch-preparation-failed')
-          showLaunchFailure(error instanceof Error ? error.message : String(error))
+          showLaunchFailure(
+            launchFailureReason(error),
+            undefined,
+            error instanceof Error ? error.message : String(error),
+          )
           setLaunch('failed')
           console.error('Satin launch failed', error)
         }

@@ -310,10 +310,22 @@ it('release null-adapter exhaustion reaches fallback and the diagnostic hook', a
 })
 
 it('release adapter fallback survives a lazy import beyond the former polling deadline', async () => {
-  // Deliberately cross the old helper's 1 s limit. Keep the real runtime and
-  // assertions: slow test-module I/O must not be mistaken for missing glass.
+  vi.useFakeTimers({
+    toFake: ['Date', 'setTimeout', 'clearTimeout', 'requestAnimationFrame', 'cancelAnimationFrame'],
+  })
+  let releaseImport!: () => void
+  let signalImportStarted!: () => void
+  const blocked = new Promise<void>(resolve => {
+    releaseImport = resolve
+  })
+  const importStarted = new Promise<void>(resolve => {
+    signalImportStarted = resolve
+  })
+  // Hold module delivery while the fake clock crosses the old helper's 1 s
+  // deadline. Module I/O and a real sleep must not decide whether glass is ready.
   vi.doMock('./fallback/runtime.ts', async importOriginal => {
-    await new Promise(resolve => setTimeout(resolve, 1100))
+    signalImportStarted()
+    await blocked
     return importOriginal()
   })
   const view = await mount()
@@ -324,6 +336,15 @@ it('release adapter fallback survives a lazy import beyond the former polling de
       'device acquisition',
     ),
   )
+  await importStarted
+  try {
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1100)
+    })
+    expect(view.chrome.querySelector('[data-satin-fallback-material]')).toBeNull()
+  } finally {
+    releaseImport()
+  }
   await waitForFallback(view)
   expect(view.diagnostic).toHaveBeenCalledWith(expect.objectContaining({ transient: true }))
 })

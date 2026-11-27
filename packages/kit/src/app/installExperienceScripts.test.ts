@@ -5,6 +5,7 @@ import { defineSatinApp } from './definition.ts'
 import { checkDeployment, deploymentExpectation } from './deployment.ts'
 import { installPage } from './install.ts'
 import { installPageCheck } from './installCheck.ts'
+import { prelaunchController } from './launchScreenRuntime.ts'
 
 // The generated page minifies its inline scripts. These tests load the page as a browser
 // would and run those scripts, so a minifier change that breaks them fails here.
@@ -36,14 +37,18 @@ const SAFARI_IPHONE =
 const root = document.documentElement
 
 /** Puts the page into the document and runs its inline scripts in order. */
-function load(page: string) {
+function load(page: string, withoutRuntime = false) {
   // Execute classic scripts including the isolated environment, excluding metadata.
   const inline = /<script(?![^>]*\b(?:type|src)=)[^>]*>([\s\S]*?)<\/script>/g
   const scripts = [...page.matchAll(inline)].map(match => match[1]!)
   const withoutScripts = page.replace(inline, '')
   document.head.innerHTML = /<head>([\s\S]*?)<\/head>/.exec(withoutScripts)![1]!
   document.body.innerHTML = /<body[^>]*>([\s\S]*)<\/body>/.exec(withoutScripts)![1]!
-  for (const source of scripts) new Function(source)()
+  for (const [index, source] of scripts.entries()) {
+    if (withoutRuntime && [...page.matchAll(inline)][index]![0].includes('satin-prelaunch-install'))
+      continue
+    new Function(source)()
+  }
   return scripts
 }
 
@@ -54,12 +59,23 @@ beforeEach(() => {
     href: 'https://reps.example/install',
     pathname: '/install',
     search: '',
+    reload: vi.fn(),
   })
   vi.stubGlobal('matchMedia', () => ({ matches: false, addEventListener: () => {} }))
   // The network is down: every probe fails the same way for both versions of the check.
   vi.stubGlobal('fetch', () => Promise.reject(new TypeError('Load failed')))
   vi.spyOn(console, 'error').mockImplementation(() => {})
   for (const name of Object.keys(root.dataset)) delete root.dataset[name]
+})
+
+it('shows a usable install failure when the prelaunch runtime never installed', async () => {
+  load(installPage(app, 'install'), true)
+  await vi.waitFor(() => expect(document.querySelector('[role="alert"]')).not.toBeNull())
+  const failure = document.querySelector('[role="alert"]')!
+  expect(failure.textContent).toContain('The install page could not open. Please retry.')
+  expect(failure.textContent).not.toContain('https://')
+  failure.querySelector('button')!.click()
+  expect(location.reload).toHaveBeenCalledOnce()
 })
 afterEach(() => {
   vi.restoreAllMocks()
@@ -76,7 +92,9 @@ it('runs the minified deployment check with the behaviour of the original', asyn
   const minified = prelaunchDOM.getElementById('satin-launch-error')!.innerHTML
   // The test document has no real origin, so the manifest link cannot match the build.
   expect(minified).toContain('This app is misconfigured')
-  expect(minified).toContain('Manifest link')
+  expect(minified).toContain('This app is not ready to install. Please try again later.')
+  expect(minified).not.toContain('Manifest link')
+  expect(prelaunchController().snapshot().error).toContain('Manifest link')
   expect(document.getElementById('satin-install-guide')!.hidden).toBe(true)
 
   // The same situation through the original, unminified functions.

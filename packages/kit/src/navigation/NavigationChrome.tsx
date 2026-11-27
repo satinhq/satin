@@ -1,4 +1,5 @@
 import { NavigationTitleSlot } from './NavigationTitleSlots.tsx'
+import { screenPrimaryScroller } from '../scroll/screenPrimary.ts'
 import { SymbolImage } from '../symbols/Symbol.tsx'
 import {
   useScreenChrome,
@@ -151,7 +152,13 @@ export function NavigationChrome({
   useLayoutEffect(() => {
     const host = headerRef.current?.parentElement
     if (!host) return
-    const changed = () => setPrimaryRevision(revision => revision + 1)
+    const changed = (event: Event) => {
+      if (
+        event.target instanceof Element &&
+        event.target.closest('[data-satin-navigator-host]') === host
+      )
+        setPrimaryRevision(revision => revision + 1)
+    }
     host.addEventListener('satin:primary-scroll', changed)
     return () => host.removeEventListener('satin:primary-scroll', changed)
   }, [])
@@ -159,9 +166,12 @@ export function NavigationChrome({
     const host = headerRef.current?.parentElement
     if (!host) return
     const update = () => {
-      const primary = host.querySelector<HTMLElement>(
-        '[data-satin-screen-container][data-satin-covered="false"] [data-satin-primary="true"]',
-      )
+      const screen = [
+        ...host.querySelectorAll<HTMLElement>(
+          '[data-satin-screen-container][data-satin-covered="false"]',
+        ),
+      ].find(candidate => candidate.closest('[data-satin-navigator-host]') === host)
+      const primary = screenPrimaryScroller(screen)
       setMinimized(primary?.dataset.satinToolbarMinimized === 'true')
     }
     update()
@@ -173,7 +183,7 @@ export function NavigationChrome({
     const screen = header?.parentElement?.querySelector<HTMLElement>(
       '[data-satin-screen-container][data-satin-covered="false"]',
     )
-    const scroller = screen?.querySelector<HTMLElement>('[data-satin-primary="true"]')
+    const scroller = screenPrimaryScroller(screen)
     if (!header || !scroller || !tabActive) return
     // `inlineLarge` settles from the bar's large title to its inline title within the first 5 pt
     // of scroll (iOS 27 native reference, header-styles r1: settled at every sampled offset from 5 pt).
@@ -244,8 +254,7 @@ export function NavigationChrome({
         `[data-satin-screen-container][data-satin-covered="false"][data-satin-pane="${pane}"]`,
       ),
     ].filter(screen => screen.closest('[data-satin-navigator-host]') === host)
-    const scroller =
-      screens.at(-1)?.querySelector<HTMLElement>('[data-satin-primary="true"]') ?? null
+    const scroller = screenPrimaryScroller(screens.at(-1))
     return observeNavigationEdge(edge, scroller, statusEdgeOnly)
   }, [topEntry?.key, tabActive, pane, primaryRevision, statusEdgeOnly, edgeMoving])
   return (

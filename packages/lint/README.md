@@ -32,7 +32,7 @@ import { ruleManifest } from '@satinhq/lint/rule-manifest'
 
 Run `pnpm --filter @satinhq/lint test` for the rule and CLI suite.
 
-`no-raw-persistent-storage` flags direct app access to `localStorage` and `indexedDB`; use `defineDatabase` for durable app records. A legacy import bridge can opt out with a source-file comment `// satin-data-allow-raw-storage: <reason>`. Keep that file small because the comment exempts the whole file. Session-only UI state is outside this rule.
+`no-raw-persistent-storage` flags direct app access to `localStorage`, `indexedDB` and OPFS `getDirectory`; use `defineDatabase` for durable app records and `defineFileStore` for files. A legacy import bridge can opt out with a source-file comment `// satin-data-allow-raw-storage: <reason>`. Keep that file small because the comment exempts the whole file. Session-only UI state is outside this rule.
 
 <!-- measured-reference -->
 For an entry point using `defineApp` / `satinApp`, include its HTML in the checker

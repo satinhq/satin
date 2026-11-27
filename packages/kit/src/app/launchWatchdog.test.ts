@@ -3,6 +3,7 @@ import { setupPrelaunch, prelaunchDOM } from './prelaunch.test-helper.ts'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { reportGlassError } from '../glass/errors.ts'
 import { installLaunchWatchdog } from './launchWatchdog.ts'
+import { prelaunchController } from './launchScreenRuntime.ts'
 
 beforeEach(() => {
   vi.useFakeTimers()
@@ -69,6 +70,32 @@ it('makes a glass readiness timeout visible immediately', () => {
     'readiness-timeout',
   )
 })
+it.each(['error', 'unhandledrejection'])(
+  'keeps raw %s diagnostics out of release failure instructions',
+  type => {
+    setupPrelaunch(true, false)
+    const raw = 'Failed at https://example.test/app/private.js'
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {})
+    installLaunchWatchdog(10_000)
+    const event =
+      type === 'error'
+        ? new ErrorEvent('error', { message: raw })
+        : Object.assign(new Event('unhandledrejection'), { reason: new Error(raw) })
+    window.dispatchEvent(event)
+    const text = prelaunchDOM.querySelector('[role="alert"]')?.textContent
+    expect(text).toContain('The app could not open. Please retry.')
+    expect(text).not.toContain(raw)
+    expect(prelaunchController().snapshot().error).toContain(raw)
+    expect(log).toHaveBeenCalledWith(
+      '[Satin launch]',
+      'The app could not open. Please retry.',
+      'Last stage:',
+      expect.any(String),
+      raw,
+    )
+  },
+)
+
 it('keeps launching when a release app falls back to the CSS material', () => {
   installLaunchWatchdog(10_000)
   window.dispatchEvent(
@@ -124,15 +151,22 @@ it('exposes the production glass readiness timeout immediately', () => {
   expect(prelaunchDOM.getElementById('satin-launch-screen')?.hidden).toBe(true)
 })
 
-it('shows the reset-specific failure before modules load', () => {
+it('keeps worker lookup failures out of release copy while retaining diagnostics', () => {
+  setupPrelaunch(true, false)
+  const raw = 'Worker lookup failed at https://example.test/app/sw.js'
+  const log = vi.spyOn(console, 'error').mockImplementation(() => {})
   installLaunchWatchdog(10_000)
-  window.dispatchEvent(
-    new CustomEvent('satin-worker-lookup-error', {
-      detail: 'Service worker reset did not finish. Please retry.',
-    }),
-  )
-  expect(prelaunchDOM.getElementById('satin-launch-error')?.textContent).toContain(
-    'Service worker reset did not finish. Please retry.',
+  window.dispatchEvent(new CustomEvent('satin-worker-lookup-error', { detail: raw }))
+  const text = prelaunchDOM.querySelector('[role="alert"]')?.textContent
+  expect(text).toContain('The app could not open. Please retry.')
+  expect(text).not.toContain(raw)
+  expect(prelaunchController().snapshot().error).toContain(raw)
+  expect(log).toHaveBeenCalledWith(
+    '[Satin launch]',
+    'The app could not open. Please retry.',
+    'Last stage:',
+    expect.any(String),
+    raw,
   )
 })
 

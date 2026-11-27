@@ -5132,12 +5132,10 @@
   /* The primary's indicator is drawn in the screen frame over the content insets; WebKit's own spans
    the whole scroll frame, under the bars. Native: 3 pt wide, 3 pt from the edge, black 35% (light),
    white 50% (dark), fading out after scrolling stops. */
-  [data-satin-screen-scroll='primary']
-    [data-satin-primary='true'][data-satin-scroll-axis='vertical'] {
+  [data-satin-scroll-indicator-owned='true'] {
     scrollbar-width: none;
   }
-  [data-satin-screen-scroll='primary']
-    [data-satin-primary='true'][data-satin-scroll-axis='vertical']::-webkit-scrollbar {
+  [data-satin-scroll-indicator-owned='true']::-webkit-scrollbar {
     display: none;
   }
   [data-satin-scroll-indicator-track='true'] {
@@ -5150,8 +5148,12 @@
     opacity: 0;
     transition: opacity 0.3s ease-out;
   }
-  [data-satin-screen-scroll='primary'] > [data-satin-scroll-indicator-track='true'] {
+  [data-satin-scroll-indicator-owner='primary'] > [data-satin-scroll-indicator-track='true'] {
     display: block;
+  }
+  /* Sheet chrome shares this stacking context; its indicator must stay below the bar. */
+  .satin-sheet-content-scale > [data-satin-scroll-indicator-track='true'] {
+    z-index: 1;
   }
   [data-satin-scroll-indicator-track='true'][data-satin-scroll-indicator-visible='true'][data-satin-scroll-indicator-scrollable='true'] {
     opacity: 1;
@@ -7080,7 +7082,7 @@
   }
 
   /* Positioned content owns anchoring; WebKit must not apply a second correction. */
-  [data-satin-scroll]:has(> [data-satin-scroll-positioned]) {
+  [data-satin-scroll][data-satin-scroll-anchoring='owned'] {
     overflow-anchor: none;
   }
   [data-satin-scroll-content] {

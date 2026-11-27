@@ -77,6 +77,20 @@ test('raw app storage requires an explicit integration escape hatch', () => {
   flags('app.ts', "localStorage.setItem('x', 'y')", 'no-raw-persistent-storage')
   flags('app.ts', "window.indexedDB.open('x')", 'no-raw-persistent-storage')
   flags('app.ts', "globalThis['indexedDB'].open('x')", 'no-raw-persistent-storage')
+  flags('app.ts', 'navigator.storage.getDirectory()', 'no-raw-persistent-storage')
+  flags('app.ts', 'const n = navigator; n.storage.getDirectory()', 'no-raw-persistent-storage')
+  flags('app.ts', "navigator['storage'].getDirectory()", 'no-raw-persistent-storage')
+  flags('app.ts', "navigator.storage['getDirectory']()", 'no-raw-persistent-storage')
+  flags(
+    'app.ts',
+    'const storage = navigator.storage; storage.getDirectory()',
+    'no-raw-persistent-storage',
+  )
+  clean(
+    'app.ts',
+    'const storage = { getDirectory() {} }; storage.getDirectory()',
+    'no-raw-persistent-storage',
+  )
   clean(
     'app.ts',
     "import { defineDatabase } from '@satinhq/kit'; const db = defineDatabase",
