@@ -348,6 +348,18 @@ export class LayerDevice {
       this.attaching.delete(id)
     }
   }
+  /** Depth belongs to the shared DOM layer, including presenters parked on a hidden tab. */
+  updateDepth(model: GlassLayer) {
+    if (!Number.isFinite(model.depth)) throw Error('Invalid glass layer depth')
+    const matches = [...this.layers.values()].filter(layer => layer.model.id === model.id)
+    if (
+      matches.some(
+        layer => JSON.stringify(layer.model.attachment) !== JSON.stringify(model.attachment),
+      )
+    )
+      throw Error('Glass layer attachment requires a fresh presenter')
+    for (const layer of matches) layer.model = model
+  }
   detach(id: string) {
     const layer = this.layers.get(id)
     if (!layer) return

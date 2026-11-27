@@ -7,6 +7,7 @@ import {
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import type { CaptureWindow } from '../captureWindow.ts'
 import { ProductionGlassRuntime } from './production.ts'
+import { PhotoRecovery } from './photoRecovery.ts'
 import { commitPlaneSet } from './productionInstalls.ts'
 import type { PinnedTop } from './productionPinnedTop.ts'
 import type { MaterialContext, PlaneEntry } from './productionPlanes.ts'
@@ -46,6 +47,7 @@ function runtime(planes: [string, PlaneEntry][] = []) {
   const instance = Object.create(ProductionGlassRuntime.prototype) as unknown as Runtime
   Object.assign(instance, {
     planes: new Map(planes),
+    photoRecovery: new PhotoRecovery(() => {}),
     resident: new ResidentPlanes<MaterialContext>(80e6),
     scrollSpeeds: new WeakMap(),
     growPlanes: new Set<string>(),

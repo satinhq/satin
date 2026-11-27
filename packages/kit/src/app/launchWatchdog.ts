@@ -43,7 +43,7 @@ export function installLaunchWatchdog(budgetMs: number) {
         }
         showFailure(
           recordedError
-            ? 'Launch failed. ' + recordedError.split('\n')[0]!.slice(0, 160)
+            ? 'The app could not open. Please retry.'
             : 'Launch stopped making progress. Please retry.',
         )
       },
@@ -55,7 +55,11 @@ export function installLaunchWatchdog(budgetMs: number) {
       ),
     )
   }
-  const showFailure = (reason: string, kind: 'recoverable' | 'fatal' = 'recoverable') => {
+  const showFailure = (
+    reason: string,
+    kind: 'recoverable' | 'fatal' = 'recoverable',
+    detail?: string,
+  ) => {
     if (revealed || (failed && (failureKind === 'fatal' || kind === 'recoverable'))) return
     failed = true
     failureKind = kind
@@ -72,7 +76,12 @@ export function installLaunchWatchdog(budgetMs: number) {
         }
       }
     ).__SATIN_PRELAUNCH__
-    controller?.error(reason, 'Unable to Open App', undefined, 'Last stage: ' + stage)
+    controller?.error(
+      reason,
+      'Unable to Open App',
+      undefined,
+      ['Last stage: ' + stage, recordedError, detail].filter(Boolean).join('\n'),
+    )
     performance.mark('satin-launch-failed')
   }
   // Script load/error events are receipts for this document's actual elements.
@@ -117,21 +126,21 @@ export function installLaunchWatchdog(budgetMs: number) {
         receiveScript({ type: 'failed', script: target })
       } else if (event instanceof ErrorEvent) {
         recordedError = event.message || 'Application script failed to load.'
-        showFailure('Launch failed. ' + recordedError.split('\n')[0]!.slice(0, 160), 'fatal')
+        showFailure('The app could not open. Please retry.', 'fatal')
       }
     },
     true,
   )
   window.addEventListener('unhandledrejection', event => {
     recordedError = event.reason instanceof Error ? event.reason.message : String(event.reason)
-    showFailure('Launch failed. ' + recordedError.split('\n')[0]!.slice(0, 160), 'fatal')
+    showFailure('The app could not open. Please retry.', 'fatal')
   })
   window.addEventListener('satin-glass-error', event => {
     const error = (event as CustomEvent<{ code: string; message: string; fallback?: true }>).detail
     recordedError = error.code + ': ' + error.message
     // Release apps draw the fallback material instead (e.g. iOS without WebGPU).
     if (error.fallback) return
-    showFailure('Glass could not start: ' + error.code + '.')
+    showFailure('The app could not open. Please retry.')
   })
   const recover = () => {
     if (failureKind === 'fatal' && !revealed) return
@@ -162,7 +171,8 @@ export function installLaunchWatchdog(budgetMs: number) {
   })
   // Keep message order when two diagnostics arrive within the same millisecond.
   window.addEventListener('satin-worker-lookup-error', event => {
-    showFailure(String((event as CustomEvent<string>).detail))
+    recordedError = String((event as CustomEvent<string>).detail)
+    showFailure('The app could not open. Please retry.')
   })
   let lastInstallationTime = 0
   // Listen in the head, before a bootstrap module can start downloading.
@@ -196,14 +206,12 @@ export function installLaunchWatchdog(budgetMs: number) {
       if (!revealed && cachedController?.scriptURL !== expected) {
         showFailure(
           progress.stalled
-            ? 'The server stopped responding. Resource: ' + progress.url + '. Please retry.'
+            ? 'The server stopped responding. Please retry.'
             : progress.networkFailure
-              ? 'Check your connection and try again. Resource: ' + progress.url
-              : 'Could not prepare ' +
-                progress.url +
-                ': ' +
-                progress.reason +
-                '. Deploy the complete matching build, then retry.',
+              ? 'Check your connection and try again.'
+              : 'The app could not be installed. Please try again later.',
+          'recoverable',
+          progress.url + ': ' + progress.reason,
         )
       }
       return

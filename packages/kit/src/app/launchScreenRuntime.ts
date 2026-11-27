@@ -38,6 +38,7 @@ export interface PrelaunchOptions {
   readonly darkInk: string
   readonly nonce?: string
   readonly cover?: boolean
+  readonly diagnostics?: boolean
 }
 
 export function installLaunchScreenRuntime(options: PrelaunchOptions) {
@@ -64,6 +65,7 @@ export function installLaunchScreenRuntime(options: PrelaunchOptions) {
   failure.setAttribute('role', 'alert')
   failure.hidden = true
   let state = options.cover === false ? 'idle' : 'preparing'
+  let failureDiagnostics = ''
   cover.hidden = options.cover === false
   presentHost(!cover.hidden)
   const dark = matchMedia('(prefers-color-scheme: dark)')
@@ -226,7 +228,12 @@ export function installLaunchScreenRuntime(options: PrelaunchOptions) {
           'link[data-satin-style][data-satin-style-error="true"]',
         )
         const check = () => {
-          if (styleError) reject(new Error('App stylesheet failed to load. Retry.'))
+          if (styleError)
+            reject(
+              Object.assign(new Error('App stylesheet failed to load. Retry.'), {
+                satinLaunchReason: 'App stylesheet failed to load. Retry.',
+              }),
+            )
           else if (
             !managed ||
             getComputedStyle(document.documentElement).getPropertyValue('--satin-styles-applied')
@@ -248,7 +255,7 @@ export function installLaunchScreenRuntime(options: PrelaunchOptions) {
       return {
         version: 1,
         state,
-        error: failure.isConnected ? (failure.textContent ?? '') : '',
+        error: failure.isConnected ? failureDiagnostics : '',
         coverVisible: host.isConnected && !cover.hidden,
         ringVisible:
           host.isConnected &&
@@ -268,6 +275,7 @@ export function installLaunchScreenRuntime(options: PrelaunchOptions) {
     error(reason, title = 'Unable to Open App', retry, detail) {
       presentHost(true)
       state = 'failed'
+      failureDiagnostics = [title, reason, detail].filter(Boolean).join(' ')
       failure.replaceChildren()
       const heading = document.createElement('h1')
       heading.textContent = title
@@ -290,7 +298,9 @@ export function installLaunchScreenRuntime(options: PrelaunchOptions) {
           }
           location.reload()
         })
-      failure.append(heading, message, diagnostics, button)
+      failure.append(heading, message)
+      if (options.diagnostics) failure.append(diagnostics)
+      failure.append(button)
       root.append(failure)
       failure.hidden = false
       // The same controller finishes a visible arc before showing its failure.
@@ -429,8 +439,8 @@ export function prelaunchController() {
   return controller
 }
 
-export function showLaunchFailure(reason: string, title?: string) {
-  prelaunchController().error(reason, title)
+export function showLaunchFailure(reason: string, title?: string, detail?: string) {
+  prelaunchController().error(reason, title, undefined, detail)
 }
 
 export function setLaunchScreen(visible: boolean) {

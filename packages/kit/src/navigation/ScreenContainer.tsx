@@ -15,7 +15,7 @@ import { hasFocusedTab, navigatorFocusRuntime } from '../focus/navigationFocus.t
 import { recordMotionPreparation } from '../motionProbe.ts'
 import { useScreenNavigation, useScreenChrome, ScreenChromeContext } from '../public/chrome.tsx'
 import { createScrollSurfaceRegistry } from '../scroll/registry.ts'
-import { installScrollIndicator } from '../scroll/scrollIndicator.ts'
+import { usePrimaryScrollIndicator } from '../scroll/PrimaryScrollIndicator.tsx'
 import { TabActivityContext } from '../tabs/context.ts'
 import { ScreenContext, SystemScrollRegistryContext } from './navigationContext.tsx'
 import { DismissContext } from '../presentation/dismiss.tsx'
@@ -197,40 +197,12 @@ export function ScreenContainer({
   // VStack is (styles.css). The attribute follows the registry in the same frame.
   // The primary's vertical scroll indicator is drawn in the screen frame (scroll/scrollIndicator.ts).
   const motionLayer = useRef<HTMLDivElement>(null)
-  const indicatorTrack = useRef<HTMLSpanElement>(null)
-  const indicatorThumb = useRef<HTMLSpanElement>(null)
-  useLayoutEffect(() => {
-    const element = motionLayer.current
-    const track = indicatorTrack.current
-    const thumb = indicatorThumb.current
-    if (!element || !track || !thumb) return
-    let indicated: HTMLElement | undefined
-    let releaseIndicator: (() => void) | undefined
-    // The registry also notifies on scroll; only a change touches the DOM.
-    const update = () => {
-      const primary = scrollRegistry.getPrimary()
-      const state = primary ? 'primary' : 'none'
-      if (element.dataset.satinScreenScroll !== state) element.dataset.satinScreenScroll = state
-      const scroller =
-        primary?.axis === 'vertical' && primary.element instanceof HTMLElement
-          ? primary.element
-          : undefined
-      if (scroller === indicated) return
-      releaseIndicator?.()
-      indicated = scroller
-      // NavigationChrome re-binds its title collapse and scroll edge to the new primary.
-      element.dispatchEvent(new CustomEvent('satin:primary-scroll', { bubbles: true }))
-      releaseIndicator = scroller
-        ? installScrollIndicator(scroller, { frame: element, track, thumb })
-        : undefined
-    }
-    update()
-    const unsubscribe = scrollRegistry.subscribe(update)
-    return () => {
-      unsubscribe()
-      releaseIndicator?.()
-    }
-  }, [scrollRegistry])
+  const scrollIndicator = usePrimaryScrollIndicator(
+    motionLayer,
+    scrollRegistry,
+    'screen',
+    !isCovered && tabActive,
+  )
   const display =
     navigation?.visibility === 'hidden'
       ? 'none'
@@ -323,13 +295,7 @@ export function ScreenContainer({
                   <ContentAdmission>{children}</ContentAdmission>
                 </RestoredScreenMountContext>
               </SystemScrollRegistryContext>
-              <span
-                aria-hidden="true"
-                data-satin-scroll-indicator-track="true"
-                ref={indicatorTrack}
-              >
-                <span data-satin-scroll-indicator-thumb="true" ref={indicatorThumb} />
-              </span>
+              {scrollIndicator}
               <span aria-hidden="true" data-satin-navigation-dim="true" />
             </div>
           </div>

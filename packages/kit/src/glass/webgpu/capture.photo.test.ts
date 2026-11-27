@@ -1,5 +1,6 @@
+// @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { getGlassErrors } from '../errors.ts'
+import { getGlassErrors, glassFallbackRequired } from '../errors.ts'
 import type { MirrorNode } from '../lens/Scene.tsx'
 
 vi.mock('./decodedImage.ts', () => ({
@@ -118,7 +119,7 @@ describe('photo redraw (review P2): the whole composition, in paint order', () =
         measured([
           { ...card, x: 0, y: 0, width: 100, height: 100 },
           { ...photo, imageReady: unavailable },
-          { ...photo, id: 'empty', imageSource: undefined },
+          { ...photo, id: 'empty', imageSource: undefined, imageReady: Promise.resolve(undefined) },
         ]),
         100,
         100,
@@ -128,7 +129,9 @@ describe('photo redraw (review P2): the whole composition, in paint order', () =
     ).resolves.toBe(canvas)
     expect(calls).toEqual(['page', 'placeholder'])
     expect(captureIncomplete(canvas)).toBe(false)
-    expect(getGlassErrors().length).toBe(before)
+    expect(getGlassErrors().slice(before)).toMatchObject([
+      { reason: 'image-decode-failed', fallback: true },
+    ])
   })
   it('a missing photo redraws fill, photo and the card above it again, in that order', async () => {
     const calls: string[] = []
@@ -234,12 +237,7 @@ describe('photo verification per painted instance (review construction update, i
     )
     expect(composed).toBe(4)
     expect(captureIncomplete(canvas)).toBe(true)
-    expect(getGlassErrors().at(-1)).toMatchObject({
-      code: 'presentation',
-      stage: 'backdrop capture',
-      reason: 'image-raster-missing',
-      message: expect.stringContaining('photo-2'),
-    })
+    expect(getGlassErrors().filter(error => error.reason === 'image-raster-missing')).toEqual([])
   })
 })
 
@@ -302,4 +300,35 @@ describe('reference: a capture never waits on a superseded image', () => {
     await expect(capture).rejects.toBeInstanceOf(SupersededImage)
     expect(getGlassErrors()).toHaveLength(errors)
   })
+})
+
+it('settles a failed content decode once with material pixels and no retry or strict panel', async () => {
+  const { installGlassErrorAlert } = await import('../errorAlert.ts')
+  installGlassErrorAlert()
+  const before = getGlassErrors().length
+  const failed = {
+    ...photo,
+    imageSource: 'permanently-broken-photo.png',
+    imageReady: Promise.reject(Error('corrupt image bytes')),
+  }
+  const fillRect = vi.fn()
+  const context = new Proxy(
+    { fillRect },
+    { get: (target, key) => (key in target ? target[key as keyof typeof target] : () => {}) },
+  )
+  const canvas = { width: 0, height: 0, getContext: () => context } as unknown as HTMLCanvasElement
+  for (let attempt = 0; attempt < 2; attempt++) {
+    await rasterProductionSource(canvas, measured([failed]), 100, 100, 1, false)
+    expect(captureIncomplete(canvas)).toBe(false)
+  }
+  expect(fillRect).toHaveBeenCalled()
+  expect(getGlassErrors().slice(before)).toMatchObject([
+    {
+      reason: 'image-decode-failed',
+      fallback: true,
+      message: expect.stringContaining('corrupt image bytes'),
+    },
+  ])
+  expect(glassFallbackRequired()).toBe(false)
+  expect(document.querySelector('[data-satin-glass-error]')).toBeNull()
 })

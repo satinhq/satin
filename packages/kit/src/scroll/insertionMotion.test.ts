@@ -86,12 +86,13 @@ it('respects Reduce Motion', () => {
   expect(f.animate).not.toHaveBeenCalled()
 })
 
-it('animates the first message when it replaces an empty-thread placeholder', () => {
+it.each([false, true])('animates placeholder replacement, initial=%s', initialLayout => {
   const f = fixture()
   const message = document.createElement('div')
   message.getBoundingClientRect = () => ({ top: 100, height: 44 }) as DOMRect
   f.content.replaceChildren(message)
-  f.motion.reconcile(true)
+  if (initialLayout) f.surface.style.paddingBottom = '52px'
+  f.motion.reconcile(true, false, initialLayout)
   expect(insertionMotion(f.surface)?.stops[0]?.[1]).toBe(44)
 })
 

@@ -32,6 +32,8 @@ export type GlassError = Readonly<{
   transient?: true
   /** The owner still has a bounded recovery attempt in flight. */
   recovering?: true
+  /** The content plane already painted its material in place of unavailable artwork. */
+  fallback?: true
 }>
 const history: GlassError[] = []
 // Diagnostic history survives recovery; it is not the fallback state.
@@ -60,7 +62,7 @@ export function reportGlassError(
   cause: unknown,
   stage: string,
   reason?: string,
-  recovery?: { recovering: boolean },
+  recovery?: { recovering?: boolean; fallback?: boolean },
 ): GlassError {
   // GPUError objects are not required to inherit from JavaScript Error.
   const message =
@@ -82,13 +84,14 @@ export function reportGlassError(
     stage,
     reason,
     at: Date.now(),
+    ...(recovery?.fallback ? { fallback: true as const } : {}),
     ...(recovery?.recovering ? { recovering: true as const } : {}),
     ...(transient ? { transient: true as const } : {}),
   }
   recordGraphicsEvent('glass-error', { ...error })
   history.push(error)
   if (history.length > 100) history.shift()
-  const release = automaticGlassFallbackAllowed(error)
+  const release = !error.fallback && automaticGlassFallbackAllowed(error)
   if (release && !error.recovering) {
     permanentFallback ||= !glassWebGPUWasCapable() && glassCapabilityUnavailable(error)
     fallbackRequired = true
@@ -103,7 +106,7 @@ export function reportGlassError(
   // event says so. Launch must not turn a handled failure into "Unable to Open App".
   // A release renderer that is still recovering (e.g. a null adapter while it retries) also
   // keeps the app running, so it must not fail launch either.
-  const handledByFallback = release
+  const handledByFallback = release || error.fallback
   if (typeof window !== 'undefined')
     window.dispatchEvent(
       new CustomEvent('satin-glass-error', {

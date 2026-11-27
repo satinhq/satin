@@ -18,6 +18,12 @@ const unavailable = (concept, alternative, limitations) => ({
 
 export const apiBehaviors = [
   mapped(
+    'Private files',
+    'defineFileStore useFileInfo useFiles useFileURL',
+    'Store File, Blob and streamed bytes in private origin storage. Read file metadata with live hooks, create revocable object URLs and stream file backups alongside database JSON.',
+    'Requires OPFS; without Web Locks only one window is supported. get copies files up to 8 MiB; larger gets and imperative URLs stay pinned until document teardown or close. useFileURL owns and releases its preview pin across revisions and unmount; do not escape its URL lifetime. Imperative revoke only revokes the URL. Visible stores retry retired payload collection, and persisted pageshow re-acquires read pins. Consume or cancel streams, and revoke imperative URL handles. File and database changes are separate transactions; references are plain IDs. Persistence is a request, and local files still need backups.',
+  ),
+  mapped(
     'Overlay',
     'Overlay',
     'Layer content over a view without changing its frame. Inside a SafeAreaInset the overlay keeps to the reduced safe area and moves with the keyboard, like the composer.',

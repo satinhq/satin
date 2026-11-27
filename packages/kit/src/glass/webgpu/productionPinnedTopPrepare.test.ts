@@ -1,4 +1,5 @@
 import { expect, it, vi } from 'vitest'
+import * as planeSources from './productionPlanes.ts'
 import { keepSourcePixels, pixelImage, takeSourcePixels } from './preparedSourcePixels.ts'
 import type { ProductionGlassRuntime } from './production.ts'
 import { pinnedTopWindow, type PinnedTop } from './productionPinnedTop.ts'
@@ -15,7 +16,7 @@ import {
 } from './productionPlanes.ts'
 
 vi.mock('./backdropLayers.ts', () => ({ cssColor: () => '#fff', backdropOwner: () => undefined }))
-vi.mock('./capture.ts', () => ({ rasterProductionSource: vi.fn() }))
+vi.mock('./capture.ts', () => ({ rasterProductionSource: vi.fn(), captureIncomplete: () => false }))
 
 // The step of a source preparation that keeps a long list's top when its window moves on.
 // 4 px wide at resolution 1, so the bytes are countable; a 100 pt scrollport.
@@ -110,6 +111,12 @@ it('keeps a current pinned top, and lets it go when the list is at its top again
     stale: false,
   }
   glass.pinnedTops.set('plane-1', pinned)
+  const complete = vi.fn()
+  glass.photoRecovery = {
+    pending: () => true,
+    ready: () => true,
+    complete,
+  } as unknown as ProductionGlassRuntime['photoRecovery']
   const further = plane({ top: 3000, bottom: 4000, viewport: 100 })
   const kept = await preparePinnedTops(glass, [further], new Map(), frame, '17px')
   expect([kept.images, kept.release]).toEqual([[], []])
@@ -118,6 +125,7 @@ it('keeps a current pinned top, and lets it go when the list is at its top again
   const released = await preparePinnedTops(glass, [atTop], captured, frame, '17px')
   expect(released.release).toEqual(['plane:plane-1:top'])
   expect(released.next.size).toBe(0)
+  expect(complete).toHaveBeenCalledWith('plane-1', 'top')
   const gone = await preparePinnedTops(glass, [], new Map(), frame, '17px')
   expect(gone.release).toEqual(['plane:plane-1:top'])
 })
@@ -215,4 +223,36 @@ it('drops a pin cropped after damage from a plane captured before that damage', 
   expect(changes.images).toEqual([])
   expect(changes.release).toEqual(['plane:plane-1:top'])
   expect(opened).toEqual([])
+})
+
+it('retries a pending photo at the pinned top after the idle-growth flag is cleared', async () => {
+  const glass = runtime(undefined)
+  let pending = true
+  glass.photoRecovery = {
+    pending: () => pending,
+    ready: () => true,
+    unavailable: () => new Set(),
+    complete: () => {
+      pending = false
+    },
+  } as unknown as ProductionGlassRuntime['photoRecovery']
+  glass.sourcePixels = { prepare: vi.fn() } as unknown as ProductionGlassRuntime['sourcePixels']
+  const canvas = { width: 4, height: 100 }
+  vi.stubGlobal('document', { createElement: () => canvas })
+  const measured = vi.spyOn(planeSources, 'measurePlane').mockResolvedValue(plane(top))
+  try {
+    const changes = await preparePinnedTops(
+      glass,
+      [plane({ top: 2000, bottom: 3000, viewport: 100 })],
+      new Map(),
+      frame,
+      '17px',
+    )
+    expect(changes.images).toHaveLength(1)
+    expect(changes.next.has('plane-1')).toBe(true)
+    expect(pending).toBe(false)
+  } finally {
+    measured.mockRestore()
+    vi.unstubAllGlobals()
+  }
 })

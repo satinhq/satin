@@ -333,3 +333,72 @@ stop on settlement, abort or completion. Aborting cannot commit partial rows.
 Ordinary interfaces work with `collection<T>`. Primary keys must be string fields
 and indexes must name fields. The curried `collection<T>()({...})` form preserves
 the exact declared index names.
+
+## Private files
+
+Define a file store once at module scope. Keep large photos, videos and documents
+there, and store their IDs in database records. Use the URL hook for previews:
+
+```tsx
+import { Image, defineFileStore, useFileURL } from '@satinhq/kit'
+
+export const files = defineFileStore({ name: 'documents' })
+
+function Preview({ id }: { id: string }) {
+  const { data: url } = useFileURL(files, id)
+  return url ? <Image src={url} alt="Document preview" /> : null
+}
+```
+
+`useFileURL` creates a URL with the stored content type and revokes it when the ID
+or saved revision changes, or the component unmounts. It also cleans up a pending
+result that arrives after unmount. Replacing or deleting a file preserves reads
+already using its immutable revision.
+
+```ts
+await files.put('report', pickedFile)
+const file = await files.get('report')
+if (file) await consumeFile(file)
+```
+
+`get` returns a File with its original name, type and lastModified. Files up to
+8 MiB are copied into memory and do not retain private storage. Larger results
+keep their immutable payload for this document's life or until `files.close()`,
+so slices, Responses and media loads remain safe. For large files, prefer a
+stream or a preview rendered with `useFileURL`.
+
+The preview hook owns its URL and payload pin and releases both when the saved
+revision changes or the component unmounts. Keep that URL within the component;
+a URL passed to a longer-lived consumer is outside the hook's lifetime contract.
+
+A visible window or the next store open collects replaced files after their document ends or store closes, once no window holds a lease.
+
+`stat` and `list` read metadata; `useFileInfo(files, id)` and `useFiles(files)` keep
+metadata live as `{ data, loading, error }`. The opaque metadata `revision` changes
+on every put, including same-size, same-timestamp replacements, so previews update.
+For large reads, consume `await files.stream(id)` or cancel it. End, error and
+cancel release its lease, after any pending slice read finishes. Abandoned streams
+hold their lease until the document ends or the store closes.
+
+For the imperative escape hatch, `await files.objectURL(id)` returns `{ url, revoke }`.
+Call `revoke()` after use; repeated calls are harmless. Revocation happens in a
+later task, allowing a load started in the same turn to begin. Revocation does
+not release its session pin. Use `useFileURL` for component previews. `files.close()`
+revokes owned URLs and ends session pins; finish derived File/media consumers
+before closing. Visible windows periodically collect retired files after peer
+windows disappear; restored pages re-acquire their reader pins. Store operations report read and write failures through `onError`.
+
+Save `await files.exportFiles()` beside the database JSON. File archives stream
+raw bytes with a versioned manifest and preserve IDs. Restore with
+`await files.importFiles(archive, 'replace')` or `'merge'` before restoring the
+database. Direct export-to-import is supported. Pause edits across the two
+exports if their snapshots must agree. There is no cross-engine transaction or
+automatic deletion of referencing records.
+
+Archive inputs accept Blobs or bounded byte streams. Stream chunks must be at
+most 1 MiB; manifests are limited to 4 MiB and 10,000 entries. Import validates the
+manifest before staging bytes. Use `storageQuota` for origin estimates and
+persistence requests, and handle rejected promises plus
+`files.onError(({ database, error }) => ...)` for write and cleanup failures.
+Without Web Locks, `files.coordination` is `'single-window'`: use the store from
+one window only. Local storage still needs a backup.

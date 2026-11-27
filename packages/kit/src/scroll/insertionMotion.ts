@@ -20,6 +20,7 @@ export function createInsertionMotion(surface: HTMLElement, content: HTMLElement
   let firstTop = 0
   let initialized = false
   let bottomInset = 0
+  let scrollRange = 0
   let restoreClip: string | undefined
   let holding = false
   let replacedContent = false
@@ -46,10 +47,15 @@ export function createInsertionMotion(surface: HTMLElement, content: HTMLElement
     while (element?.lastElementChild) element = element.lastElementChild
     return element
   }
-  const reconcile = (pinned: boolean, hold = false) => {
+  const reconcile = (pinned: boolean, hold = false, initialLayout = false) => {
     const releasing = holding && !hold
     const nextInset = parseFloat(getComputedStyle(surface).paddingBottom) || 0
     const resized = initialized && nextInset !== bottomInset
+    const initialRoom =
+      initialLayout && initialized
+        ? Math.max(0, scrollRange + nextInset - bottomInset) - Math.max(0, scrollRange)
+        : 0
+    scrollRange = surface.scrollHeight - surface.clientHeight
     bottomInset = nextInset
     const nextFirst = content.firstElementChild
     const nextLast = tail()
@@ -77,6 +83,8 @@ export function createInsertionMotion(surface: HTMLElement, content: HTMLElement
         : firstInsert
           ? (nextFirst?.getBoundingClientRect().height ?? 0)
           : 0
+    // Separate the inset's clamped scroll displacement from the append's own movement.
+    const movement = distance - (first === nextFirst ? initialRoom : 0)
     initialized = true
     first = nextFirst
     last = nextLast
@@ -84,15 +92,17 @@ export function createInsertionMotion(surface: HTMLElement, content: HTMLElement
     // A keyboard carrier's commit is the end of motion it already showed on transforms.
     // Replaying it as an insertion would move the transcript a second time.
     const carriedKeyboardRoom = resized && committingCarriedKeyboardRoom()
+    if (initialLayout && resized && restoreClip !== undefined)
+      surface.style.clipPath = `inset(0 0 ${nextInset}px 0)`
     if (
       !pinned ||
       carriedKeyboardRoom ||
       !(appended || firstInsert || resized || replacedTail || releasing) ||
-      (Math.abs(distance) < 0.5 && !releasing) ||
+      ((appended ? movement === 0 : Math.abs(movement) < 0.5) && !releasing) ||
       !allowsComposerMotion(content)
     )
       return
-    const from = distance + presented
+    const from = movement + presented
     cancel()
     // SafeAreaInset intentionally lets ordinary scrolling continue beneath its
     // accessory. Insert presentation must not paint a bubble through the editor.
@@ -148,5 +158,13 @@ export function createInsertionMotion(surface: HTMLElement, content: HTMLElement
         record.target.contains(last),
     )
   }
-  return { reconcile, offset, cancel, contentChanged }
+  return {
+    reconcile,
+    offset,
+    cancel,
+    contentChanged,
+    pause() {
+      animation?.pause?.()
+    },
+  }
 }

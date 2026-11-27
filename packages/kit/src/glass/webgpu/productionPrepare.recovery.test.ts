@@ -24,28 +24,28 @@ async function failedStaging() {
     vi.fn(async () => ({ width: 1, height: 1, close() {} })),
   )
   const staging = new SourcePixels(() => worker)
-  const job = staging.prepare({ width: 1, height: 1, close() {} } as unknown as ImageBitmap)
-  await Promise.resolve()
-  const rejected = expect(job).rejects.toThrow('device lost')
+  // A worker failure follows its upload message on every attempt, including
+  // retries whose bitmap clone has not settled when the clock advances.
   const fail = () =>
     worker.onmessage!.call(
       worker as unknown as Worker,
       { data: { id: 0, error: 'device lost' } } as MessageEvent,
     )
-  fail()
-  await vi.advanceTimersByTimeAsync(250)
-  fail()
-  await vi.advanceTimersByTimeAsync(500)
-  fail()
+  worker.postMessage.mockImplementation(() => queueMicrotask(fail))
+  const job = staging.prepare({ width: 1, height: 1, close() {} } as unknown as ImageBitmap)
+  const rejected = expect(job).rejects.toThrow('device lost')
+  await vi.runAllTimersAsync()
   await rejected
   expect(worker.terminate).toHaveBeenCalledTimes(3)
   return staging
 }
 
 it('the bounded retry of a failed preparation replaces a failed upload worker, and reports the failure', async () => {
-  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+  vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'] })
   vi.spyOn(console, 'error').mockImplementation(() => {})
+  const started = Date.now()
   const failed = await failedStaging()
+  expect(Date.now() - started).toBe(750)
   expect(failed.failed).toBe(true)
   /** The staging each attempt of the preparation finds. */
   const seen: SourcePixels[] = []

@@ -1,3 +1,4 @@
+import { launchFailure } from './launchFailure.ts'
 import type { DownloadProgress } from './launchScreen.ts'
 import { prepareDestinationImages } from '../image/resource.ts'
 
@@ -11,7 +12,7 @@ export async function prepareOfflineBundle(
   const online = navigator.onLine
   if (!('serviceWorker' in navigator)) {
     if (online === false)
-      throw new Error(
+      throw launchFailure(
         'Connect to open this app. Offline installation is unavailable in this browser.',
       )
     performance.mark('satin-connected-only-launch')
@@ -40,9 +41,11 @@ export async function prepareOfflineBundle(
       })
     } catch (error) {
       if (navigator.onLine === false) {
-        throw new Error('Check your connection and try again. Resource: ' + expectedScript, {
-          cause: error,
-        })
+        throw launchFailure(
+          'Check your connection and try again.',
+          'Check your connection and try again. Resource: ' + expectedScript,
+          { cause: error },
+        )
       }
       throw error
     }
@@ -81,7 +84,7 @@ async function findOwnRegistration(scope: string) {
       navigator.serviceWorker.getRegistration(scope),
       new Promise<never>((_resolve, reject) => {
         lookupTimer = setTimeout(
-          () => reject(new Error('Service worker lookup did not finish. Please retry.')),
+          () => reject(launchFailure('Service worker lookup did not finish. Please retry.')),
           3000,
         )
       }),
@@ -136,7 +139,7 @@ function waitForActivation(
       timer = setTimeout(() => {
         cleanup()
         reject(
-          new Error(
+          launchFailure(
             'Offline installation timed out without download progress. Retry with a connection.',
           ),
         )
@@ -147,7 +150,16 @@ function waitForActivation(
       const data = event.data
       if (data?.type === 'SATIN_INSTALL_FAILURE') {
         cleanup()
-        reject(new Error(installFailureMessage(data)))
+        reject(
+          launchFailure(
+            data.stalled
+              ? 'The server stopped responding. Please retry.'
+              : data.networkFailure
+                ? 'Check your connection and try again.'
+                : 'The app could not be installed. Please try again later.',
+            installFailureMessage(data),
+          ),
+        )
         return
       }
       if (
@@ -200,7 +212,7 @@ function waitForActivation(
           redundantTimer = setTimeout(
             () => {
               cleanup()
-              reject(new Error('The offline bundle did not finish installing.'))
+              reject(launchFailure('The offline bundle did not finish installing.'))
             },
             Math.min(timeoutMs, 250),
           )
@@ -248,7 +260,7 @@ export async function prepareLaunchContent(root: HTMLElement, signal?: AbortSign
       }
       const timer = setTimeout(() => {
         if (requiredReady) resolve()
-        else reject(new Error('Artwork did not finish preparing. Please retry.'))
+        else reject(launchFailure('Artwork did not finish preparing. Please retry.'))
       }, 5_000)
       const complete = () => {
         clearTimeout(timer)

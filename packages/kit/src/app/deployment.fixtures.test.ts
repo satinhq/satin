@@ -291,12 +291,15 @@ describe('deployment checks with injected responses', () => {
   )
 
   it('reports a rejected resource request as transient and continues checking the remaining resources', async () => {
+    const started = Date.now()
     const { fetcher, decodeImage } = deployment({
       '/app/sw.js': () => Promise.reject(new TypeError('offline')),
     })
     const checking = checkDeployment(expected, origin + '/install', fetcher, false, decodeImage)
-    await vi.advanceTimersByTimeAsync(750)
+    // Drain the deadlines as async response reads schedule each retry.
+    await vi.runAllTimersAsync()
     const failures = await checking
+    expect(Date.now() - started).toBe(750)
     expect(
       fetcher.mock.calls.filter(([input]) => String(input) === origin + '/app/sw.js'),
     ).toHaveLength(3)
@@ -344,6 +347,7 @@ describe('deployment checks with injected responses', () => {
   })
 
   it('reports an aborted request at the injected timeout without waiting on a real clock', async () => {
+    const started = Date.now()
     const { fetcher, decodeImage } = deployment()
     const respond = fetcher.getMockImplementation()!
     fetcher.mockImplementation((input, options) => {
@@ -357,8 +361,10 @@ describe('deployment checks with injected responses', () => {
       })
     })
     const checking = checkDeployment(expected, origin + '/install', fetcher, false, decodeImage, 20)
-    // Three request deadlines, with the two bounded backoffs between them.
-    await vi.advanceTimersByTimeAsync(20 + 250 + 20 + 500 + 20)
+    // Follow all three request deadlines and both backoffs even when response
+    // reads finish after the initial clock advancement has begun.
+    await vi.runAllTimersAsync()
+    expect(Date.now() - started).toBe(20 + 250 + 20 + 500 + 20)
     expect(
       fetcher.mock.calls.filter(([input]) => String(input) === origin + '/app/sw.js'),
     ).toHaveLength(3)

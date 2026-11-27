@@ -617,6 +617,7 @@ it.each(['headers', 'body'])(
   'bounds a stalled precache %s and permits a fixed fresh install',
   async phase => {
     vi.useFakeTimers()
+    const started = Date.now()
     try {
       const harness = workerHarness([{ revision: null, url: '/stalled.js' }])
       const postMessage = vi.fn()
@@ -641,8 +642,11 @@ it.each(['headers', 'body'])(
       // The response may take as long as `satin check` allows; a body may not go silent for 8 s.
       const seconds = phase === 'headers' ? 30 : 8
       const failed = expect(work).rejects.toThrow(`The server stopped responding for ${seconds} s`)
-      await vi.advanceTimersByTimeAsync(seconds * 3000 + 751)
+      // Cache startup and stream reads schedule the deadlines asynchronously.
+      // Drain each deadline and retry instead of assuming they all start at zero.
+      await vi.runAllTimersAsync()
       await failed
+      expect(Date.now() - started).toBe(seconds * 3000 + 750)
       expect(postMessage).toHaveBeenCalledWith(
         expect.objectContaining({
           type: 'SATIN_INSTALL_FAILURE',

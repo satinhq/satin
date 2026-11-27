@@ -166,6 +166,9 @@ export const ScrollSurface = forwardRef<ScrollSurfaceHandle, ScrollSurfaceProps>
         : undefined
     const horizontalPadding = padding.leading + padding.trailing
     const tabActive = useContext(TabActivityContext)
+    const readingActive = useRef(tabActive)
+    readingActive.current = tabActive
+    const parentTargetRegistration = useContext(ScrollTargetContext)
     const elementRef = useRef<HTMLDivElement>(null)
     useLayoutEffect(() => {
       if (elementRef.current) return bottom.geometry?.attach(elementRef.current)
@@ -230,12 +233,14 @@ export const ScrollSurface = forwardRef<ScrollSurfaceHandle, ScrollSurfaceProps>
     const contentRef = useRef<HTMLDivElement>(null)
     const targets = useRef(new Map<string, HTMLElement>())
     const controller = useRef<ReturnType<typeof createScrollPositionController> | null>(null)
-    const positioning =
+    const [hasTargets, setHasTargets] = useState(false)
+    const positionsContent =
       forwardedRef != null ||
       defaultScrollAnchor !== undefined ||
       maintainVisibleContentPosition !== undefined ||
       scrollPosition !== undefined ||
       onScrollGeometryChange !== undefined
+    const positioning = hasTargets || positionsContent
     const positionOptions = useRef<ScrollPositionOptions>({})
     positionOptions.current = {
       defaultScrollAnchor,
@@ -251,6 +256,7 @@ export const ScrollSurface = forwardRef<ScrollSurfaceHandle, ScrollSurfaceProps>
           }
           targets.current.set(targetId, element)
         } else targets.current.delete(targetId)
+        setHasTargets(targets.current.size > 0)
         controller.current?.targetsChanged()
       },
       [id],
@@ -397,6 +403,11 @@ export const ScrollSurface = forwardRef<ScrollSurfaceHandle, ScrollSurfaceProps>
         primary: preference,
         onRestore: () => controller.current?.adoptRestoredOffset(),
         followsEnd: () => controller.current?.followsEnd() ?? false,
+        captureReadingPosition: () => controller.current?.captureReadingPosition(),
+        ownsScroll: () => controller.current?.ownsScroll() ?? false,
+        canRestoreReadingPosition: () => controller.current?.canRestoreReadingPosition() ?? true,
+        restoreReadingAnchor: anchor =>
+          controller.current?.restoreReadingAnchor(anchor) ?? 'deferred',
         initialOffset: () => ({
           x: 0,
           y:
@@ -416,8 +427,10 @@ export const ScrollSurface = forwardRef<ScrollSurfaceHandle, ScrollSurfaceProps>
         targets.current,
         () => positionOptions.current,
         () => registry.cancelRestoration(id),
+        () => readingActive.current,
       )
       controller.current = position
+      registry.retryRestoration(id)
       return () => {
         position.dispose()
         controller.current = null
@@ -430,6 +443,9 @@ export const ScrollSurface = forwardRef<ScrollSurfaceHandle, ScrollSurfaceProps>
     return (
       <div
         {...props}
+        role={isList ? undefined : props.role}
+        aria-label={isList ? undefined : props['aria-label']}
+        aria-labelledby={isList ? undefined : props['aria-labelledby']}
         style={{
           ...extras,
           ...(bottom.consumed && axis === 'vertical' && !(isPrimary && ignoresBottom)
@@ -462,6 +478,7 @@ export const ScrollSurface = forwardRef<ScrollSurfaceHandle, ScrollSurfaceProps>
         }
         data-satin-scroll={id}
         data-satin-scroll-axis={axis}
+        data-satin-scroll-anchoring={positionsContent ? 'owned' : undefined}
         data-satin-horizontal-drag={axis === 'horizontal' ? 'both' : undefined}
         data-satin-scroll-chain="false"
       >
@@ -470,25 +487,28 @@ export const ScrollSurface = forwardRef<ScrollSurfaceHandle, ScrollSurfaceProps>
           <ListNavigationContext value={undefined}>
             <SafeAreaPaddingContext value={NO_LENGTHS}>
               <IgnoresSafeAreaContext value={NO_IGNORED}>
-                {positioning || refresh ? (
-                  <ScrollTargetContext.Provider value={registerTarget}>
+                {axis === 'vertical' || positioning || refresh ? (
+                  <ScrollTargetContext.Provider
+                    value={axis === 'vertical' ? registerTarget : parentTargetRegistration}
+                  >
                     <div
                       ref={contentRef}
+                      role={isList ? 'list' : undefined}
+                      aria-label={isList ? props['aria-label'] : undefined}
+                      aria-labelledby={isList ? props['aria-labelledby'] : undefined}
                       data-satin-scroll-content=""
                       data-satin-refresh-content={refresh ? 'true' : undefined}
-                      data-satin-scroll-positioned={positioning ? 'true' : undefined}
-                      style={
-                        !positioning
-                          ? { display: isList ? 'flow-root' : undefined, minHeight: 0 }
-                          : undefined
-                      }
+                      data-satin-scroll-positioned={positionsContent ? 'true' : undefined}
+                      style={!positionsContent ? { display: 'flow-root', minHeight: 0 } : undefined}
                       data-satin-scroll-alignment={defaultScrollAnchor}
                     >
                       {content}
                     </div>
                   </ScrollTargetContext.Provider>
                 ) : (
-                  content
+                  <ScrollTargetContext.Provider value={parentTargetRegistration}>
+                    {content}
+                  </ScrollTargetContext.Provider>
                 )}
                 {extraBottom > 0 && axis === 'vertical' && (
                   <div

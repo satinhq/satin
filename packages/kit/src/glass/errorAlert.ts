@@ -10,7 +10,7 @@ export function formatGlassErrors(errors: readonly GlassError[]) {
     { code: string; message: string; reason?: string; stages: string[] }
   >()
   for (const error of errors) {
-    if (error.transient) continue
+    if (error.transient || error.fallback) continue
     const key = JSON.stringify([error.code, cause(error.message), error.reason])
     const group = groups.get(key) ?? {
       code: error.code,
@@ -34,7 +34,7 @@ export function installGlassErrorAlert() {
   installed = true
   const paint = () => {
     const errors = getGlassErrors().filter(
-      error => !error.transient && !automaticGlassFallbackAllowed(error),
+      error => !error.transient && !error.fallback && !automaticGlassFallbackAllowed(error),
     )
     if (!errors.length) return
     const prelaunch = (

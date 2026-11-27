@@ -3,6 +3,7 @@ import { capturePrelaunch, prelaunchDOM } from './prelaunch.test-helper.ts'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { defineSatinApp } from './definition.ts'
 import { generateAppHead } from './head.ts'
+import { prelaunchController } from './launchScreenRuntime.ts'
 
 const app = defineSatinApp({
   platforms: 'all',
@@ -98,8 +99,9 @@ it('removes the stalled overlay when real worker delivery resumes before bootstr
   deliverProgress(1)
   vi.advanceTimersByTime(10_000)
   expect(prelaunchDOM.getElementById('satin-launch-error')?.textContent).toContain(
-    'stopped making progress',
+    'Launch stopped making progress. Please retry.',
   )
+  expect(prelaunchController().snapshot().error).toContain('stopped making progress')
   await vi.advanceTimersByTimeAsync(2500)
   expect(prelaunchDOM.getElementById('satin-launch-screen')?.hidden).toBe(true)
   deliverProgress(2)

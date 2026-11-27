@@ -255,7 +255,7 @@ const definitions = [
     description: 'Keep app data and restoration checkpoints framework-owned.',
     autofixable: false,
     message:
-      'Use defineDatabase for records or createSceneRestoration/useSceneStorage for UI checkpoints instead of raw localStorage or indexedDB. See the documented escape hatch for integrations.',
+      'Use defineDatabase for records, defineFileStore for files, or createSceneRestoration/useSceneStorage for UI checkpoints instead of raw browser storage. See the documented escape hatch for integrations.',
   },
   {
     id: 'require-bottom-safe-area-inset',

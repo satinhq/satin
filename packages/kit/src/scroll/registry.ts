@@ -1,4 +1,11 @@
-import type { ScrollAxis, ScrollOffset, ScrollSnapshot, ScrollSnapshotOffset } from './types.ts'
+import { readingPositionActive, SCROLL_POSITION_IDLE } from './readingPosition.ts'
+import type {
+  ReadingAnchor,
+  ScrollAxis,
+  ScrollOffset,
+  ScrollSnapshot,
+  ScrollSnapshotOffset,
+} from './types.ts'
 
 export type ScrollSurfaceNode = Pick<HTMLDivElement, 'scrollLeft' | 'scrollTo' | 'scrollTop'> &
   Partial<Pick<HTMLDivElement, 'scrollWidth' | 'scrollHeight' | 'clientWidth' | 'clientHeight'>>
@@ -12,6 +19,10 @@ export type ScrollSurfaceRegistration = Readonly<{
   /** True while a bottom-anchored surface follows its bottom. Its snapshot then saves "at the
    * bottom" rather than an offset, so restoration returns to the bottom. */
   followsEnd?: () => boolean
+  captureReadingPosition?: () => ScrollSnapshotOffset | undefined
+  ownsScroll?: () => boolean
+  canRestoreReadingPosition?: () => boolean
+  restoreReadingAnchor?: (anchor: ReadingAnchor) => 'restored' | 'missing' | 'deferred'
   /** `true` claims the screen; `'automatic'` is a candidate (the first in document order wins). */
   primary: boolean | 'automatic'
 }>
@@ -31,6 +42,7 @@ export interface ScrollSurfaceRegistry {
   getPrimary(): ScrollSurfaceRegistration | undefined
   register(registration: ScrollSurfaceRegistration): () => void
   reset(): void
+  retryRestoration(id: string): void
   restore(
     snapshot: ScrollSnapshot,
     options?: Readonly<{ warnOnMismatch?: boolean }>,
@@ -64,9 +76,11 @@ export function createScrollSurfaceRegistry(
   const registrations = new Map<string, ScrollSurfaceRegistration>()
   let pendingSnapshot: Map<string, ScrollSnapshotOffset> | undefined
   const waiting = new Map<string, () => void>()
+  const pendingPixelFallback = new Set<string>()
   const stopWaiting = (id: string) => {
     waiting.get(id)?.()
     waiting.delete(id)
+    pendingPixelFallback.delete(id)
   }
   const cancelRestoration = (id: string) => {
     const cancelled = pendingSnapshot?.delete(id)
@@ -103,9 +117,17 @@ export function createScrollSurfaceRegistry(
     return () => undefined
   }
 
+  const captured = new Map<string, ScrollSnapshotOffset>()
   const captureOffset = (registration: ScrollSurfaceRegistration): ScrollSnapshotOffset => {
-    const offset = readScrollOffset(registration.element)
-    return registration.followsEnd?.() ? Object.freeze({ ...offset, atEnd: true }) : offset
+    if (!readingPositionActive(registration.element as HTMLElement))
+      return captured.get(registration.id) ?? { x: 0, y: 0 }
+    let offset = registration.captureReadingPosition
+      ? (registration.captureReadingPosition() ?? captured.get(registration.id) ?? { x: 0, y: 0 })
+      : readScrollOffset(registration.element)
+    if (!registration.captureReadingPosition && registration.followsEnd?.())
+      offset = Object.freeze({ x: offset.x, y: offset.y, atEnd: true })
+    captured.set(registration.id, offset)
+    return offset
   }
 
   const restoreRegistration = (
@@ -139,6 +161,7 @@ export function createScrollSurfaceRegistry(
       top: snapshotOffset.y,
     })
     registration.onRestore?.()
+    captured.set(registration.id, Object.freeze(readScrollOffset(registration.element)))
     return result
   }
 
@@ -152,6 +175,10 @@ export function createScrollSurfaceRegistry(
   ) => {
     const end = { x: target.x, y: Number.isFinite(maxY) ? maxY : target.y }
     const result = restoreRegistration(registration, end, false)
+    captured.set(
+      registration.id,
+      Object.freeze({ ...readScrollOffset(registration.element), atEnd: true as const }),
+    )
     cancelRestoration(registration.id)
     return result
   }
@@ -159,7 +186,17 @@ export function createScrollSurfaceRegistry(
   const attemptRestore = (registration: ScrollSurfaceRegistration) => {
     const target = pendingSnapshot?.get(registration.id)
     if (!target) return
+    if (
+      !readingPositionActive(registration.element as HTMLElement) ||
+      registration.canRestoreReadingPosition?.() === false
+    )
+      return
     const element = registration.element
+    if (pendingPixelFallback.has(registration.id)) {
+      const result = restoreRegistration(registration, target, false)
+      cancelRestoration(registration.id)
+      return result
+    }
     // Do not clamp a saved offset into an empty or partially loaded list. Keep
     // the original target durable while content arrives, even across another kill.
     const maxX =
@@ -171,17 +208,59 @@ export function createScrollSurfaceRegistry(
         ? Infinity
         : Math.max(0, element.scrollHeight - element.clientHeight)
     if (target.atEnd) return restoreToEnd(registration, target, maxY)
+    if (target.anchor && registration.axis === 'vertical') {
+      const result = registration.restoreReadingAnchor?.(target.anchor) ?? 'deferred'
+      if (result === 'deferred') return
+      if (result === 'missing') {
+        if (registration.canRestoreReadingPosition?.() !== false)
+          restoreRegistration(registration, target, false)
+      }
+      cancelRestoration(registration.id)
+      return Object.freeze({
+        id: registration.id,
+        live: readScrollOffset(element),
+        matches: true,
+        snapshot: target,
+      })
+    }
     if (target.x > maxX + 0.5 || target.y > maxY + 0.5) return
     const result = restoreRegistration(registration, target, pendingWarnOnMismatch)
     if (offsetsMatch(readScrollOffset(element), target)) cancelRestoration(registration.id)
     return result
   }
+  const targetAnchorPending = (registration: ScrollSurfaceRegistration) =>
+    Boolean(pendingSnapshot?.get(registration.id)?.anchor)
   const awaitContent = (registration: ScrollSurfaceRegistration) => {
     if (!pendingSnapshot?.has(registration.id) || waiting.has(registration.id)) return
     const element = registration.element as HTMLElement
     if (typeof element.addEventListener !== 'function') return
+    const geometry = () =>
+      [element.clientWidth, element.clientHeight, element.scrollWidth, element.scrollHeight].join(
+        '/',
+      )
+    let previousGeometry = geometry()
+    let resizedThisTurn = false
+    let geometryTimer: ReturnType<typeof setTimeout> | undefined
+    const measureSize = () => {
+      const next = geometry()
+      if (next !== previousGeometry) {
+        previousGeometry = next
+        resizedThisTurn = true
+        clearTimeout(geometryTimer)
+        geometryTimer = setTimeout(() => {
+          resizedThisTurn = false
+        }, 0)
+      }
+    }
     const retry = () => {
+      measureSize()
       attemptRestore(registration)
+    }
+    const onScroll = () => {
+      measureSize()
+      // Platform focus/accessibility and raw app jumps have no input event. A size-changing
+      // turn can also clamp the offset; retain the checkpoint only for that or our own writes.
+      if (!resizedThisTurn && !registration.ownsScroll?.()) cancelRestoration(registration.id)
     }
     const userIntent = () => {
       cancelRestoration(registration.id)
@@ -209,14 +288,30 @@ export function createScrollSurfaceRegistry(
       attributes: true,
       attributeFilter: ['style', 'class', 'hidden', 'src'],
     })
+    element.addEventListener('scroll', onScroll, { passive: true })
     element.addEventListener('load', retry, true)
-    for (const event of ['pointerdown', 'wheel', 'keydown'])
+    element.addEventListener(SCROLL_POSITION_IDLE, retry)
+    element.ownerDocument?.addEventListener('visibilitychange', retry)
+    for (const event of ['pointerdown', 'touchstart', 'wheel'])
       element.addEventListener(event, userIntent, { passive: true })
+    // A target can mount after registration, but a deleted ID must not keep observers alive forever.
+    const deadline = targetAnchorPending(registration)
+      ? setTimeout(() => {
+          // Expire target lookup, but retain the pixel fallback until a blocked scroll is idle.
+          pendingPixelFallback.add(registration.id)
+          retry()
+        }, 300)
+      : undefined
     waiting.set(registration.id, () => {
+      clearTimeout(deadline)
+      clearTimeout(geometryTimer)
       resize?.disconnect()
       mutation?.disconnect()
+      element.removeEventListener('scroll', onScroll)
       element.removeEventListener('load', retry, true)
-      for (const event of ['pointerdown', 'wheel', 'keydown'])
+      element.removeEventListener(SCROLL_POSITION_IDLE, retry)
+      element.ownerDocument?.removeEventListener('visibilitychange', retry)
+      for (const event of ['pointerdown', 'touchstart', 'wheel'])
         element.removeEventListener(event, userIntent)
     })
   }
@@ -316,8 +411,15 @@ export function createScrollSurfaceRegistry(
         stopWaiting(registration.id)
         element.removeEventListener?.('scroll', changed)
         registrations.delete(registration.id)
+        captured.delete(registration.id)
         electPrimary()
       }
+    },
+    retryRestoration(id) {
+      const registration = registrations.get(id)
+      if (!registration) return
+      attemptRestore(registration)
+      awaitContent(registration)
     },
     reset() {
       for (const id of waiting.keys()) stopWaiting(id)
@@ -333,6 +435,7 @@ export function createScrollSurfaceRegistry(
       const results: ScrollRestorationResult[] = []
       for (const id of waiting.keys()) stopWaiting(id)
       pendingSnapshot = new Map(snapshot)
+      for (const [id, offset] of snapshot) captured.set(id, offset)
       pendingWarnOnMismatch = Boolean(restoreOptions.warnOnMismatch)
 
       for (const [id] of snapshot) {

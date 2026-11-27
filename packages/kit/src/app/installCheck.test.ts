@@ -198,7 +198,7 @@ it('states one base fix for several failed checks', async () => {
   const status = prelaunchDOM.getElementById('satin-launch-error')!
   expect(status.textContent).not.toContain('Repeated fix')
   expect(status.textContent!.match(/rebuild/g)).toHaveLength(1)
-  expect(status.querySelector('.detail')!.textContent!.split('\n')).toHaveLength(2)
+  expect(status.querySelector('.detail')!.textContent!.split('\n')).toHaveLength(3)
   expect(status.querySelector('.detail')!.textContent).toContain(
     'Manifest → /app.webmanifest → HTTP 404',
   )

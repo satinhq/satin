@@ -1,3 +1,4 @@
+import { launchFailureReason } from '../app/launchFailure.ts'
 import { fallbackGlassRequested } from './fallback/selection.ts'
 import { glassFallbackRequired, reportGlassError, subscribeGlassFallback } from './errors.ts'
 import { GlassRegionRegistry } from './regionRegistry.ts'
@@ -55,7 +56,12 @@ export function MaterialEffectRoot({
           if (!disposed) setStylesApplied(true)
         },
         error => {
-          if (!disposed) showLaunchFailure(error instanceof Error ? error.message : String(error))
+          if (!disposed && prelaunchController().snapshot().state !== 'failed')
+            showLaunchFailure(
+              launchFailureReason(error, 'The app could not open. Please retry.'),
+              undefined,
+              error instanceof Error ? error.message : String(error),
+            )
         },
       )
     return () => {

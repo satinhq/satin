@@ -66,9 +66,15 @@ it('keeps a large offset through partial data and restores only when its range e
 it.each(['pointerdown', 'wheel', 'keydown'])('yields to %s rather than jumping later', event => {
   const { registry, element, grow } = fixture()
   element.dispatchEvent(new Event(event))
+  if (event === 'keydown') {
+    element.scrollTop = 20
+    element.dispatchEvent(new Event('scroll'))
+  }
   grow(10000)
   expect(element.scrollTo).not.toHaveBeenCalled()
-  expect(registry.capture({ preservePending: true }).get('rows')?.y).toBe(0)
+  expect(registry.capture({ preservePending: true }).get('rows')?.y).toBe(
+    event === 'keydown' ? 20 : 0,
+  )
 })
 it('cleans pending observers on reset and unregister', () => {
   const { registry, callbacks, element, grow } = fixture()

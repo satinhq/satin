@@ -18,7 +18,7 @@ import { ICON_SVG } from '../lens/icons.ts'
 import { measureOrReuse } from '../lens/mirrorReuse.ts'
 import { makeReferenceBackgroundCanvas } from '../lens/referenceBackground.ts'
 import type { SurfaceRenderSpec } from '../renderSpecs.ts'
-import { SupersededImage, settleContentImage } from '../../image/resource.ts'
+import { SupersededImage } from '../../image/resource.ts'
 import { decodedGlassImage } from './decodedImage.ts'
 import { glassNow, glassTiming } from './profile.ts'
 import { drawBackgroundLayers } from './backgroundLayers.ts'
@@ -137,7 +137,7 @@ const imageUrl = (node: MirrorNode) =>
       ? (node.imageReady ?? node.imageSource)
       : undefined
 /** Keep capture diagnostics attached to the DOM element even after measurement. */
-function captureFailure(node: MirrorNode, reason: string, cause: unknown) {
+function captureFailure(node: MirrorNode, reason: string, cause: unknown, fallback = false) {
   const detail = cause instanceof Error ? cause.message : String(cause)
   const url = node.imageSource?.split(/[?#]/, 1)[0]
   const source = url
@@ -145,16 +145,21 @@ function captureFailure(node: MirrorNode, reason: string, cause: unknown) {
     : ''
   const element = node.sourceElement ? `${node.sourceElement} (${node.id})` : node.id
   const error = new Error(`${element}${source}: ${detail}`)
-  reportGlassError('presentation', error, 'backdrop capture', reason)
+  reportGlassError('presentation', error, 'backdrop capture', reason, { fallback })
   return error
 }
 /** Decode every icon and image first (shared decode cache), so each raster is one synchronous pass. */
-async function decodeIcons(measured: readonly MeasuredSource[]) {
+const reportedPhotoFailures = new Set<ImageKey>()
+async function decodeIcons(
+  measured: readonly MeasuredSource[],
+  unavailable: ReadonlySet<string> = new Set(),
+) {
   const icons = new Map<ImageKey, HTMLImageElement>()
   const urls = new Map<ImageKey, MirrorNode[]>()
   for (const { layout } of measured) {
     for (const node of layout.nodes) {
-      if (node.regionId) continue
+      if (node.regionId || (node.kind === 'image' && unavailable.has(node.imageSource ?? '')))
+        continue
       const url = imageUrl(node)
       if (!url) continue
       const instances = urls.get(url) ?? []
@@ -168,11 +173,19 @@ async function decodeIcons(measured: readonly MeasuredSource[]) {
         const ready = typeof url === 'string' ? decodedGlassImage(url) : url
         // Page artwork can fail offline or be corrupt. Its CSS background has
         // already been measured in paint order; omit only the unavailable pixels.
-        const image = nodes.every(node => node.kind === 'image')
-          ? await settleContentImage(ready)
-          : await ready
+        const image = await ready
         if (image) icons.set(url, image)
+        else if (nodes.every(node => node.kind === 'image') && nodes.some(node => node.imageSource))
+          throw Error('Image could not decode; using its backdrop material')
       } catch (cause) {
+        if (!(cause instanceof SupersededImage) && nodes.every(node => node.kind === 'image')) {
+          const key = nodes[0].imageSource ?? url
+          if (!reportedPhotoFailures.has(key)) {
+            reportedPhotoFailures.add(key)
+            captureFailure(nodes[0], 'image-decode-failed', cause, true)
+          }
+          return
+        }
         // A superseded image is not a failure: the caller measures the page again.
         if (!(cause instanceof SupersededImage))
           for (const node of nodes) captureFailure(node, 'image-decode-failed', cause)
@@ -493,6 +506,27 @@ const fills = new Map<string, number[]>(),
   imagePixels = new WeakMap<HTMLImageElement, Map<string, number[]>>()
 let sampler: HTMLCanvasElement
 const incomplete = new WeakSet<HTMLCanvasElement>()
+const missingPhotos = new WeakMap<HTMLCanvasElement, readonly MirrorNode[]>()
+export const captureMissingPhotos = (canvas: HTMLCanvasElement) =>
+  (missingPhotos.get(canvas) ?? []).map(node => node.imageSource!).filter(Boolean)
+export function reportUnavailablePhotos(measured: MeasuredSource, sources: ReadonlySet<string>) {
+  for (const node of measured.layout.nodes) {
+    if (
+      node.kind !== 'image' ||
+      !node.imageSource ||
+      !sources.has(node.imageSource) ||
+      reportedPhotoFailures.has(node.imageSource)
+    )
+      continue
+    reportedPhotoFailures.add(node.imageSource)
+    captureFailure(
+      node,
+      'image-raster-unavailable',
+      'Photo pixels unavailable after 20 raster attempts; using backdrop material',
+      true,
+    )
+  }
+}
 /** The last raster into `canvas` is missing a photo (see photoMissing). */
 export const captureIncomplete = (canvas: HTMLCanvasElement) => incomplete.has(canvas)
 
@@ -506,9 +540,10 @@ export async function rasterProductionSource(
   resolution: number,
   dark: boolean,
   fill = background(dark),
+  unavailable: ReadonlySet<string> = new Set(),
 ) {
   const started = glassNow(),
-    icons = await decodeIcons([measured])
+    icons = await decodeIcons([measured], unavailable)
   glassTiming('capture-decode', started)
   const drawStarted = glassNow()
   const ctx = context2d(
@@ -526,6 +561,7 @@ export async function rasterProductionSource(
   compose()
   glassTiming('capture-draw', drawStarted)
   incomplete.delete(canvas)
+  missingPhotos.delete(canvas)
   const verifyStarted = glassNow()
   let canvasReadMs = 0,
     imageReadMs = 0,
@@ -566,12 +602,7 @@ export async function rasterProductionSource(
       const absent = missing()
       if (!absent.length) break
       if (attempt === 3) {
-        for (const node of absent)
-          captureFailure(
-            node,
-            'image-raster-missing',
-            'Image pixels missing after four compositions',
-          )
+        missingPhotos.set(canvas, absent)
         incomplete.add(canvas)
         break
       }

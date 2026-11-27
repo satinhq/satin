@@ -376,7 +376,7 @@ it('keeps the admitted backdrop scene drawable when cold-entry navigation upload
   })
   const initialReceipt = await send(scene(1, 100))
   expect(initialReceipt.error).toBeUndefined()
-  expect(initialReceipt.value).toEqual({ navigation: undefined, presented: [] })
+  expect(initialReceipt.value).toMatchObject({ navigation: undefined, presented: [] })
   await send({
     type: 'source-images',
     revision: 101,
@@ -388,9 +388,9 @@ it('keeps the admitted backdrop scene drawable when cold-entry navigation upload
       },
     ],
   })
-  expect((await send(scene(2, 100))).value).toEqual({ navigation: undefined, presented: [] })
+  expect((await send(scene(2, 100))).value).toMatchObject({ navigation: undefined, presented: [] })
   // A genuine backdrop replacement still rejects the predecessor scene.
   await send({ type: 'source-images', revision: 1000, images: [], backdrop: { regions: false } })
   expect((await send(scene(3, 100))).value).toEqual({ superseded: true, presented: [] })
-  expect((await send(scene(4, 1000))).value).toEqual({ navigation: undefined, presented: [] })
+  expect((await send(scene(4, 1000))).value).toMatchObject({ navigation: undefined, presented: [] })
 })

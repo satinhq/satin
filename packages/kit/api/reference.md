@@ -4,7 +4,7 @@ Search by Satin export name. Each entry describes its behavior and limits and li
 
 Generated from package declarations and reviewed behavior metadata. Run `pnpm --filter @satinhq/kit api:write` after building. Signature, export and source changes invalidate this reference; changes to behavior descriptions require review.
 
-Coverage: 942 named exports across 9 declaration entry points. 155 exports have reviewed behavior metadata. 787 type and integration declarations are identified separately in the behavior review inventory. CSS is a stylesheet, not a named export.
+Coverage: 951 named exports across 9 declaration entry points. 159 exports have reviewed behavior metadata. 792 type and integration declarations are identified separately in the behavior review inventory. CSS is a stylesheet, not a named export.
 
 An API description establishes the supported contract. It does not certify pixels, motion, touch or installed-app lifecycle behavior. Experimental entry points remain experimental. An empty Limits cell means there are no limits beyond what the declaration states.
 
@@ -81,6 +81,7 @@ Components, hooks and types for building the app.
 | [`DefaultToolbarItemProps`](../public/toolbar.d.ts) | Which system item to place, and where. Only `search` exists. |  |  |
 | [`defineApp`](../public/definition.d.ts) | Declares app identity, install metadata and capabilities once. Pass the result to `runApp` and to the `@satinhq/kit/vite` plugin. Everything not given is defaulted and the whole definition is validated, so a bad id or icon fails at build time rather than after install. | One app root per page, for iPhone and iPad WebKit. There are no multiple windows. | app manifest; app config |
 | [`defineDatabase`](../data/database.d.ts) | Opens the app's local database, stored in IndexedDB. Each collection becomes a property of the result. Bump `version` with a migration whenever the schema changes. Export and import are built in, so offer them to the user. | Data lives in IndexedDB on this device. The browser may evict it, and writes can fail. | local database; offline storage; IndexedDB |
+| [`defineFileStore`](../data/file-store.d.ts) | Opens a file store with immutable payloads and store-owned reader leases. | Requires OPFS; without Web Locks only one window is supported. get copies files up to 8 MiB; larger gets and imperative URLs stay pinned until document teardown or close. useFileURL owns and releases its preview pin across revisions and unmount; do not escape its URL lifetime. Imperative revoke only revokes the URL. Visible stores retry retired payload collection, and persisted pageshow re-acquires read pins. Consume or cancel streams, and revoke imperative URL handles. File and database changes are separate transactions; references are plain IDs. Persistence is a request, and local files still need backups. |  |
 | [`defineNamespace`](../motion/matchedGeometry.d.ts) | A namespace declared once at module scope, for views that share no parent component: a `MatchedTransitionSource` in one route and the screen it zooms into in another. Inside one component, use `useNamespace()`. | Pushed screens only; sheets and full-screen covers do not zoom. The source must be on screen, or the push slides. A downward dismiss must start within about 27 degrees of vertical. |  |
 | [`defineNavigation`](../public/structure.d.ts) | Declares the app's primary tabs or its single stack before anything renders, so every stack and tab id exists (and is typed) from the first frame. Pass the result to `runApp`; `TabView`, `Tab` and `NavigationStack` then render it. Components may freely wrap those views. | One app root per page, for iPhone and iPad WebKit. There are no multiple windows. |  |
 | [`defineResource`](../data/resource.d.ts) | Define one keyed memory resource shared by screens. Loads survive screen cover/unmount; useResource reads retained content on its first render and revalidates stale content. The loader owns transport, validation and HTTP cache policy. Satin never persists values. | No automatic persistence, transport or background execution. Include account identity in keys and clear resources on sign-out. Cold, unseeded reads still need loading UI. |  |
@@ -97,6 +98,11 @@ Components, hooks and types for building the app.
 | [`ExportDocument`](../data/database.d.ts) | The JSON document `exportJSON` writes and `importJSON` reads. |  |  |
 | [`FileImporter`](../public/filePickers.d.ts) | A button that opens the system file chooser and returns the chosen files. Cancelling keeps the current selection. | MIME types are hints, not validation. There is no photo library identifier and no lasting file access, and overlapping choosers cannot always be told apart. Not yet verified in an installed app. | file upload; document picker |
 | [`FileImporterProps`](../public/filePickers.d.ts) | The importer's label, the selected files and the content types it accepts, as MIME types or extensions. | MIME types are hints, not validation. There is no photo library identifier and no lasting file access, and overlapping choosers cannot always be told apart. Not yet verified in an installed app. |  |
+| [`FileMetadata`](../data/file-store.d.ts) | Descriptive file values. Compatible unknown fields survive backup and restore. |  |  |
+| [`FileStore`](../data/file-store.d.ts) | Define once at module scope. Writes publish metadata after payload verification. |  |  |
+| [`FileURL`](../data/file-store.d.ts) | Revoke is idempotent and deferred so a same-turn load can start. |  |  |
+| [`FileWriteFailure`](../data/file-store.d.ts) | Matches database write failures; cleanup errors use this channel too. |  |  |
+| [`FileWriteOptions`](../data/file-store.d.ts) | File, Blob and byte-stream write options. |  |  |
 | [`FixedGridItemOptions`](../content/content.d.ts) | A fixed track's size in points. |  |  |
 | [`FlexibleGridItemOptions`](../content/content.d.ts) | Bounds for a flexible track; the minimum defaults to 10 points. |  |  |
 | [`FocusChainField`](../text-input/focusChain.d.ts) | The parts of a field element that `useFocusChain` uses to move focus. |  |  |
@@ -371,6 +377,9 @@ Components, hooks and types for building the app.
 | [`useDismiss`](../presentation/dismiss.d.ts) | Closes the screen or presentation that contains the caller. In a pushed screen it pops that screen; at the root of a Sheet or FullScreenCover it dismisses the presentation, even when interactive dismissal is disabled. Elsewhere it does nothing. | Covers cannot be swiped away. They start closed after a relaunch. | close; go back |
 | [`useDismissSearch`](../search/SearchEnvironment.d.ts) | Leave the enclosing search mode, clear its query, and dismiss its keyboard. | The app supplies actual search results and recent queries. Submission dismisses the keyboard without exiting search. Scoped phone fields stay in the drawer. Minimized search-button behavior and exact installed-runtime timing remain under qualification; do not replace the framework field with an app-owned keyboard accessory. |  |
 | [`useEditMode`](../list-form/editing.d.ts) | Returns this screen's edit mode and a setter. `EditButton` toggles the same value, so a toolbar or bottom bar can follow it. | Rows are identified by their ForEach ids. Edit mode belongs to each screen and cannot be set from outside it. Outside edit mode, plain rows cannot be selected with the keyboard. |  |
+| [`useFileInfo`](../data/file-cache.d.ts) | Observe one file's metadata without loading its bytes. | Requires OPFS; without Web Locks only one window is supported. get copies files up to 8 MiB; larger gets and imperative URLs stay pinned until document teardown or close. useFileURL owns and releases its preview pin across revisions and unmount; do not escape its URL lifetime. Imperative revoke only revokes the URL. Visible stores retry retired payload collection, and persisted pageshow re-acquires read pins. Consume or cancel streams, and revoke imperative URL handles. File and database changes are separate transactions; references are plain IDs. Persistence is a request, and local files still need backups. |  |
+| [`useFiles`](../data/file-cache.d.ts) | Observe committed file metadata. Define the store once at module scope. | Requires OPFS; without Web Locks only one window is supported. get copies files up to 8 MiB; larger gets and imperative URLs stay pinned until document teardown or close. useFileURL owns and releases its preview pin across revisions and unmount; do not escape its URL lifetime. Imperative revoke only revokes the URL. Visible stores retry retired payload collection, and persisted pageshow re-acquires read pins. Consume or cancel streams, and revoke imperative URL handles. File and database changes are separate transactions; references are plain IDs. Persistence is a request, and local files still need backups. |  |
+| [`useFileURL`](../data/file-cache.d.ts) | Own a preview URL across committed revisions, ID changes and unmount. | Requires OPFS; without Web Locks only one window is supported. get copies files up to 8 MiB; larger gets and imperative URLs stay pinned until document teardown or close. useFileURL owns and releases its preview pin across revisions and unmount; do not escape its URL lifetime. Imperative revoke only revokes the URL. Visible stores retry retired payload collection, and persisted pageshow re-acquires read pins. Consume or cancel streams, and revoke imperative URL handles. File and database changes are separate transactions; references are plain IDs. Persistence is a request, and local files still need backups. |  |
 | [`useFocusChain`](../text-input/focusChain.d.ts) | Moves focus through a form's fields in `order`. The return key goes to the next field and the last one dismisses the keyboard. Disabled and unmounted fields are skipped. Spread `field(key)` onto each field. | Focus moves only through the fields you register. A custom keyboard is not possible. | next field; return key |
 | [`useGlassErrors`](../public/environment.d.ts) | Every glass renderer error so far, re-rendering when one is added. For diagnostics screens; `runApp`'s `onGlassError` is the way to report them. | Diagnostics show what failed; they do not prove the app looks or behaves right on a device. |  |
 | [`useHorizontalSizeClass`](../public/environment.d.ts) | The horizontal size class: `compact` or `regular`. Inside a presentation it is the presentation's own class; elsewhere, the window's. | Increased contrast is not reported. Size classes are compact or regular only. | iPad layout; responsive layout |
@@ -1130,6 +1139,11 @@ The declarations below have no dedicated reviewed behavior metadata. Type-only d
 - `@satinhq/kit:EdgeSetMember` (Type)
 - `@satinhq/kit:EditMode` (Type)
 - `@satinhq/kit:ExportDocument` (Type)
+- `@satinhq/kit:FileMetadata` (Type)
+- `@satinhq/kit:FileStore` (Type)
+- `@satinhq/kit:FileURL` (Type)
+- `@satinhq/kit:FileWriteFailure` (Type)
+- `@satinhq/kit:FileWriteOptions` (Type)
 - `@satinhq/kit:FixedGridItemOptions` (Type)
 - `@satinhq/kit:FlexibleGridItemOptions` (Type)
 - `@satinhq/kit:FocusChainField` (Type)
@@ -1867,11 +1881,11 @@ The declarations below have no dedicated reviewed behavior metadata. Type-only d
 
 ## Declaration graph fingerprints
 
-- `@satinhq/kit:207a070c9c74a3ac043b2beeaa42fedb3a7f41a1fd98376479ca44791ca336ba`
+- `@satinhq/kit:d4e24e93bb6b07ab7c331003282ccb623d24201c618bb4b525a020ce68701576`
 - `@satinhq/kit/vite:2a5c37d7a4a86a6f4e93516451716df9b5c73b3c81ac98509061536453d43207`
 - `@satinhq/kit/install:e080a0874c9490077cf9cbb117e03d5d58252226e9424d84101be7ee4454a422`
-- `@satinhq/kit/internal:102ecde74028a069b87c830488deb31624323f6c36c2f1177716f29bbe609754`
-- `@satinhq/kit/unstable:ea354a6220828e60f13d97aee252f1bc93235c60036749cb45e8507332751d53`
+- `@satinhq/kit/internal:e25e9601067a16e463d3aa505f84f1de6647be897b12112dea1b883b4f5a3484`
+- `@satinhq/kit/unstable:36e26fdb550b2d4d266e507690f64a3b0e5cf3e71d08d98b825759e50ffdef5f`
 - `@satinhq/kit/server:7d2b996d9541bd82fd0936e0482554f3182ffe004be56928e590ad4c4c8c79bd`
 - `@satinhq/kit/testing:04a86ddf0741e53228777bd599cbd00ff503b9e216a1f86a9791fdbee1bd5e12`
 - `@satinhq/kit/diagnostics:05327eaa9f5a55ab73834d5abaeaeffd98cfc6294fa5af5d3ba03a8609463eac`
@@ -1879,4 +1893,4 @@ The declarations below have no dedicated reviewed behavior metadata. Type-only d
 
 ## Framework source fingerprint
 
-SHA-256 of sorted TS/TSX/CSS source paths and bytes, excluding tests: 2508a88dbeec573bba42f83024879b6d7cbc34d1c6ce394f277e422779c037a5
+SHA-256 of sorted TS/TSX/CSS source paths and bytes, excluding tests: 3cce877081a90f1a60e8edd61fc62fc17509d12ba63054fe9eff811f9c830d65

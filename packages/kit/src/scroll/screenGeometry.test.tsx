@@ -19,6 +19,9 @@ import {
 } from '../public/chrome.tsx'
 import { List as PublicList } from '../public/controls.tsx'
 import { useIsSearching, useDismissSearch } from '../search/SearchEnvironment.tsx'
+import { ScrollTarget } from './ScrollTarget.tsx'
+import { SystemScrollRegistryContext } from '../navigation/navigationContext.tsx'
+import { createScrollSurfaceRegistry } from './registry.ts'
 import { ScrollSurface } from './ScrollSurface.tsx'
 import { observeListLayoutMargins } from './screenGeometry.ts'
 import type { TransitionController } from '../navigation/types.ts'
@@ -85,6 +88,26 @@ function mount(component: () => ReactNode, navigation: Record<string, unknown>) 
   )
   return (id: string) => element.querySelector<HTMLElement>(`[data-satin-scroll="${id}"]`)!
 }
+
+it('does not bind the presenting large title to a presented primary scroller on mount or election', () => {
+  mount(
+    () => (
+      <Screen title="Library" titleDisplay="large">
+        <div data-satin-presentation-content="true">
+          <div data-satin-primary="true" data-test-sheet-scroller="true" />
+        </div>
+      </Screen>
+    ),
+    { display: 'large' },
+  )
+  const header = element.querySelector<HTMLElement>('[data-satin-navigation-chrome]')!
+  const sheet = element.querySelector<HTMLElement>('[data-test-sheet-scroller]')!
+  const before = header.style.getPropertyValue('--satin-large-title-collapsed')
+  act(() => sheet.dispatchEvent(new CustomEvent('satin:primary-scroll', { bubbles: true })))
+  sheet.scrollTop = 300
+  sheet.dispatchEvent(new Event('scroll'))
+  expect(header.style.getPropertyValue('--satin-large-title-collapsed')).toBe(before)
+})
 
 it('a ScrollView that starts the screen is primary and takes the large title and bar inset', () => {
   // reference: Postcards and Music fell back to a List because a ScrollView never got the title.
@@ -764,4 +787,170 @@ it('a searchable child chooses its own content and dismisses through the environ
   expect(element.querySelector('[data-inbox]')).not.toBeNull()
   expect(element.querySelector('[data-exit]')).toBeNull()
   expect(document.activeElement?.tagName).not.toBe('INPUT')
+})
+
+it('admits targets in a plain ScrollView without a positioning option or ref', () => {
+  const scroller = mount(
+    () => (
+      <ScrollSurface id="reader">
+        <ScrollTarget id="chapter">Chapter</ScrollTarget>
+      </ScrollSurface>
+    ),
+    { display: 'large' },
+  )('reader')
+  expect(scroller.querySelector('[data-satin-scroll-target="chapter"]')?.textContent).toBe(
+    'Chapter',
+  )
+})
+
+it('G8 lets a horizontal carousel inherit its vertical target context', () => {
+  const scroller = mount(
+    () => (
+      <ScrollSurface id="outer">
+        <ScrollSurface id="carousel" axis="horizontal">
+          <ScrollTarget id="card">Card</ScrollTarget>
+        </ScrollSurface>
+      </ScrollSurface>
+    ),
+    { display: 'inline' },
+  )('outer')
+  expect(scroller.querySelector('[data-satin-scroll-target="card"]')?.textContent).toBe('Card')
+})
+it('G9 keeps draft DOM state when the first target appears and the last target disappears', () => {
+  let show!: (value: boolean) => void
+  const scroller = mount(
+    () => {
+      const [visible, setVisible] = useState(false)
+      show = setVisible
+      return (
+        <ScrollSurface id="stable">
+          <input defaultValue="Original" />
+          {visible && <ScrollTarget id="new">New</ScrollTarget>}
+        </ScrollSurface>
+      )
+    },
+    { display: 'inline' },
+  )('stable')
+  const input = scroller.querySelector('input')!
+  input.value = 'Unsubmitted draft'
+  act(() => show(true))
+  expect(scroller.querySelector('input')).toBe(input)
+  expect(scroller.querySelector('input')!.value).toBe('Unsubmitted draft')
+  act(() => show(false))
+  expect(scroller.querySelector('input')).toBe(input)
+  expect(scroller.querySelector('input')!.value).toBe('Unsubmitted draft')
+})
+
+it.each(['aria-label', 'aria-labelledby'] as const)(
+  'reference keeps %s on the semantic list',
+  attribute => {
+    const scroller = mount(
+      () => (
+        <List id="named" {...{ [attribute]: 'reading-label' }}>
+          <Section header="Group">
+            <p>Row</p>
+          </Section>
+        </List>
+      ),
+      { display: 'inline' },
+    )('named')
+    const list = scroller.querySelector('[role="list"]')!
+    expect(list.getAttribute(attribute)).toBe('reading-label')
+    expect(scroller.getAttribute(attribute)).toBeNull()
+  },
+)
+it('reference keeps a plain List in block flow when its first target mounts', () => {
+  let show!: (value: boolean) => void
+  const style = document.createElement('style')
+  style.textContent = frameworkStyleDeclarations()
+  document.head.append(style)
+  try {
+    const scroller = mount(
+      () => {
+        const [visible, setVisible] = useState(false)
+        show = setVisible
+        return (
+          <List id="flow">
+            <Section header="One">
+              <p>First</p>
+            </Section>
+            <Section header="Two">
+              <p>Second</p>
+            </Section>
+            {visible && (
+              <ScrollTarget id="marker" style={{ position: 'absolute', width: 0, height: 0 }} />
+            )}
+          </List>
+        )
+      },
+      { display: 'inline' },
+    )('flow')
+    const content = scroller.querySelector<HTMLElement>('[data-satin-scroll-content]')!
+    expect(getComputedStyle(content).display).toBe('flow-root')
+    act(() => show(true))
+    expect(getComputedStyle(content).display).toBe('flow-root')
+    expect(Number.parseFloat(getComputedStyle(content).minHeight)).toBe(0)
+  } finally {
+    style.remove()
+  }
+})
+it('reference leaves native anchoring on ancestor and plain target scrollers', () => {
+  const style = document.createElement('style')
+  style.textContent = frameworkStyleDeclarations()
+  document.head.append(style)
+  try {
+    const outer = mount(
+      () => (
+        <ScrollSurface id="outer">
+          <ScrollSurface id="plain">
+            <ScrollTarget id="row">Row</ScrollTarget>
+          </ScrollSurface>
+          <ScrollSurface id="owned" maintainVisibleContentPosition>
+            <ScrollTarget id="owned-row">Owned</ScrollTarget>
+          </ScrollSurface>
+        </ScrollSurface>
+      ),
+      { display: 'inline' },
+    )('outer')
+    expect(getComputedStyle(outer).overflowAnchor).not.toBe('none')
+    expect(
+      getComputedStyle(outer.querySelector('[data-satin-scroll="plain"]')!).overflowAnchor,
+    ).not.toBe('none')
+    expect(
+      getComputedStyle(outer.querySelector('[data-satin-scroll="owned"]')!).overflowAnchor,
+    ).toBe('none')
+  } finally {
+    style.remove()
+  }
+})
+
+it('reference falls back to pixels when a plain cold surface still has no controller or target', () => {
+  vi.useFakeTimers()
+  const registry = createScrollSurfaceRegistry({ development: false })
+  registry.setUncovered(true)
+  registry.restore(new Map([['cold', { x: 0, y: 800, anchor: { id: 'late', top: 0 } }]]))
+  try {
+    act(() =>
+      root.render(
+        <SystemScrollRegistryContext value={registry}>
+          <ScrollSurface id="cold">
+            <p>Loading</p>
+          </ScrollSurface>
+        </SystemScrollRegistryContext>,
+      ),
+    )
+    const surface = element.querySelector<HTMLElement>('[data-satin-scroll="cold"]')!
+    Object.defineProperties(surface, {
+      clientHeight: { value: 100 },
+      scrollHeight: { value: 2000 },
+    })
+    surface.scrollTo = options => {
+      surface.scrollTop = (options as ScrollToOptions).top ?? 0
+    }
+    act(() => vi.advanceTimersByTime(301))
+    expect(surface.scrollTop).toBe(800)
+    expect(registry.capture({ preservePending: true }).get('cold')?.anchor).toBeUndefined()
+  } finally {
+    vi.useRealTimers()
+  }
 })

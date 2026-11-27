@@ -6,7 +6,7 @@
   "repository": "https://github.com/satinhq/satin",
   "createPackage": "create-satin",
   "workspaceScope": "@satinhq",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "packages": {
     "kit": "@satinhq/kit",
     "lint": "@satinhq/lint",

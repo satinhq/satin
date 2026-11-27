@@ -128,7 +128,7 @@ export function satinAppFixtures(
           "import { createElement } from 'react'",
           "import { createRoot } from 'react-dom/client'",
           `import Page from ${page}`,
-          "createRoot(document.getElementById('satin-install-guide'), { onUncaughtError: error => window.__SATIN_PRELAUNCH__.error(String(error), 'Install Page Failed') }).render(createElement(Page))",
+          "createRoot(document.getElementById('satin-install-guide'), { onUncaughtError: error => window.__SATIN_PRELAUNCH__?.error('The install page failed to load. Please retry.', 'Install Page Failed', undefined, String(error)) }).render(createElement(Page))",
         ].join('\n')
       },
       writeBundle() {
@@ -353,6 +353,7 @@ export function satinAppFixtures(
           installPage(app, 'install', base, {
             customPage: customInstallUrl,
             cover: covers.get(app.id),
+            diagnostics: !production || app.updateProfile !== 'release',
           }),
         )
         if (app.scope !== base) {
@@ -442,7 +443,11 @@ export function satinAppFixtures(
               kind === 'install' && options.installPage
                 ? base + '@id/__x00__' + CUSTOM_INSTALL_ID
                 : undefined
-            let html = installPage(app, kind, base, { customPage, cover: covers.get(app.id) })
+            let html = installPage(app, kind, base, {
+              customPage,
+              cover: covers.get(app.id),
+              diagnostics: true,
+            })
             // In dev the custom page is served through Vite (its client and React's refresh).
             if (customPage) html = await server.transformIndexHtml(path, html)
             res.setHeader('Content-Type', 'text/html')

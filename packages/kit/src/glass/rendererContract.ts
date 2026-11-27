@@ -99,7 +99,7 @@ export type GlassRendererOperation =
       contentEpoch: number
       track: AccessoryViewportTrack
     }
-  | { type: 'attach-presenter'; presenter: GlassPresenter; canvas: GlassCanvas }
+  | { type: 'attach-presenter'; presenter: GlassPresenter; canvas: GlassCanvas; replaces?: string }
   | { type: 'detach-presenter'; id: string }
   | { type: 'scene'; snapshot: GlassSceneSnapshot }
   | { type: 'source'; source: GlassSource; bitmap: ImageBitmap }
@@ -158,6 +158,7 @@ export type GlassRegionEvent =
       scaleX: number
       scaleY: number
     }
+  | { type: 'field-settled'; presenterId: string; regionIds: readonly string[] }
   | { type: 'emerge-settled'; regionId: string; generation?: number }
   /** A menu's rows moved between its glass ink and its live DOM: the glass draws them settled
    * (`open-settled`: show the DOM rows) or has taken them into the close (`close-started`). */

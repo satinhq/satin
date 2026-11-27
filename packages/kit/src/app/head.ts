@@ -93,6 +93,7 @@ export function generateAppHead(
  document.documentElement.dataset.satinViewportFit = fit;
  (${installLaunchScreenRuntime.toString()})({
   markup: selected.cover, css: ${JSON.stringify(prelaunchCSS)}, scope: app.scope,
+  diagnostics: ${!production || devServer} || app.updateProfile !== 'release',
   background: app.appearance.background,
   darkBackground: app.appearance.darkLaunch === 'match-light' ? app.appearance.background : app.appearance.darkLaunch.background,
   darkInk: app.appearance.darkLaunch === 'match-light' ? '#1c1c1e' : '#ffffff'
